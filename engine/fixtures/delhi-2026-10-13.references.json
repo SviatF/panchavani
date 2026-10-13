@@ -1,0 +1,24 @@
+{
+  "city": "delhi",
+  "date": "2026-10-13",
+  "timezone": "Asia/Kolkata",
+  "description": "Transcribed external research comparators; methodological independence and minute/second rounding remain unverified. NOT an approval fixture.",
+  "sources": [
+    {
+      "name": "AstroSage",
+      "url": "https://panchang.astrosage.com/panchang/aajkapanchang?date=13-10-2026&language=en&view=amp",
+      "sunrise": "06:20:21",
+      "sunset": "17:54:10",
+      "tithi_end": "23:28:52"
+    },
+    {
+      "name": "Drik Panchang",
+      "url": "https://www.drikpanchang.com/panchang/day-panchang.html?geoname-id=2170078",
+      "sunrise": "06:20",
+      "sunset": "17:54",
+      "tithi_end": "23:27"
+    }
+  ],
+  "tolerance_seconds": 120,
+  "note": "These are pilot consistency checks only. Differences in source rounding, coordinates and sunrise convention require expert evaluation."
+}
