@@ -1,0 +1,31 @@
+name: Verify static Next.js build
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check out project and original generated WebP assets
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Build static site
+        run: npm run build
+      - name: Verify generated routes and media
+        run: |
+          test -f out/index.html
+          test -f out/panchang/index.html
+          test -f out/muhurat/wedding/index.html
+          test -f out/festivals/dussehra/index.html
+          test -f out/imgs/hero-main-bg.webp
+          test -f out/imgs/card-start-business.webp
+          grep -qi 'noindex' out/index.html
