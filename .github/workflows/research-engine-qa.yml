@@ -24,6 +24,24 @@ jobs:
         run: cd engine && python -m unittest discover -s tests -v
       - name: Validate Python module syntax
         run: python -m compileall -q engine/panchavani engine/tests
+      - name: Validate private D1 migrations and research-only schema invariants
+        run: |
+          python - <<'PY'
+          import sqlite3, pathlib
+          con=sqlite3.connect(':memory:')
+          con.execute('PRAGMA foreign_keys=ON')
+          for p in sorted(pathlib.Path('admin/migrations').glob('*.sql')):
+              con.executescript(p.read_text())
+          con.execute("INSERT INTO job_requests(id,city_id,local_date,status,requested_by) VALUES('id1','delhi','2026-10-13','queued','test@example.com')")
+          con.execute("INSERT INTO research_candidates(id,job_id,city_id,local_date,content_hash,r2_key,blocker_count) VALUES('id2','id1','delhi','2026-10-13',?, 'unapproved/test.json', 4)", ('a'*64,))
+          try:
+              con.execute("UPDATE research_candidates SET status='published' WHERE id='id2'")
+          except sqlite3.IntegrityError:
+              pass
+          else:
+              raise AssertionError('PRIVATE research table allowed published status')
+          print('PASS: migrations and research-only status enforcement')
+          PY
   private-admin:
     runs-on: ubuntu-latest
     steps:
