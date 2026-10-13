@@ -7,7 +7,7 @@
     "dev": "next dev",
     "prebuild": "node scripts/sync-assets.mjs",
     "build": "next build",
-    "start": "next start",
+    "start": "wrangler dev",
     "typecheck": "tsc --noEmit",
     "deploy": "npm run build && wrangler deploy",
     "clean": "node scripts/clean-assets.mjs"
