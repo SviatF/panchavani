@@ -29,3 +29,5 @@ jobs:
           test -f out/imgs/hero-main-bg.webp
           test -f out/imgs/card-start-business.webp
           grep -qi 'noindex' out/index.html
+      - name: Validate Wrangler assets-only deployment configuration (dry run)
+        run: npx wrangler deploy --dry-run
