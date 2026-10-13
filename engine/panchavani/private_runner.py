@@ -15,7 +15,7 @@ import uuid
 from datetime import date
 from pathlib import Path
 from urllib.parse import urlsplit
-from urllib.request import Request, urlopen
+from urllib.request import Request, build_opener, HTTPRedirectHandler
 from urllib.error import HTTPError, URLError
 from .compute import calculate
 from .cities import PILOT_CITIES
@@ -24,6 +24,10 @@ PINNED_JPL_SHA256 = 'c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260
 
 class RunnerError(RuntimeError):
     pass
+
+class NoRedirect(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise RunnerError('Unexpected redirect while sending private credentials')
 
 def _signed_headers(secret: str, method: str, path: str, data: bytes) -> dict[str,str]:
     timestamp = str(int(time.time()*1000))
@@ -52,7 +56,7 @@ def post(base: str, path: str, data: dict, *, hmac_key: str, access_id: str, acc
     })
     req=Request(base.rstrip('/')+path,data=raw,headers=headers,method='POST')
     try:
-        with urlopen(req,timeout=45) as res:
+        with build_opener(NoRedirect).open(req,timeout=45) as res:
             result=json.loads(res.read(512_000))
             if not isinstance(result,dict):
                 raise RunnerError('Invalid API response')
