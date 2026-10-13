@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
-import { Flower2, Search, MapPin, Menu, X, Settings2, ChevronDown, ArrowUpRight } from 'lucide-react';
+import { Search, MapPin, Menu, X, Settings2, ChevronDown, ArrowUpRight } from 'lucide-react';
 import { primaryNav, muhuratCards } from '@/lib/site';
 const targets = [
   ...primaryNav.map(n=>({label:n.title,href:n.href,detail:'Explore section'})),
@@ -11,14 +11,15 @@ const targets = [
 ];
 export function SiteHeader() {
  const pathname = usePathname();const router = useRouter();
- const [menu,setMenu]=useState(false);const [query,setQuery]=useState('');const [focused,setFocused]=useState(false);const [cityHelp,setCityHelp]=useState(false);
+ const [menu,setMenu]=useState(false);const [query,setQuery]=useState('');const [focused,setFocused]=useState(false);const [cityHelp,setCityHelp]=useState(false);const [scrolled,setScrolled]=useState(false);
  const searchRef=useRef<HTMLDivElement>(null);
  useEffect(()=>{setMenu(false);setCityHelp(false)},[pathname]);
+ useEffect(()=>{const onScroll=()=>setScrolled(window.scrollY>28);onScroll();window.addEventListener('scroll',onScroll,{passive:true});return()=>window.removeEventListener('scroll',onScroll)},[]);
  useEffect(()=>{function onKey(e:KeyboardEvent){if(e.key==='Escape'){setFocused(false);setMenu(false);setCityHelp(false)}}window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[]);
  const found=targets.filter(x=>`${x.label} ${x.detail}`.toLowerCase().includes(query.toLowerCase())).slice(0,6);
  const submit=()=>{if(found.length){router.push(found[0].href);setFocused(false);setQuery('')}};
- return <header className="site-header"><div className="header-inner">
- <Link href="/" className="brand" aria-label="Panchavani home"><span className="brand-mark"><Flower2 size={33} strokeWidth={1.55}/></span><span className="brand-lines"><span className="brand-name">PANCHAVANI</span><span className="brand-tagline">HARMONY WITH COSMIC TIME</span></span></Link>
+ return <header className={`site-header ${pathname==='/'?'site-header--home':'site-header--interior'} ${scrolled?'is-scrolled':''}`}><div className="header-inner">
+ <Link href="/" className="brand" aria-label="Panchavani home"><span className="brand-mark"><img src="/imgs/logo.webp" width="48" height="48" alt="" decoding="async"/></span><span className="brand-lines"><span className="brand-name">PANCHAVANI</span><span className="brand-tagline">HARMONY WITH COSMIC TIME</span></span></Link>
  <nav className="desktop-nav" aria-label="Main navigation">{primaryNav.map(item=><Link key={item.href} className={pathname===item.href?'active':''} href={item.href}>{item.title}</Link>)}</nav>
  <div className="header-actions"><div className="header-search" ref={searchRef}><Search size={16} aria-hidden="true"/><input aria-label="Search pages" value={query} onChange={e=>{setQuery(e.target.value);setFocused(true)}} onFocus={()=>setFocused(true)} onBlur={()=>setTimeout(()=>setFocused(false),150)} onKeyDown={e=>{if(e.key==='Enter')submit()}} placeholder="Search city, festival, muhurat..."/><button className="search-submit" aria-label="Search" onClick={submit}><ArrowUpRight size={14}/></button>
  {focused&&query.length>0&&<div className="search-results" role="listbox">{found.length?found.map(target=><button key={target.href} onMouseDown={e=>e.preventDefault()} onClick={()=>{router.push(target.href);setFocused(false);setQuery('')}}><span>{target.label}</span><small>{target.detail}</small></button>):<p>No preview pages match this search.</p>}</div>}</div>

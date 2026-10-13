@@ -7,7 +7,7 @@ const into = join(process.cwd(), 'public', 'imgs');
 const expected = [
   'hero-main-bg', 'festival-dussehra', 'highlight-tithi', 'highlight-nakshatra',
   'highlight-abhijit', 'highlight-rahu', 'card-wedding', 'card-griha-pravesh',
-  'card-vehicle-purchase', 'card-start-business',
+  'card-vehicle-purchase', 'card-start-business', 'logo',
 ];
 if (!existsSync(from)) {
   console.error('Missing ./imgs/ — commit the 10 original generated WebP assets to the repository first.');
@@ -20,8 +20,10 @@ for (const name of expected) {
     process.exit(1);
   }
 }
+if (!present.has('favicon_gold_frame.ico')) { console.error('Missing original asset: imgs/favicon_gold_frame.ico'); process.exit(1); }
 mkdirSync(into, { recursive: true });
-for (const filename of [...present].filter(name => /\.webp$/i.test(name))) {
+const mediaAssets = [...present].filter(name => /\.(webp|ico)$/i.test(name));
+for (const filename of mediaAssets) {
   cpSync(join(from, filename), join(into, filename));
 }
-console.log(`PANCHAVANI: staged ${present.size} local assets for Next.js /imgs/...`);
+console.log(`PANCHAVANI: staged ${mediaAssets.length} local assets for Next.js /imgs/...`);
