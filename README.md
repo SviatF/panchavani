@@ -18,7 +18,7 @@ The user-approved image files remain in **`imgs/`**, named:
 
 `npm run build` (and `npm run dev`) first runs `scripts/sync-assets.mjs`, validating and copying them to ignored `public/imgs/`. Never rename files or load images from the web. This avoids committing the same binaries twice.
 
-**Missing visual assets:** two Muhurat tiles (Naming Ceremony, Education) use original CSS/vector-style artwork; five regions use distinct original CSS architecture silhouettes. These must later be replaced with **new, project-owned, region-specific generated WebP** rather than unrelated stock images; no false claim is made that the current placeholders are regional photographs.
+**Regional imagery:** five newly generated cinematic architectural illustrations, stored locally as `imgs/region-{uttar-pradesh,maharashtra,tamil-nadu,karnataka,gujarat}.webp`. These images are illustrative compositions, not documentary photographs or verified depictions of specific buildings. Two Muhurat tiles (Naming Ceremony, Education) still use original CSS/vector-style artwork.
 
 ## Commands
 

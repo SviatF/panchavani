@@ -8,6 +8,8 @@ const expected = [
   'hero-main-bg', 'festival-dussehra', 'highlight-tithi', 'highlight-nakshatra',
   'highlight-abhijit', 'highlight-rahu', 'card-wedding', 'card-griha-pravesh',
   'card-vehicle-purchase', 'card-start-business', 'logo',
+  'region-uttar-pradesh', 'region-maharashtra', 'region-tamil-nadu',
+  'region-karnataka', 'region-gujarat',
 ];
 if (!existsSync(from)) {
   console.error('Missing ./imgs/ — commit the 10 original generated WebP assets to the repository first.');

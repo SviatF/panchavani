@@ -29,6 +29,11 @@ jobs:
           test -f out/imgs/hero-main-bg.webp
           test -f out/imgs/card-start-business.webp
           test -f out/imgs/logo.webp
+          test -f out/imgs/region-uttar-pradesh.webp
+          test -f out/imgs/region-maharashtra.webp
+          test -f out/imgs/region-tamil-nadu.webp
+          test -f out/imgs/region-karnataka.webp
+          test -f out/imgs/region-gujarat.webp
           test -f out/imgs/favicon_gold_frame.ico
           grep -q 'favicon_gold_frame.ico' out/index.html
           grep -qi 'noindex' out/index.html

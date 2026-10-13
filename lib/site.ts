@@ -45,11 +45,11 @@ export const muhuratCards = [
 ] as const;
 
 export const regionalCards = [
-  {slug:'uttar-pradesh',name:'Uttar Pradesh',style:'reg-up'},
-  {slug:'maharashtra',name:'Maharashtra',style:'reg-mh'},
-  {slug:'tamil-nadu',name:'Tamil Nadu',style:'reg-tn'},
-  {slug:'karnataka',name:'Karnataka',style:'reg-ka'},
-  {slug:'gujarat',name:'Gujarat',style:'reg-gj'},
+  {slug:'uttar-pradesh',name:'Uttar Pradesh',style:'reg-up',img:'region-uttar-pradesh'},
+  {slug:'maharashtra',name:'Maharashtra',style:'reg-mh',img:'region-maharashtra'},
+  {slug:'tamil-nadu',name:'Tamil Nadu',style:'reg-tn',img:'region-tamil-nadu'},
+  {slug:'karnataka',name:'Karnataka',style:'reg-ka',img:'region-karnataka'},
+  {slug:'gujarat',name:'Gujarat',style:'reg-gj',img:'region-gujarat'},
 ] as const;
 
 export const sectionData = {
