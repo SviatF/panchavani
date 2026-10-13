@@ -1,0 +1,56 @@
+name: JPL astronomy pilot (research only)
+on:
+  push:
+    paths:
+      - '.github/workflows/astronomy-pilot.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  astronomy-pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned Skyfield and JPL SPK dependencies
+        run: pip install -r engine/requirements.txt
+      - name: Download official NASA JPL DE440s kernel and verify pinned checksum
+        run: |
+          curl --fail --location --retry 3 --max-time 240 --silent --show-error \
+            https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp \
+            --output /tmp/de440s.bsp
+          echo 'c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2  /tmp/de440s.bsp' | sha256sum --check
+      - name: Generate THREE real astronomical candidates — never publish
+        run: |
+          mkdir -p engine/artifacts
+          for city in delhi mumbai chennai; do
+            PYTHONPATH=engine python -m panchavani.compute \
+              --city "$city" --date 2026-10-13 \
+              --ephemeris /tmp/de440s.bsp \
+              --expected-sha256 c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2 \
+              --out "engine/artifacts/${city}-2026-10-13-candidate.json"
+          done
+      - name: Assert candidate only, no approval and real city-specific sunrise
+        run: |
+          python - <<'PY'
+          import glob,json,datetime
+          rows=[json.load(open(p)) for p in sorted(glob.glob('engine/artifacts/*.json'))]
+          assert len(rows)==3
+          assert all(r['status']=='calculated' and r['validation']['blockerCount']>0 for r in rows)
+          assert all(r['panchangAtSunrise']['nakshatra'] is None for r in rows)
+          assert all(r.get('approvedBy') is None and r.get('releaseId') is None for r in rows)
+          sunrises=[r['sun']['sunriseUtc'] for r in rows]
+          assert len(set(sunrises))==3
+          for r in rows:
+              print(r['city']['id'], 'sunriseUtc:',r['sun']['sunriseUtc'],'sunsetUtc:',r['sun']['sunsetUtc'],'tithi:',r['panchangAtSunrise']['tithi'],'blockers:',r['validation']['blockerCount'])
+          print('PASS: real JPL research data; NOT independently validated; publication forbidden')
+          PY
+      - name: Save unapproved research artifacts for restricted review (3 days)
+        uses: actions/upload-artifact@v4
+        with:
+          name: panchavani-jpl-candidates-unapproved
+          path: engine/artifacts/*.json
+          retention-days: 3
