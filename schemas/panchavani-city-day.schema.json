@@ -178,15 +178,24 @@
           "minLength": 1
         },
         "nakshatra": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "minLength": 1
         },
         "yoga": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "minLength": 1
         },
         "karana": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "minLength": 1
         },
         "vara": {
@@ -387,6 +396,53 @@
         "required": [
           "releaseId"
         ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "approved",
+              "published"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "panchangAtSunrise": {
+            "properties": {
+              "tithi": {
+                "type": "string",
+                "minLength": 1
+              },
+              "nakshatra": {
+                "type": "string",
+                "minLength": 1
+              },
+              "yoga": {
+                "type": "string",
+                "minLength": 1
+              },
+              "karana": {
+                "type": "string",
+                "minLength": 1
+              },
+              "vara": {
+                "type": "string",
+                "minLength": 1
+              },
+              "paksha": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
       }
     }
   ]

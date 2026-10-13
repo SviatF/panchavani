@@ -1,0 +1,12 @@
+{
+  "name": "panchavani-private-admin",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "check": "node --check src/index.mjs && wrangler deploy --dry-run"
+  },
+  "dependencies": { "jose": "^6.1.0" },
+  "devDependencies": { "wrangler": "^4.150.0" }
+}

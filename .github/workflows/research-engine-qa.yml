@@ -1,0 +1,37 @@
+name: Private calculation and admin QA
+on:
+  push:
+    paths:
+      - 'engine/**'
+      - 'admin/**'
+      - '.github/workflows/research-engine-qa.yml'
+  pull_request:
+    paths:
+      - 'engine/**'
+      - 'admin/**'
+      - '.github/workflows/research-engine-qa.yml'
+permissions:
+  contents: read
+jobs:
+  mathematics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run offline numerical invariants (never claim reference accuracy)
+        run: cd engine && python -m unittest discover -s tests -v
+      - name: Validate Python module syntax
+        run: python -m compileall -q engine/panchavani engine/tests
+  private-admin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install private Worker dependencies
+        run: cd admin && npm install --no-audit --no-fund
+      - name: Check protected Worker syntax and deploy bundle (dry-run only)
+        run: cd admin && npm run check

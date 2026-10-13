@@ -2,6 +2,13 @@
 
 Next.js 15 **App Router + SSG** implementation of the approved PANCHAVANI V1 visual concept.
 
+## Research engine and private admin (Wave 1, not deployed)
+
+- `engine/`: Skyfield/JPL candidate calculations, city sunrise/sunset and UTC tithi transitions; **requires a verified JPL kernel**, city catalog is provisional and no ritual output is approved. Run `cd engine && python -m unittest discover -s tests -v` for the mathematical unit tests.
+- `engine/panchavani/release_gate.py`: hard refusal rules for unverifiable results and near-duplicate SEO content.
+- `admin/`: separate JWT-protected Cloudflare Worker and optional D1 research-request queue. **Not connected to a compute runner, not provisioned or deployed**. See `admin/README.md` before enabling; no credentials are committed.
+- Public `panchavani.com` remains visual SSG preview with `noindex`, and **does not read/administer these candidate records**.
+
 ## Tech / render model
 
 - Next.js App Router / React 19 / TypeScript / CSS, no component framework
