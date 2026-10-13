@@ -23,3 +23,80 @@
 @media(max-width:680px){.site-header{height:66px}.header-inner{padding:0 16px}.brand{min-width:auto}.brand-mark{width:32px}.brand-mark svg{width:28px}.brand-name{font-size:19px}.brand-tagline{font-size:6px;letter-spacing:1.1px}.header-search{display:none}.header-settings{display:none}.city-control{padding:0 9px;height:35px;font-size:10px}.city-control svg:first-child{width:12px}.mobile-menu-toggle{width:36px;height:36px}.mobile-nav{top:66px;grid-template-columns:repeat(2,1fr);padding:13px}.preview-strip{font-size:8px;letter-spacing:.3px;line-height:1.4}.page-width{width:calc(100% - 30px)}.hero{min-height:0}.hero-photo{background-position:50% 50%}.hero-gradients{background:linear-gradient(180deg,rgba(4,9,15,.92),rgba(4,9,15,.48) 41%,rgba(4,9,15,.28) 74%,rgba(4,9,15,.95)),linear-gradient(90deg,#080e15a1,transparent 70%)}.hero-content{display:flex;flex-direction:column;padding:31px 0 20px}.hero-copy{width:100%;text-align:left}.hindi-ornament{font-size:15px;letter-spacing:1px;margin:0 0 10px}.hero-copy .section-eyebrow{margin-bottom:11px;font-size:8px;letter-spacing:1.5px}.hero-copy h1{font-size:57px;letter-spacing:-1.6px;margin-bottom:12px}.hero-copy h1 span{display:inline}.hero-date{font-size:16px;margin-bottom:12px}.hero-paksha{margin-bottom:8px}.hero-nakshatra{font-size:11px}.hero-quote{margin:12px 0 18px;font-size:13px}.hero-quote br{display:none}.hero-cta-row{gap:13px}.gold-button{min-width:175px;height:43px;padding:0 13px;font-size:11px}.play-round{height:36px;width:36px}.play-button{font-size:10px}.hero-wheel{margin:8px auto 0;width:min(100%,420px)}.feature-ribbon{grid-template-columns:repeat(4,minmax(0,1fr));border-radius:7px}.feature-item{height:86px;padding:9px 3px}.feature-item svg{height:22px;width:22px;margin-bottom:6px}.feature-item strong{font-size:11px;margin-bottom:3px}.feature-item span{font-size:8px;line-height:1.35;max-width:90px}.main-panels{padding-top:25px;gap:18px}.section-heading h2{font-size:23px}.section-hint{font-size:10px}.subtle-link{font-size:10px}.highlights-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.highlight-card{height:162px}.highlight-card strong{font-size:17px}.festival-card{min-height:210px}.lower-panels{margin-top:15px;gap:15px}.moments-section,.regions-section{padding:14px 12px}.moments-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.moment-photo,.motif-art{height:95px}.moment-info{min-height:124px}.moment-info strong{font-size:12px}.moment-info>span:not(.moment-arrow){font-size:9px;padding-right:10px}.regions-grid{grid-template-columns:repeat(5,minmax(105px,1fr));overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px}.region-card{scroll-snap-align:start;height:160px}.region-caption{font-size:9px}.quiet-banner{display:flex;flex-direction:column;align-items:flex-start;padding:22px 18px;margin-top:18px;margin-bottom:25px;gap:20px}.quiet-banner h2{font-size:23px}.quiet-banner p{font-size:11px}.footer-top{flex-direction:column;gap:15px}.footer-top nav{justify-content:flex-start;gap:12px}.footer-bottom{flex-direction:column;gap:7px}.interior-hero{min-height:420px}.interior-hero-content{padding:40px 0}.back-link{margin-bottom:28px}.interior-hero h1{font-size:53px}.interior-hero p{font-size:13px}.interior-body{grid-template-columns:1fr;gap:15px;padding-block:23px 45px}.interior-feature,.interior-links{padding:21px}}
 @media(max-width:390px){.brand-tagline{font-size:5.4px}.brand-name{font-size:17px}.header-actions{gap:7px}.city-control span{font-size:9px}.city-control{gap:3px}.hero-copy h1{font-size:49px}.play-button span:last-child{display:none}.gold-button{min-width:176px}.feature-item strong{font-size:10px}.highlights-grid{gap:7px}.highlight-card{padding:12px 9px}.moments-grid{grid-template-columns:repeat(2,1fr)}.moments-section .section-heading{flex-wrap:wrap}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.clock-aura{animation:none}*,*:before,*:after{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+
+
+/* PANCHAVANI V1 desktop design-match: 1536×1024 reference.
+   Height-aware layout preserves the approved mobile design at <=1180px. */
+@media(min-width:1181px){
+ :root{--desktop-hero-height:clamp(365px,43.1dvh,445px)}
+ .site-header{height:62px}
+ .header-inner{max-width:1560px;padding-inline:clamp(22px,2.6vw,42px);gap:clamp(15px,2vw,28px)}
+ .brand{min-width:218px;gap:9px}.brand-mark{height:39px;width:39px}
+ .brand-name{font-size:25px}.brand-tagline{font-size:7px;letter-spacing:1.8px}
+ .desktop-nav{gap:clamp(11px,1.5vw,22px)}
+ .desktop-nav a{font-size:11px;padding-block:18px}
+ .desktop-nav a.active:after{bottom:8px}
+ .header-search{width:clamp(180px,15vw,244px);height:36px}
+ .city-control,.icon-control{height:36px}.icon-control{width:36px}
+ /* Keep the disclosure in accessible text; robots:noindex remains enabled. */
+ .preview-strip{position:absolute;width:1px;height:1px;min-height:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;padding:0;border:0}
+ .hero{height:var(--desktop-hero-height)}
+ .hero-photo{background-position:center 55%;filter:saturate(.89) brightness(.82) contrast(1.07)}
+ .hero-gradients{background:linear-gradient(90deg,rgba(3,8,15,.88) 0%,rgba(5,9,15,.64) 21%,rgba(5,9,15,.19) 40%,rgba(5,9,15,.2) 72%,rgba(4,7,13,.71) 100%),linear-gradient(180deg,rgba(2,5,11,.27),transparent 29%,rgba(4,8,13,.16) 72%,rgba(3,7,12,.64) 100%)}
+ .hero-content{grid-template-columns:minmax(0,30%) minmax(0,43%) minmax(0,27%);align-items:center}
+ .hero-copy{padding:0 0 0 clamp(8px,1.4vw,23px);align-self:center}
+ .hindi-ornament{font-size:15px;letter-spacing:1.4px;margin-bottom:8px}
+ .hero-copy .section-eyebrow{font-size:9px;letter-spacing:1.9px;margin-bottom:17px}
+ .hero-copy h1{font-size:clamp(39px,4.5dvh,47px);line-height:1.07;letter-spacing:-1.5px;margin-bottom:11px;white-space:nowrap}
+ .hero-copy h1 span{display:inline;line-height:inherit}
+ .hero-date{font-size:clamp(16px,1.75dvh,19px);margin-bottom:15px}
+ .hero-paksha{font-size:12px;margin-bottom:10px}
+ .hero-nakshatra{font-size:11px}.hero-nakshatra small{font-size:10px}
+ .hero-quote{font-size:13px;line-height:1.55;margin:22px 0 20px}
+ .hero-cta-row{gap:17px}
+ .gold-button{height:43px;min-width:188px;font-size:11px}
+ .play-round{height:41px;width:41px}.play-button{font-size:10px}
+ .hero-wheel{width:min(100%,calc(var(--desktop-hero-height) - 1px));margin:0;align-self:center}
+ .cosmic-clock>svg>circle[stroke="#c48834"]{fill-opacity:.92}
+ .planet-box{align-self:start;margin-top:clamp(24px,3.5dvh,36px);max-width:235px;padding:13px 13px 11px}
+ .planet-title{font-size:14px}.planet-small{margin:4px 0 9px;font-size:9px}
+ .planet-row{min-height:clamp(23px,2.7dvh,26px);font-size:10px}
+ .planet-disclaimer{font-size:8px;margin:7px 0}
+ .planet-link{height:31px;font-size:10px}
+ .feature-ribbon{height:clamp(84px,9.9dvh,102px);margin-top:0}
+ .feature-item{padding:8px 3px}
+ .feature-item svg{width:clamp(20px,2.5dvh,25px);height:clamp(20px,2.5dvh,25px);margin-bottom:5px}
+ .feature-item strong{font-size:12px;margin-bottom:3px}
+ .feature-item span{font-size:9px;line-height:1.2}
+ .main-panels{padding-top:clamp(12px,1.6dvh,17px);gap:14px;grid-template-columns:minmax(0,2.22fr) minmax(280px,1fr)}
+ .section-heading{margin-bottom:clamp(9px,1.15dvh,12px)}
+ .section-heading h2{font-size:clamp(19px,2.15dvh,23px);margin-bottom:4px}
+ .section-hint{font-size:10px}
+ .highlights-section .section-hint{display:none}
+ .highlights-grid{gap:9px}
+ .highlight-card{height:clamp(113px,12.8dvh,133px);padding:11px 11px;border-radius:7px}
+ .small-pill{font-size:9px;padding:2px 7px;margin-bottom:6px}
+ .highlight-card strong{font-size:clamp(14px,1.7dvh,17px)}
+ .highlight-time{margin-top:5px;font-size:9px}
+ .highlight-card p{font-size:9px;line-height:1.35}
+ .festival-card{min-height:0;height:100%;align-self:stretch;padding:clamp(13px,1.65dvh,18px) 18px 13px;background-position:center 43%}
+ .festival-card strong{font-size:clamp(26px,3.3dvh,34px);margin-top:6px}
+ .festival-date{font-size:10px;margin-top:2px}
+ .festival-card p{margin:8px 0 7px;font-size:10px;line-height:1.35}
+ .festival-card .outline-button{min-height:28px;padding-inline:12px;font-size:10px}
+ .lower-panels{margin-top:clamp(11px,1.35dvh,15px);gap:14px}
+ .moments-section,.regions-section{padding:clamp(10px,1.4dvh,14px) 13px 11px}
+ .moments-section .section-heading,.regions-section .section-heading{margin-bottom:clamp(8px,1dvh,12px)}
+ .moments-section .section-heading h2,.regions-section .section-heading h2{font-size:clamp(18px,2.1dvh,22px)}
+ .moments-grid{gap:7px}
+ .moment-photo,.motif-art{height:clamp(55px,6.8dvh,70px)}
+ .moment-info{min-height:clamp(48px,5.3dvh,55px);gap:2px;padding:5px 6px 8px}
+ .moment-info>svg{display:none}
+ .moment-info strong{font-size:11px;line-height:1.15}
+ .moment-info>span:not(.moment-arrow){font-size:8px;line-height:1.3;padding-right:14px}
+ .moment-arrow{height:19px;width:19px;right:4px;bottom:14px}
+ .region-card{height:clamp(110px,12.4dvh,128px)}
+ .region-caption{min-height:29px;font-size:9px;padding:5px}
+ .region-temple{transform:scale(.87);transform-origin:center bottom}
+ .regional-art-note{margin:5px 0 0;font-size:8px}
+}
