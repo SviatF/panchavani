@@ -1,0 +1,393 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://panchavani.com/schemas/panchavani-city-day-v1.json",
+  "title": "PANCHAVANI versioned city-day calculation result",
+  "description": "Internal candidate calculation. Valid schema != authoritative data. Do not publish without policy gates and explicit human approvals.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordId",
+    "city",
+    "localDate",
+    "methodology",
+    "sun",
+    "panchangAtSunrise",
+    "transitions",
+    "validation",
+    "status"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "recordId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "city": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "lat",
+        "lon",
+        "tz",
+        "catalogVersion"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lat": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+        },
+        "lon": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        },
+        "elevationMeters": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "tz": {
+          "type": "string",
+          "minLength": 3
+        },
+        "catalogVersion": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "localDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "tradition": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "methodology": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "engineVersion",
+        "ephemerisId",
+        "ephemerisHash",
+        "ayanamsa",
+        "sunriseConvention",
+        "rulePackId",
+        "tzdbVersion"
+      ],
+      "properties": {
+        "engineVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ephemerisId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ephemerisHash": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ayanamsa": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sunriseConvention": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rulePackId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tzdbVersion": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "sun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sunriseUtc",
+        "sunsetUtc",
+        "nextSunriseUtc"
+      ],
+      "properties": {
+        "sunriseUtc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "sunsetUtc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "nextSunriseUtc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "moonriseUtc": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "moonsetUtc": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        }
+      }
+    },
+    "panchangAtSunrise": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tithi",
+        "nakshatra",
+        "yoga",
+        "karana",
+        "vara",
+        "paksha"
+      ],
+      "properties": {
+        "tithi": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nakshatra": {
+          "type": "string",
+          "minLength": 1
+        },
+        "yoga": {
+          "type": "string",
+          "minLength": 1
+        },
+        "karana": {
+          "type": "string",
+          "minLength": 1
+        },
+        "vara": {
+          "type": "string",
+          "minLength": 1
+        },
+        "paksha": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "transitions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "startUtc",
+          "endUtc",
+          "value"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "tithi",
+              "nakshatra",
+              "yoga",
+              "karana",
+              "daylight",
+              "rahu-kalam",
+              "yamaganda",
+              "gulika",
+              "abhijit"
+            ]
+          },
+          "startUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ruleId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blockerCount",
+        "fixturesPassed",
+        "fixturesTotal",
+        "reviewStatus"
+      ],
+      "properties": {
+        "blockerCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fixturesPassed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fixturesTotal": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "referenceComparisons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reviewStatus": {
+          "enum": [
+            "not-reviewed",
+            "machine-validated",
+            "domain-reviewed"
+          ]
+        },
+        "reviewer": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reviewedAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "evidenceHash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "status": {
+      "enum": [
+        "calculated",
+        "validation-failed",
+        "pending-review",
+        "approved",
+        "published",
+        "rejected",
+        "superseded"
+      ]
+    },
+    "approvedBy": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "releaseId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "approved",
+              "published"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "validation": {
+            "properties": {
+              "blockerCount": {
+                "const": 0
+              },
+              "reviewStatus": {
+                "const": "domain-reviewed"
+              }
+            },
+            "required": [
+              "blockerCount",
+              "reviewStatus"
+            ]
+          },
+          "approvedBy": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "approvedBy"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "published"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "releaseId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "releaseId"
+        ]
+      }
+    }
+  ]
+}
