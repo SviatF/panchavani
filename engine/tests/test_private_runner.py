@@ -7,7 +7,7 @@ class TestPrivateRunner(unittest.TestCase):
  def test_signed_headers_include_sha_body(self):
   with patch('panchavani.private_runner.time.time',return_value=1760000000.0),patch('panchavani.private_runner.uuid.uuid4',return_value='aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'):
    body=b'{}'; headers=_signed_headers('s'*40,'POST','/internal/runner/claim',body)
-  expected='1760000000000\\naaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee\\nPOST\\n/internal/runner/claim\\n'+hashlib.sha256(body).hexdigest()
+  expected='1760000000000\naaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee\nPOST\n/internal/runner/claim\n'+hashlib.sha256(body).hexdigest()
   self.assertEqual(headers['X-Panchavani-Signature'],hmac.new(('s'*40).encode(),expected.encode(),hashlib.sha256).hexdigest())
  def test_reject_any_untrusted_admin_hostname(self):
   with self.assertRaises(RunnerError):
