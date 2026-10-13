@@ -29,15 +29,15 @@
    Height-aware layout preserves the approved mobile design at <=1180px. */
 @media(min-width:1181px){
  :root{--desktop-hero-height:clamp(365px,43.1dvh,445px)}
- .site-header{height:62px}
- .header-inner{max-width:1560px;padding-inline:clamp(22px,2.6vw,42px);gap:clamp(15px,2vw,28px)}
- .brand{min-width:218px;gap:9px}.brand-mark{height:39px;width:39px}
- .brand-name{font-size:25px}.brand-tagline{font-size:7px;letter-spacing:1.8px}
- .desktop-nav{gap:clamp(11px,1.5vw,22px)}
- .desktop-nav a{font-size:11px;padding-block:18px}
- .desktop-nav a.active:after{bottom:8px}
- .header-search{width:clamp(180px,15vw,244px);height:36px}
- .city-control,.icon-control{height:36px}.icon-control{width:36px}
+ .site-header{height:80px}
+ .header-inner{max-width:1560px;padding-inline:clamp(22px,2.6vw,42px);gap:clamp(12px,1.5vw,24px)}
+ .brand{min-width:242px;gap:11px}.brand-mark{height:48px;width:48px}.brand-mark svg{width:41px;height:41px}
+ .brand-name{font-size:30px}.brand-tagline{font-size:8px;letter-spacing:1.75px}
+ .desktop-nav{gap:clamp(10px,1.25vw,20px)}
+ .desktop-nav a{font-size:clamp(11px,.79vw,13px);padding-block:27px}
+ .desktop-nav a.active:after{bottom:17px}
+ .header-search{width:clamp(170px,14vw,244px);height:42px}
+ .city-control,.icon-control{height:42px}.icon-control{width:42px}
  /* Keep the disclosure in accessible text; robots:noindex remains enabled. */
  .preview-strip{position:absolute;width:1px;height:1px;min-height:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;padding:0;border:0}
  .hero{height:var(--desktop-hero-height)}
