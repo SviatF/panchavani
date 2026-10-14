@@ -1,0 +1,65 @@
+name: PANCHAVANI India GeoNames City Provenance Research QA
+on:
+  push:
+    paths:
+      - '.github/workflows/geodata-reference-qa.yml'
+      - 'engine/panchavani/geodata_audit.py'
+      - 'engine/tests/test_geodata_audit.py'
+      - 'engine/catalog/cities.v1.json'
+      - 'engine/panchavani/cities.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: panchavani-geodata-research
+  cancel-in-progress: false
+jobs:
+  city-gazetteer-research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test India city matching and no-publication invariants
+        run: cd engine && python -m unittest discover -s tests -p 'test_geodata_audit.py' -v
+      - name: Download independent GeoNames India populated-place gazetteer
+        run: |
+          curl --fail --location --retry 4 --retry-delay 3 --max-time 300 --silent --show-error \
+            https://download.geonames.org/export/dump/IN.zip \
+            --output /tmp/panchavani-geonames-IN.zip
+          test -s /tmp/panchavani-geonames-IN.zip
+      - name: Cross-check actual source coordinates for 25 cities (NO verification claim)
+        run: |
+          PYTHONPATH=engine python -m panchavani.geodata_audit \
+            --zip /tmp/panchavani-geonames-IN.zip \
+            --out engine/artifacts/25-cities-geonames-RESEARCH-UNAPPROVED.json
+      - name: Assert provenance, exactly 25 city decisions and absolute publication block
+        run: |
+          python - <<'PY'
+          import json,re
+          from pathlib import Path
+          x=json.loads(Path('engine/artifacts/25-cities-geonames-RESEARCH-UNAPPROVED.json').read_text())
+          assert x['classification']=='EXTERNAL_CITY_GAZETTEER_RESEARCH_ONLY'
+          assert x['country']=='IN'
+          assert x['researchCityCount']==25 and len(x['records'])==25
+          assert len({a['cityId'] for a in x['records']})==25
+          assert x['populatedPlacesScanned']>1000, 'Source is incomplete'
+          assert re.fullmatch(r'[a-f0-9]{64}',x['sourceDumpSha256'])
+          assert re.fullmatch(r'[a-f0-9]{64}',x['catalogSha256'])
+          assert x['externalGazetteerIsNotAStationSurvey'] is True
+          assert x['cityCoordinatesVerifiedCount']==0
+          assert not x['scientificallyValidated']
+          assert not x['publicReleaseAuthorized'] and not x['publicIndexingAuthorized']
+          assert all(not c['stationCoordinatesVerified'] and
+                     not c['stationElevationVerified'] and
+                     not c['readyForPanchangPublication'] for c in x['records'])
+          print('PASS: geodata cross-check research for 25 city centres; 0 unverified releases')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: panchavani-25-cities-geonames-source-audit-UNAPPROVED
+          path: engine/artifacts/25-cities-geonames-RESEARCH-UNAPPROVED.json
+          retention-days: 30
+          if-no-files-found: error
