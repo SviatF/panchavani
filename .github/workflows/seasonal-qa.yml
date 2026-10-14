@@ -48,6 +48,21 @@ jobs:
           PYTHONPATH=engine python -m panchavani.review_packet \
             --qa engine/artifacts/seasonal-matrix-UNAPPROVED.json \
             --out engine/artifacts/seasonal-review-BLOCKED.json
+      - name: Audit documentary independence of cited Delhi Panchang websites
+        run: |
+          PYTHONPATH=engine python -m panchavani.source_audit_cli \
+            --reference engine/fixtures/delhi-2026-10-13.sidereal-references.json \
+            --out engine/artifacts/sidereal-sources-UNVERIFIED.json
+          python - <<'PY'
+          import json
+          r=json.load(open('engine/artifacts/sidereal-sources-UNVERIFIED.json'))
+          assert r['sourcesSeen'] == 2
+          assert r['methodologicalIndependenceVerified'] is False
+          assert r['publicationAuthorized'] is False
+          assert 'unverified-upstream-provenance' in r['sourceDocumentationIssues']
+          assert 'methodology-not-documented' in r['sourceDocumentationIssues']
+          print('PASS: two distinct websites are NOT counted as two independent scientific implementations')
+          PY
       - name: Enforce explicit blocking and no automatic publication
         run: |
           python - <<'PY'
@@ -78,5 +93,6 @@ jobs:
           path: |
             engine/artifacts/seasonal-matrix-UNAPPROVED.json
             engine/artifacts/seasonal-review-BLOCKED.json
+            engine/artifacts/sidereal-sources-UNVERIFIED.json
           retention-days: 14
           if-no-files-found: error
