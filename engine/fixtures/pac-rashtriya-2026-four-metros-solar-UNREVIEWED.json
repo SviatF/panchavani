@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "datasetId": "pac-rashtriya-panchang-saka-1948-solar-four-metros-2026-research-v1",
+  "publisher": "India Meteorological Department — Positional Astronomy Centre, Kolkata",
+  "publication": "Rashtriya Panchang 1948 Saka Era (2026–2027 A.D.)",
+  "sourceUrl": "https://packolkata.imd.gov.in/panchang/en/tables",
+  "sourceSection": "Sunrise, Sunset, Moonrise & Moonset",
+  "sourceAccessDate": "2026-10-14",
+  "transcribedFromOfficialWebTables": true,
+  "transcriptionIndependentlyReviewed": false,
+  "astronomyMethodIndependentlyReproduced": false,
+  "publishedTimePrecisionSeconds": 60,
+  "timeZone": "Asia/Kolkata",
+  "horizonDefinition": "NOT_CONFIRMED_MATCHED_TO_JPL",
+  "stationCoordinates": "NOT_CONFIRMED_MATCHED_TO_PANCHAVANI",
+  "purpose": "2026 preliminary PAC published-solar-time vs JPL numerical comparisons only; NOT a scientific, religious, editorial or SEO approval.",
+  "rows": [
+    {
+      "gregorianDate": "2026-04-21",
+      "sourceCalendarMonth": "Vaisakha",
+      "sourceCalendarDay": "1",
+      "sourceRowLocator": "Vaisakha / Gregorian Apr 21 2026 / solar rise,set columns",
+      "cities": {
+        "chennai": {
+          "sunrise": "05:53",
+          "sunset": "18:22"
+        },
+        "delhi": {
+          "sunrise": "05:50",
+          "sunset": "18:50"
+        },
+        "kolkata": {
+          "sunrise": "05:12",
+          "sunset": "17:59"
+        },
+        "mumbai": {
+          "sunrise": "06:17",
+          "sunset": "18:58"
+        }
+      }
+    },
+    {
+      "gregorianDate": "2026-10-23",
+      "sourceCalendarMonth": "Kartika",
+      "sourceCalendarDay": "1",
+      "sourceRowLocator": "Kartika / Gregorian Oct 23 2026 / solar rise,set columns",
+      "cities": {
+        "chennai": {
+          "sunrise": "06:01",
+          "sunset": "17:46"
+        },
+        "delhi": {
+          "sunrise": "06:27",
+          "sunset": "17:44"
+        },
+        "kolkata": {
+          "sunrise": "05:37",
+          "sunset": "17:05"
+        },
+        "mumbai": {
+          "sunrise": "06:35",
+          "sunset": "18:10"
+        }
+      }
+    }
+  ]
+}
