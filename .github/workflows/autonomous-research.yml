@@ -1,0 +1,60 @@
+name: PANCHAVANI nightly astronomy research (UNAPPROVED)
+on:
+  schedule:
+    # Daily: generates research candidates; NEVER publishes pages or Muhurat.
+    - cron: '17 02 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: panchavani-nightly-research
+  cancel-in-progress: false
+jobs:
+  compute-private-candidates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Offline unit tests including Karana and daytime intervals
+        run: cd engine && python -m unittest discover -s tests -v
+      - name: Install pinned Skyfield
+        run: pip install -r engine/requirements.txt
+      - name: Download NASA JPL DE440s and verify immutable checksum
+        run: |
+          curl --fail --location --retry 3 --max-time 240 --silent --show-error \
+            https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp \
+            --output /tmp/de440s.bsp
+          echo 'c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2  /tmp/de440s.bsp' | sha256sum --check
+      - name: Generate two-day research dataset for EIGHT locations
+        run: |
+          PYTHONPATH=engine python -m panchavani.research_batch \
+            --ephemeris /tmp/de440s.bsp \
+            --out engine/artifacts/nightly \
+            --days 2
+      - name: Enforce fail-closed, no publication from nightly results
+        run: |
+          python - <<'PY'
+          import json,pathlib
+          out=pathlib.Path('engine/artifacts/nightly')
+          report=json.loads((out/'research-report.json').read_text())
+          assert report['cityCount']==8 and report['days']==2
+          assert len(report['candidates'])==16
+          assert report['researchOnly'] is True
+          assert report['publicReleaseAllowed'] is False
+          assert report['indexableCityPagesCreated']==0
+          for c in report['candidates']:
+              assert c['status']=='UNAPPROVED' and c['publicationBlockers']>0
+              p=out/c['file']
+              assert p.exists()
+          print('PASS: complete city/date research set; 0 indexable pages, 0 releases')
+          PY
+      - name: Archive ONLY private research outputs for later scientific review
+        uses: actions/upload-artifact@v4
+        with:
+          name: panchavani-nightly-candidates-NOT-APPROVED
+          path: engine/artifacts/nightly/
+          retention-days: 7
+          if-no-files-found: error
