@@ -52,3 +52,72 @@ A manual GitHub Actions research runner and signed candidate ingestion endpoint 
 ## Form POST regression (2026-10-14)
 
 A previous `Referrer-Policy: no-referrer` combined with a mandatory nonempty `Origin` incorrectly rejected legitimate browser form POSTs with `Access denied`. The policy is now `same-origin`; `isTrustedBrowserPost` accepts absent/null Origin **only** with the browser-controlled `Sec-Fetch-Site: same-origin` header. E2E-style simulated POST tests verify D1 writes and cross-origin blocking. The admin and public Worker remain isolated; Cloudflare Access authentication is still mandatory on every route. No math results are published as part of form submissions.
+
+
+## DeepSeek editorial drafts in Cloudflare Admin (14 October 2026)
+
+An existing DEEPSEEK_API_KEY configured as a **Production Secret**
+under panchavani-admin is the correct credential for this integration.
+It is **not** a GitHub Actions secret; only the Cloudflare Worker
+reads it server-side. Never put it into Next.js, a public frontend,
+a URL, chat or source-controlled Wrangler variables.
+
+### What the code now provides
+
+- A private /ai page linked from the calculation dashboard. It is
+  accessible only after Cloudflare Access identity verification and the
+  existing ALLOWED_ADMIN_EMAILS allowlist.
+- Lists **completed, stored** research candidates, not queued jobs.
+  Requires D1 binding DB, private R2 binding CANDIDATES, a running
+  authenticated runner and a DEEPSEEK_API_KEY Production Secret.
+- /ai/draft POST accepts only same-origin authenticated browser forms,
+  a candidate job UUID, one of five editorial intents and English/Hindi.
+- Reads the actual candidate from private R2, verifies its SHA-256 equals
+  private D1 metadata and rechecks city/date/schema/unapproved status.
+  If no candidate exists, returns a clear error and DOES NOT spend tokens.
+- Calls https://api.deepseek.com/chat/completions with deepseek-flash,
+  disabled thinking and JSON mode. The API key travels only
+  server-to-server and is never included in HTML, logs or R2.
+- Returns a readable private draft preview and stores a SHA-linked
+  AI_DRAFT_UNAPPROVED record under unapproved/ai-editorial/<jobId>/<uuid>.json
+  in private R2. Logs draft creation under the authenticated editor in D1.
+- A basic per-editor **3 draft/24h** count limits accidental costs.
+  This is *not an atomic distributed quota* and must not replace
+  edge rate limiting or provider spend controls in production.
+- Any generated recommendation remains **unapproved**, even if it
+  passes keyword/format heuristics. The source values and ritual
+  conventions are still unverified. No auto-publication/approval route,
+  website mutations, sitemap entries, SEO index or calendar advice.
+- Content checks are heuristic and CANNOT reliably prove originality
+  or detect every made-up fact. Human domain/editorial review remains
+  required.
+
+### Deploy, then verify live (NOT performed merely by a GitHub push)
+
+1. Wait for Private calculation and admin QA to pass on the intended
+   commit. wrangler deploy --dry-run cannot publish changes.
+2. Deploy the **new** admin/ Worker code from main using an
+   authorized Cloudflare deployment workflow or
+   cd admin && npm install && npm run deploy
+   with authenticated Wrangler.
+3. Cloudflare > Workers & Pages > panchavani-admin > Deployments:
+   verify the updated Worker version is actually **Active**.
+   Confirm under Settings > Runtime variables and secrets that the
+   Production DEEPSEEK_API_KEY remains present.
+4. Sign in through Cloudflare Access at https://admin.panchavani.com/
+   and open AI Editorial Drafts or /ai. Its status should show
+   configured. If DB/CANDIDATES or completed job data are missing,
+   the generation button stays disabled.
+5. Queue one city/day in the calculation dashboard, run the authorized
+   private research runner to store a valid R2 candidate, then generate
+   ONE English research draft using /ai.
+6. Confirm the private preview shows UNAPPROVED AI RESEARCH, and
+   the website remains noindex. Do not publish the copy as calendar
+   advice; the source inputs remain research-grade.
+
+**Deployment is NOT performed by code commit or QA.** The present
+GitHub QA tests mock the provider response and cannot prove that the
+encrypted Cloudflare key is valid, has credit or is accepted by DeepSeek.
+No live paid API call was made during QA.
+
+Official API: https://api-docs.deepseek.com/api/create-chat-completion/
