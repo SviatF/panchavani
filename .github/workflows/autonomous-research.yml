@@ -1,5 +1,13 @@
 name: PANCHAVANI nightly astronomy research (UNAPPROVED)
 on:
+  push:
+    paths:
+      - '.github/workflows/autonomous-research.yml'
+      - 'engine/panchavani/astronomy.py'
+      - 'engine/panchavani/core.py'
+      - 'engine/panchavani/compute.py'
+      - 'engine/panchavani/periods.py'
+      - 'engine/panchavani/research_batch.py'
   schedule:
     # Daily: generates research candidates; NEVER publishes pages or Muhurat.
     - cron: '17 02 * * *'

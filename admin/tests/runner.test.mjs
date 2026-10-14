@@ -16,12 +16,31 @@ function candidate(){
   transitions:[{type:'tithi',startUtc:s,endUtc:n,value:'Shukla Tritiya'}]
  };
 }
+test('valid separate Karana research interval passes while remaining unapproved',()=>{
+ const c=candidate();
+ c.panchangAtSunrise.karana='Bava';
+ c.transitions.push({type:'karana',value:'Bava',startUtc:c.sun.sunriseUtc,endUtc:c.sun.nextSunriseUtc});
+ assert.deepEqual(candidateIssues(c,job),[]);
+});
+test('fake Karana-at-sunrise is rejected',()=>{
+ const c=candidate();
+ c.panchangAtSunrise.karana='Fabricated';
+ assert.ok(candidateIssues(c,job).includes('invalid-research-karana'));
+});
+test('Karana disagreement with Tithi boundary rejects candidate',()=>{
+ const c=candidate(),s=c.sun.sunriseUtc,n=c.sun.nextSunriseUtc;
+ c.transitions[0].endUtc='2026-10-13T12:00:00Z';
+ c.transitions.push({type:'tithi',value:'Shukla Chaturthi',startUtc:'2026-10-13T12:00:00Z',endUtc:n});
+ c.panchangAtSunrise.karana='Bava';
+ c.transitions.push({type:'karana',value:'Bava',startUtc:s,endUtc:n});
+ assert.ok(candidateIssues(c,job).includes('karana-tithi-mismatch'));
+});
 test('research-only candidate is permitted to STORE, never approved',()=>assert.deepEqual(candidateIssues(candidate(),job),[]));
 test('fake completion with published flags is blocked',()=>{let c=candidate();c.status='approved';c.approvedBy='admin';assert.ok(candidateIssues(c,job).includes('published-or-approved-field'))});
 test('candidate for the wrong city is blocked',()=>{let c=candidate();c.city.id='mumbai';assert.ok(candidateIssues(c,job).includes('job-mismatch'))});
 test('missing unverified blockers is blocked',()=>{let c=candidate();c.validation.blockerCount=0;assert.ok(candidateIssues(c,job).includes('research-blockers-missing'))});
 test('unvalidated Nakshatra claim is blocked',()=>{let c=candidate();c.panchangAtSunrise.nakshatra='Vishakha';assert.ok(candidateIssues(c,job).includes('unvalidated-limbs'))});
-test('transition gap is blocked',()=>{let c=candidate();c.transitions[0].startUtc='2026-10-13T02:00:00Z';assert.ok(candidateIssues(c,job).includes('transition-gaps'))});
+test('transition gap is blocked',()=>{let c=candidate();c.transitions[0].startUtc='2026-10-13T02:00:00Z';assert.ok(candidateIssues(c,job).includes('invalid-tithi-transitions'))});
 test('wrong solar order is blocked',()=>{let c=candidate();c.sun.sunsetUtc='2026-10-12T02:00:00Z';assert.ok(candidateIssues(c,job).includes('invalid-solar-order'))});
 class FakeDB {
  constructor(){this.used=new Set()}

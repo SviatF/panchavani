@@ -37,5 +37,15 @@ jobs:
           test -f out/imgs/favicon_gold_frame.ico
           grep -q 'favicon_gold_frame.ico' out/index.html
           grep -qi 'noindex' out/index.html
+      - name: Fail closed if ANY static HTML route accidentally becomes indexable
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          routes=list(Path('out').rglob('*.html'))
+          assert routes, 'No HTML files found'
+          missing=[p.as_posix() for p in routes if 'noindex' not in p.read_text(encoding='utf-8').lower()]
+          assert not missing, 'UNREVIEWED PUBLIC INDEXING: '+str(missing)
+          print('PASS:', len(routes), 'static routes remain noindex until scientific/editorial release gate')
+          PY
       - name: Validate Wrangler assets-only deployment configuration (dry run)
         run: npx wrangler deploy --dry-run
