@@ -8,6 +8,8 @@ on:
       - 'engine/panchavani/compute.py'
       - 'engine/panchavani/periods.py'
       - 'engine/panchavani/research_batch.py'
+      - 'engine/panchavani/sidereal.py'
+      - 'engine/panchavani/sidereal_batch.py'
   schedule:
     # Daily: generates research candidates; NEVER publishes pages or Muhurat.
     - cron: '17 02 * * *'
@@ -42,6 +44,28 @@ jobs:
             --ephemeris /tmp/de440s.bsp \
             --out engine/artifacts/nightly \
             --days 2
+      - name: Compute eight-city Nakshatra/Yoga using unvalidated Lahiri research model
+        run: |
+          PYTHONPATH=engine python -m panchavani.sidereal_batch \
+            --ephemeris /tmp/de440s.bsp \
+            --out engine/artifacts/nightly/sidereal/ \
+            --days 2
+      - name: Verify independent sidereal research stays blocked from SEO
+        run: |
+          python - <<'PY'
+          import json,pathlib
+          root=pathlib.Path('engine/artifacts/nightly/sidereal')
+          report=json.loads((root/'index-UNAPPROVED.json').read_text())
+          assert report['status']=='RESEARCH_ONLY'
+          assert report['cityCount']==8 and report['days']==2
+          assert len(report['candidates'])==16
+          assert report['publicReleaseAllowed'] is False
+          assert report['independentScientificValidation']=='NOT_COMPLETED'
+          assert 'UNVALIDATED' in report['method']
+          assert report['crossCityGeocentricConsistency']=='PASSED'
+          assert all((root/c['file']).is_file() for c in report['candidates'])
+          print('PASS: 16 sidereal research files; ZERO public releases')
+          PY
       - name: Enforce fail-closed, no publication from nightly results
         run: |
           python - <<'PY'
