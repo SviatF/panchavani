@@ -96,7 +96,7 @@ class ResearchCityCatalogTests(unittest.TestCase):
         with self.assertRaises(ValueError):select_city_ids(shard_index=3,shard_count=3)
         with self.assertRaises(ValueError):select_city_ids(shard_count=0)
         self.assertFalse(describe_research_plan()["publicationAuthorized"])
-        self.assertEqual(describe_research_plan()["expectedCityDays"],16)
+        self.assertEqual(describe_research_plan()["expectedCityDays"],50)
 
 if __name__=="__main__":
     unittest.main()
