@@ -30,11 +30,11 @@ def calculate(city_id: str, local_date: date, ephemeris: Path, expected_sha256: 
     actual_hash = digest(ephemeris)
     if actual_hash.lower() != expected_sha256.lower():
         raise ValueError("JPL ephemeris SHA-256 mismatch, calculation blocked")
-    return calculate_with_verified_context(city_id, local_date, SkyfieldAdapter(ephemeris), actual_hash)
+    return calculate_with_verified_context(city_id, local_date, SkyfieldAdapter(ephemeris), actual_hash, ephemeris.name)
 
 
 def calculate_with_verified_context(city_id: str, local_date: date, a: SkyfieldAdapter,
-                                    actual_hash: str) -> dict:
+                                    actual_hash: str, ephemeris_id: str) -> dict:
     """Internal batch entry: caller MUST authenticate ephemeris hash before reuse."""
     if city_id not in RESEARCH_CITIES:
         raise ValueError("Unknown or disabled research city: " + city_id)
@@ -60,7 +60,7 @@ def calculate_with_verified_context(city_id: str, local_date: date, a: SkyfieldA
         },
         "localDate": local_date.isoformat(), "tradition": None,
         "methodology": {
-            "engineVersion": __version__, "ephemerisId": ephemeris.name,
+            "engineVersion": __version__, "ephemerisId": ephemeris_id,
             "ephemerisHash": actual_hash, "ayanamsa": "NOT_VALIDATED",
             "sunriseConvention": "Skyfield Sun upper limb, geocentric horizon -50 arcmin",
             "rulePackId": "NONE", "tzdbVersion": "system-not-yet-pinned",

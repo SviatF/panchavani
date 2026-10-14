@@ -75,7 +75,7 @@ def run_batch(ephemeris: Path, output_dir: Path, start: date, days: int = 2, *,
         local_date = start + timedelta(days=day_offset)
         date_candidates = []
         for city_id in ids:
-            record = calculate_with_verified_context(city_id, local_date, adapter, JPL_DE440S_SHA)
+            record = calculate_with_verified_context(city_id, local_date, adapter, JPL_DE440S_SHA, ephemeris.name)
             issues = inspect_candidate(record)
             if issues:
                 raise ValueError(f"{city_id}/{local_date}: {issues}; full batch BLOCKED")
