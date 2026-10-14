@@ -59,15 +59,15 @@ async function enqueuePilot(env,now){
   for(const city of PILOT_CITY_IDS.slice(0,Math.max(0,MAX_PENDING-pending))){
     if(!CITY_IDS.has(city))throw new Error('Pilot research city missing from active catalog');
     const id=crypto.randomUUID(),auditId=crypto.randomUUID();
-    // Batch is one transaction: both the exactly-once slot and the queued
-    // job are created, or neither. A duplicate date never queues twice.
+    // Batch creates the job before its referencing idempotency slot to keep
+    // FOREIGN KEY checks valid. A duplicate date never queues twice.
     const updates=await env.DB.batch([
       env.DB.prepare(
-        "INSERT OR IGNORE INTO autonomous_research_slots(city_id,local_date,job_id) VALUES (?,?,?)"
-      ).bind(city,localDate,id),
+        "INSERT INTO job_requests(id,city_id,local_date,status,requested_by) SELECT ?,?,?,'queued',? WHERE NOT EXISTS (SELECT 1 FROM autonomous_research_slots WHERE city_id=? AND local_date=?)"
+      ).bind(id,city,localDate,AUTO_ACTOR,city,localDate),
       env.DB.prepare(
-        "INSERT INTO job_requests(id,city_id,local_date,status,requested_by) SELECT ?,?,?,'queued',? WHERE EXISTS (SELECT 1 FROM autonomous_research_slots WHERE city_id=? AND local_date=? AND job_id=?)"
-      ).bind(id,city,localDate,AUTO_ACTOR,city,localDate,id),
+        "INSERT OR IGNORE INTO autonomous_research_slots(city_id,local_date,job_id) SELECT ?,?,? WHERE EXISTS (SELECT 1 FROM job_requests WHERE id=?)"
+      ).bind(city,localDate,id,id),
       env.DB.prepare(
         "INSERT INTO audit_log(id,actor,action,subject_id) SELECT ?,?,'automatic_research_queued',? WHERE EXISTS (SELECT 1 FROM autonomous_research_slots WHERE city_id=? AND local_date=? AND job_id=?)"
       ).bind(auditId,AUTO_ACTOR,id,city,localDate,id)
