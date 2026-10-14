@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "city": "delhi",
+  "date": "2026-10-13",
+  "timezone": "Asia/Kolkata",
+  "status": "UNREVIEWED_EXTERNAL_CLOCK_VALUES",
+  "disclaimer": "Exploratory comparison against published clock times. Upstream independence, time conventions and data rounding need explicit verification; this fixture does NOT certify accuracy or grant publication.",
+  "references": [
+    {
+      "sourceId": "AstroSage",
+      "upstreamFamily": "unknown",
+      "methodEvidence": null,
+      "sourceUrl": "https://panchang.astrosage.com/panchang/aajkapanchang?date=13-10-2026&language=en&view=amp",
+      "observations": [
+        {
+          "type": "sunrise",
+          "instant": "2026-10-13T06:20:21+05:30",
+          "precisionSeconds": 60
+        },
+        {
+          "type": "sunset",
+          "instant": "2026-10-13T17:54:10+05:30",
+          "precisionSeconds": 60
+        },
+        {
+          "type": "tithiEnd",
+          "label": "Shukla Tritiya",
+          "instant": "2026-10-13T23:28:52+05:30",
+          "precisionSeconds": 60
+        }
+      ]
+    },
+    {
+      "sourceId": "Drik Panchang",
+      "upstreamFamily": "unknown",
+      "methodEvidence": null,
+      "sourceUrl": "https://www.drikpanchang.com/panchang/day-panchang.html?geoname-id=2170078",
+      "observations": [
+        {
+          "type": "sunrise",
+          "instant": "2026-10-13T06:20:00+05:30",
+          "precisionSeconds": 60
+        },
+        {
+          "type": "sunset",
+          "instant": "2026-10-13T17:54:00+05:30",
+          "precisionSeconds": 60
+        },
+        {
+          "type": "tithiEnd",
+          "label": "Shukla Tritiya",
+          "instant": "2026-10-13T23:27:00+05:30",
+          "precisionSeconds": 60
+        }
+      ]
+    }
+  ]
+}
