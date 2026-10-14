@@ -1,0 +1,20 @@
+{
+  "$comment": "RESEARCH TEMPLATE ONLY. This is a single Tithi predicate; NOT a Delhi fasting, festival or Muhurat recommendation.",
+  "id": "qa-delhi-tithi-sunrise",
+  "version": "draft-0.1",
+  "status": "DRAFT",
+  "kind": "vrat",
+  "region": "Delhi NCT",
+  "tradition": "UNREVIEWED north-Indian calendar variant",
+  "cityIds": [
+    "delhi"
+  ],
+  "criterion": {
+    "type": "tithi-at-local-sunrise",
+    "equals": "Shukla Tritiya"
+  },
+  "sourceRefs": [],
+  "independentReview": {
+    "status": "PENDING"
+  }
+}
