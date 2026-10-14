@@ -59,6 +59,47 @@ def describe_research_plan(*, requested=None, cohort="all", shard_index=0,
         "indexingAuthorized":False,"publicationAuthorized":False,
     }
 
+
+def adaptive_shard_matrix(*, cohort: str="all", per_shard_limit: int=12,
+                          manual_count: int|None=None, research_cities=None) -> dict:
+    """Bound maximum work per shard; cover each eligible city exactly once."""
+    from math import ceil
+    catalog=research_cities if research_cities is not None else RESEARCH_CITIES
+    eligible={k for k,c in catalog.items() if c.research_enabled and
+              (cohort=="all" or c.cohort==cohort)}
+    if cohort not in ("all","pilot","expansion") or not eligible:
+        raise ValueError("Unknown or empty city cohort")
+    if type(per_shard_limit) is not int or not 1<=per_shard_limit<=100:
+        raise ValueError("Invalid city-per-shard budget")
+    if len(eligible)>128*per_shard_limit:
+        raise ValueError("City catalog exceeds safe 128-shard capacity")
+    count=manual_count if manual_count is not None else max(1,ceil(len(eligible)/per_shard_limit))
+    if type(count) is not int or not 1<=count<=128:
+        raise ValueError("Invalid explicit shard count")
+    while count<=128:
+        groups=[]
+        all_seen=set()
+        for i in range(count):
+            try:
+                ids=select_city_ids(cohort=cohort,shard_index=i,shard_count=count,
+                                    research_cities=catalog)
+            except ValueError as exc:
+                if "Shard contains no active cities" not in str(exc):
+                    raise
+                continue
+            if all_seen.intersection(ids):
+                raise AssertionError("Duplicate city in workload matrix")
+            all_seen.update(ids)
+            groups.append({"index":i,"count":count,"cityCount":len(ids)})
+        if all_seen!=eligible:
+            raise AssertionError("Incomplete city catalogue coverage")
+        if max(g["cityCount"] for g in groups)<=per_shard_limit:
+            return {"include":groups}
+        if manual_count is not None:
+            raise ValueError("Requested shard count exceeds per-shard city budget")
+        count+=1
+    raise ValueError("Unable to fit city workloads within safe shard budget")
+
 def main():
     p=argparse.ArgumentParser(description="Plan city batches; research-only; no publish")
     p.add_argument("--cohort",default="all",choices=("all","pilot","expansion"))

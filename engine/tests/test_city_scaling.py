@@ -8,9 +8,21 @@ from panchavani.cities import (
     CITY_REGISTRY, RESEARCH_CITIES, PILOT_CITIES, CATALOG_SHA256,
     DEFAULT_CATALOG, load_catalog
 )
-from panchavani.city_shards import select_city_ids, describe_research_plan
+from panchavani.city_shards import select_city_ids, describe_research_plan, adaptive_shard_matrix
 
 class ResearchCityCatalogTests(unittest.TestCase):
+    def test_adaptive_hundred_city_groups_obey_exact_research_budget(self):
+        fake={f"test-city-{i:03d}":SimpleNamespace(research_enabled=True,cohort="expansion")
+              for i in range(100)}
+        matrix=adaptive_shard_matrix(cohort="expansion",per_shard_limit=12,
+                                     research_cities=fake)
+        self.assertGreater(len(matrix["include"]),1)
+        self.assertLessEqual(max(g["cityCount"] for g in matrix["include"]),12)
+        self.assertEqual(sum(g["cityCount"] for g in matrix["include"]),100)
+        with self.assertRaises(ValueError):
+            adaptive_shard_matrix(cohort="expansion",per_shard_limit=12,
+                                  manual_count=1,research_cities=fake)
+
     def test_hundred_synthetic_dispatch_ids_are_sharded_once_without_fabricating_city_coordinates(self):
         fake={f"synthetic-city-{i:03d}":SimpleNamespace(research_enabled=True,cohort="expansion")
               for i in range(100)}

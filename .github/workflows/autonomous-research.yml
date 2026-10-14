@@ -51,38 +51,20 @@ jobs:
           REQUESTED_SHARD_COUNT: ${{ inputs.shard_count || 'auto' }}
         run: |
           PYTHONPATH=engine python - <<'PY'
-          import json,os,math
-          from pathlib import Path
+          import json,os
           from panchavani.cities import RESEARCH_CITIES,CATALOG_SHA256
-          from panchavani.city_shards import select_city_ids
+          from panchavani.city_shards import adaptive_shard_matrix
           cohort=os.environ['CITY_COHORT']
-          if cohort not in ('all','pilot','expansion'):
-              raise ValueError('Unsupported city research cohort')
           eligible={k for k,v in RESEARCH_CITIES.items() if cohort=='all' or v.cohort==cohort}
-          if not eligible:
-              raise ValueError('Research cohort has no active cities')
           raw=os.environ['REQUESTED_SHARD_COUNT']
-          count=max(1,math.ceil(len(eligible)/12)) if raw=='auto' else int(raw)
-          if not 1<=count<=128 or len(eligible)>128*12:
-              raise ValueError('Selected city cohort exceeds safe scheduled worker capacity')
-          groups=[]
-          seen=set()
-          for i in range(count):
-              try:
-                  ids=select_city_ids(cohort=cohort,shard_index=i,shard_count=count)
-              except ValueError:
-                  continue   # sparse stable-hash shard; never schedule an empty job
-              if seen.intersection(ids):
-                  raise AssertionError('City assigned to two different science shards')
-              seen.update(ids)
-              groups.append({'index':i,'count':count,'cityCount':len(ids)})
-          assert seen==eligible and groups
-          plan={'include':groups}
+          plan=adaptive_shard_matrix(cohort=cohort,per_shard_limit=12,
+                                     manual_count=None if raw=='auto' else int(raw))
+          groups=plan['include']
           with open(os.environ['GITHUB_OUTPUT'],'a') as o:
               print('matrix='+json.dumps(plan,separators=(',',':')),file=o)
               print('expected_city_count='+str(len(eligible)),file=o)
               print('catalog_sha='+CATALOG_SHA256,file=o)
-          print('Research workload:',len(eligible),'cities across',len(groups),'nonempty shards; zero publication')
+          print('Research workload:',len(eligible),'cities across',len(groups),'nonempty <=12-city shards; zero publication')
           PY
   compute-private-candidates:
     needs: plan-city-workload

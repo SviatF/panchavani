@@ -21,11 +21,15 @@ Shards are based on stable SHA-256 of the city slug, so adding another city
 does not reshuffle existing cities in the same shard count. For a larger
 research catalogue, run 0..N−1 shard indices; each shard is separate,
 with explicit city IDs, catalog SHA, provenance and a unique artifact.
-The nightly GitHub Action allows inputs to choose cohort and shard.
-The default scheduled run still processes the whole currently active
-research catalogue as a single job, **not an unlimited 1000-city job**.
-Sharding manually is supported; automatic multi-job fan-out, durable
-aggregate verification and per-shard retries are later infrastructure work.
+The nightly GitHub Action allows inputs to choose cohort and manual shard count; otherwise it chooses shard count automatically.
+The default scheduled workflow **automatically sizes the shard matrix**:
+up to 12 cities per shard, a 128-shard hard limit, and maximum six
+parallel GitHub Actions calculation jobs. An explicit workflow-dispatch
+shard count is accepted only if every shard remains within the cap.
+The workflow downloads immutable per-shard results and checks
+100% city coverage, exactly-once city assignment, candidate SHA-256 hashes,
+correct shared catalogue provenance, and zero public/SEO releases.
+GitHub retry policy and concurrency quotas still need operational monitoring.
 
 For efficiency, the standard Tithi/Karana batch now verifies the JPL file
 checksum and loads the ephemeris once per batch; the individual-city
