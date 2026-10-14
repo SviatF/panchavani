@@ -57,6 +57,16 @@ class EditorialPipelineTests(unittest.TestCase):
         self.assertEqual(packet["date"],"2026-10-13")
         self.assertEqual(len(packet["sourceCandidateSha256"]),64)
         self.assertEqual(packet["messages"][0]["role"],"system")
+    def test_distinct_editorial_intents_stay_nonfactual_until_rules_are_reviewed(self):
+        for intent in ("daily-panchang","city-hub","festival","vrat","muhurat"):
+            p=make_prompt_packet(test_candidate(),intent=intent)
+            self.assertEqual(p["evidence"]["pageIntent"],intent)
+            self.assertFalse(p["activityRulesApproved"])
+            self.assertEqual(p["evidence"]["verifiedActivityRules"],[])
+            self.assertFalse(p["publicReleaseAllowed"])
+        with self.assertRaises(ValueError):
+            make_prompt_packet(test_candidate(),intent="invented-category")
+
     def test_reject_bad_geo_and_unverified_self_certified_fact_bundle(self):
         c=test_candidate()
         c["city"]["lat"]=19.076

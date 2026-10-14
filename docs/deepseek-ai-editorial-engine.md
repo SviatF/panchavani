@@ -13,7 +13,10 @@ content, or approved religious guidance.
    pinned JPL workflow. Candidate must match exact city id, coordinates,
    catalog version and date, and pass existing fail-closed research checks.
 2. The prompt builder links the candidate by SHA-256, selects the requested
-   language (en/hi), and retrieves a distinct *editorial research question*
+   language (en/hi), and the editorial intent: `daily-panchang`, `city-hub`,
+   `festival`, `vrat` or `muhurat` (all research-only). The model receives
+   genuinely different research requirements for each type, not randomly
+   shuffled wording. It retrieves a distinct *editorial research question*
    for each expansion city. A research question is not a factual claim.
 3. Critically, **the current candidate has 0 scientifically approved
    numerical facts and 0 approved ritual activity rules**. The prompt
