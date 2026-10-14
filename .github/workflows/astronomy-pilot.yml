@@ -61,6 +61,25 @@ jobs:
           assert all(sample['withinExploratoryTolerance'] for sample in obj['samples']), 'Astronomical clock discrepancy exceeds exploratory threshold'
           print('PASS: six clock-time comparisons, no false scientific approval')
           PY
+      - name: Execute unreviewed Delhi regional predicate against actual JPL result
+        run: |
+          PYTHONPATH=engine python -m panchavani.regional_rule_probe \
+            --candidate engine/artifacts/delhi-2026-10-13-candidate.json \
+            --rulepack engine/fixtures/draft-delhi-sunrise-rule-UNVERIFIED.json \
+            --out engine/artifacts/delhi-regional-rule-UNAPPROVED.json
+          python - <<'PY'
+          import json
+          r=json.load(open('engine/artifacts/delhi-regional-rule-UNAPPROVED.json'))
+          assert r['cityId']=='delhi'
+          assert r['researchPredicateMet'] is True
+          assert r['decision']=='WITHHELD_PENDING_EXPERT_AND_METHOD_REVIEW'
+          assert not r['observanceDetermined']
+          assert not r['muhuratRecommended']
+          assert not r['indexingAuthorized']
+          assert not r['publicationAuthorized']
+          assert 'full-ritual-eligibility-not-implemented' in r['blockingReasons']
+          print('PASS: regional sunrise predicate from actual JPL data; zero ritual releases')
+          PY
       - name: Assert candidate only, no approval and real city-specific sunrise
         run: |
           python - <<'PY'
