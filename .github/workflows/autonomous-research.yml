@@ -10,10 +10,33 @@ on:
       - 'engine/panchavani/research_batch.py'
       - 'engine/panchavani/sidereal.py'
       - 'engine/panchavani/sidereal_batch.py'
+      - 'engine/panchavani/cities.py'
+      - 'engine/panchavani/city_shards.py'
+      - 'engine/catalog/cities.v1.json'
   schedule:
     # Daily: generates research candidates; NEVER publishes pages or Muhurat.
     - cron: '17 02 * * *'
   workflow_dispatch:
+    inputs:
+      cohort:
+        description: Research city group
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - pilot
+          - expansion
+      shard_count:
+        description: Deterministic shard count 1 to 128
+        required: true
+        default: "1"
+        type: string
+      shard_index:
+        description: Zero based city shard
+        required: true
+        default: "0"
+        type: string
 permissions:
   contents: read
 concurrency:
@@ -23,6 +46,10 @@ jobs:
   compute-private-candidates:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      CITY_COHORT: ${{ inputs.cohort || 'all' }}
+      CITY_SHARD_COUNT: ${{ inputs.shard_count || '1' }}
+      CITY_SHARD_INDEX: ${{ inputs.shard_index || '0' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -38,18 +65,31 @@ jobs:
             https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp \
             --output /tmp/de440s.bsp
           echo 'c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2  /tmp/de440s.bsp' | sha256sum --check
-      - name: Generate two-day research dataset for EIGHT locations
+      - name: Pin selected research cities and workload shard
+        run: |
+          PYTHONPATH=engine python -m panchavani.city_shards \
+            --cohort "$CITY_COHORT" \
+            --shard-count "$CITY_SHARD_COUNT" \
+            --shard-index "$CITY_SHARD_INDEX" \
+            --out engine/artifacts/city-workload-plan-UNAPPROVED.json
+      - name: Generate two-day research dataset for selected cities
         run: |
           PYTHONPATH=engine python -m panchavani.research_batch \
             --ephemeris /tmp/de440s.bsp \
             --out engine/artifacts/nightly \
-            --days 2
-      - name: Compute eight-city Nakshatra/Yoga using unvalidated Lahiri research model
+            --days 2 \
+            --cohort "$CITY_COHORT" \
+            --shard-count "$CITY_SHARD_COUNT" \
+            --shard-index "$CITY_SHARD_INDEX"
+      - name: Compute selected-city Nakshatra/Yoga using unvalidated Lahiri research model
         run: |
           PYTHONPATH=engine python -m panchavani.sidereal_batch \
             --ephemeris /tmp/de440s.bsp \
             --out engine/artifacts/nightly/sidereal/ \
-            --days 2
+            --days 2 \
+            --cohort "$CITY_COHORT" \
+            --shard-count "$CITY_SHARD_COUNT" \
+            --shard-index "$CITY_SHARD_INDEX"
       - name: Verify independent sidereal research stays blocked from SEO
         run: |
           python - <<'PY'
@@ -57,14 +97,19 @@ jobs:
           root=pathlib.Path('engine/artifacts/nightly/sidereal')
           report=json.loads((root/'index-UNAPPROVED.json').read_text())
           assert report['status']=='RESEARCH_ONLY'
-          assert report['cityCount']==8 and report['days']==2
-          assert len(report['candidates'])==16
+          plan=json.loads(pathlib.Path('engine/artifacts/city-workload-plan-UNAPPROVED.json').read_text())
+          assert report['cityCount']==plan['cityCount'] and report['days']==2
+          assert len(report['candidates'])==plan['expectedCityDays']
+          assert report['cityIds']==plan['cityIds']
+          assert report['catalogSha256']==plan['catalogSha256']
+          assert report['shardIndex']==plan['shardIndex']
+          assert report['shardCount']==plan['shardCount']
           assert report['publicReleaseAllowed'] is False
           assert report['independentScientificValidation']=='NOT_COMPLETED'
           assert 'UNVALIDATED' in report['method']
           assert report['crossCityGeocentricConsistency']=='PASSED'
           assert all((root/c['file']).is_file() for c in report['candidates'])
-          print('PASS: 16 sidereal research files; ZERO public releases')
+          print('PASS:',len(report['candidates']),'sidereal research candidates; ZERO public releases')
           PY
       - name: Enforce fail-closed, no publication from nightly results
         run: |
@@ -72,8 +117,13 @@ jobs:
           import json,pathlib
           out=pathlib.Path('engine/artifacts/nightly')
           report=json.loads((out/'research-report.json').read_text())
-          assert report['cityCount']==8 and report['days']==2
-          assert len(report['candidates'])==16
+          plan=json.loads(pathlib.Path('engine/artifacts/city-workload-plan-UNAPPROVED.json').read_text())
+          assert report['cityCount']==plan['cityCount'] and report['days']==2
+          assert len(report['candidates'])==plan['expectedCityDays']
+          assert report['cityIds']==plan['cityIds']
+          assert report['catalogSha256']==plan['catalogSha256']
+          assert report['shardIndex']==plan['shardIndex']
+          assert report['shardCount']==plan['shardCount']
           assert report['researchOnly'] is True
           assert report['publicReleaseAllowed'] is False
           assert report['indexableCityPagesCreated']==0
@@ -82,12 +132,14 @@ jobs:
               assert c['seoGateBlockers'] and 'not-explicitly-approved' in c['seoGateBlockers']
               p=out/c['file']
               assert p.exists()
-          print('PASS: complete city/date research set; 0 indexable pages, 0 releases')
+          print('PASS: complete',report['cityCount'],'city research set; 0 indexable pages, 0 releases')
           PY
       - name: Archive ONLY private research outputs for later scientific review
         uses: actions/upload-artifact@v4
         with:
           name: panchavani-nightly-candidates-NOT-APPROVED
-          path: engine/artifacts/nightly/
+          path: |
+            engine/artifacts/nightly/
+            engine/artifacts/city-workload-plan-UNAPPROVED.json
           retention-days: 7
           if-no-files-found: error
