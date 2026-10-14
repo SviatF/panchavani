@@ -46,6 +46,9 @@ jobs:
           assert obj['independentScientificValidation']=='NOT_COMPLETED'
           assert 'UNVALIDATED' in obj['method']
           assert len(obj['comparators'])==4
+          # Only a regression threshold against minute-rounded web comparisons.
+          # This does NOT certify absolute second-level accuracy or source independence.
+          assert all(abs(row['differenceSeconds'])<=90 for row in obj['comparators'])
           assert len(obj['blockers'])>=5
           print('PASS: research-only Nakshatra/Yoga — NOT ready for SEO')
           PY
