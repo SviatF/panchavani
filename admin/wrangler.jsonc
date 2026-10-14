@@ -4,5 +4,12 @@
   "main": "src/index.mjs",
   "compatibility_date": "2026-10-13",
   "workers_dev": false,
-  "keep_vars": true
+  "keep_vars": true,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "panchavani-private",
+      "database_id": "38a2e5ce-b378-48f9-8efd-cbd309a770b7"
+    }
+  ]
 }
