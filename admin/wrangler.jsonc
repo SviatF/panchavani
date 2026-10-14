@@ -3,5 +3,6 @@
   "name": "panchavani-admin",
   "main": "src/index.mjs",
   "compatibility_date": "2026-10-13",
-  "workers_dev": false
+  "workers_dev": false,
+  "keep_vars": true
 }
