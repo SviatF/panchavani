@@ -7,9 +7,6 @@
     "deploy": "wrangler deploy",
     "check": "node --check src/index.mjs && node --check src/runner.mjs && node --test tests/*.test.mjs && wrangler deploy --dry-run"
   },
-  "dependencies": {
-    "jose": "^6.1.0"
-  },
   "devDependencies": {
     "wrangler": "^4.150.0"
   }

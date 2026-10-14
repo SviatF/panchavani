@@ -1,9 +1,8 @@
 /**
  * PANCHAVANI private operations console.
- * Fail-closed Cloudflare Access JWT verification + email allowlist.
+ * Fail-closed Cloudflare Worker Access native identity + email allowlist.
  * This Worker is INDEPENDENT of the public assets-only Next.js Worker.
  */
-import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { handleRunner } from './runner.mjs';
 
 const CITY_IDS = new Set([
@@ -19,7 +18,6 @@ const HEADERS = {
   'Permissions-Policy': 'geolocation=(), camera=(), microphone=()',
   'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
 };
-const JWK_SETS = new Map();
 
 function response(message, status = 200, type = 'text/plain; charset=utf-8', extra = {}) {
   return new Response(message, { status, headers: { ...HEADERS, 'Content-Type': type, ...extra } });
@@ -29,25 +27,17 @@ function escapeHtml(value) {
 }
 function deny() { return response('Access denied', 403); }
 
-async function authenticate(request, env) {
-  if (!env.TEAM_DOMAIN || !env.POLICY_AUD || !env.ALLOWED_ADMIN_EMAILS) return null;
-  const jwt = request.headers.get('Cf-Access-Jwt-Assertion');
-  if (!jwt) return null;
+// ctx.access is attached by Cloudflare *only after* Access authenticates the
+// request to this Worker. Never trust user-supplied email or JWT headers.
+export async function authenticate(ctx, env) {
+  if (!ctx?.access || typeof ctx.access.getIdentity !== 'function') return null;
+  if (typeof env.ALLOWED_ADMIN_EMAILS !== 'string') return null;
+  const allowed = new Set(env.ALLOWED_ADMIN_EMAILS.split(',').map(s => s.trim().toLowerCase()).filter(Boolean));
+  if (!allowed.size) return null;
   try {
-    const team = new URL(env.TEAM_DOMAIN);
-    if (team.protocol !== 'https:' || team.pathname !== '/' || team.search || team.hash) return null;
-    const allowed = new Set(env.ALLOWED_ADMIN_EMAILS.split(',').map(s => s.trim().toLowerCase()).filter(Boolean));
-    if (!allowed.size) return null;
-    let jwks = JWK_SETS.get(team.origin);
-    if (!jwks) {
-      jwks = createRemoteJWKSet(new URL('/cdn-cgi/access/certs', team));
-      JWK_SETS.set(team.origin, jwks);
-    }
-    const { payload } = await jwtVerify(jwt, jwks, {
-      issuer: team.origin, audience: env.POLICY_AUD, algorithms: ['RS256'],
-    });
-    if (typeof payload.email !== 'string' || !allowed.has(payload.email.toLowerCase())) return null;
-    return payload.email.toLowerCase();
+    const identity = await ctx.access.getIdentity();
+    const email = typeof identity?.email === 'string' ? identity.email.trim().toLowerCase() : '';
+    return email && allowed.has(email) ? email : null;
   } catch {
     return null;
   }
@@ -61,12 +51,12 @@ function html(email, jobs, configured, pipelineReady) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     // Internal runners need an independent signed identity; neither path approves or publishes.
     const runner = await handleRunner(request, env);
     if (runner) return runner;
-    // The dashboard refuses ALL access until Access AUD, issuer and allowlist are configured.
-    const actor = await authenticate(request, env);
+    // The dashboard refuses access without Cloudflare-verified identity and explicit email allowlist.
+    const actor = await authenticate(ctx, env);
     if (!actor) return deny();
     const url = new URL(request.url);
     if (request.method === 'GET' && url.pathname === '/robots.txt') return response('User-agent: *\nDisallow: /\n', 200, 'text/plain; charset=utf-8');
