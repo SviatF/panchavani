@@ -1,6 +1,7 @@
 /** Private automated research queue API. Never approves or publishes candidates. */
 const encoder = new TextEncoder();
 const HEX = /^[a-f0-9]{64}$/;
+const KARANA_NAMES=new Set(['Kimstughna','Bava','Balava','Kaulava','Taitila','Gara','Vanija','Vishti','Shakuni','Chatushpada','Naga']);
 const IDS = new Set(['delhi','mumbai','kolkata','chennai','bengaluru','ahmedabad','pune','varanasi']);
 function reply(body,status=200){return new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'private, no-store','X-Robots-Tag':'noindex, nofollow, noarchive','X-Content-Type-Options':'nosniff'}})}
 const toHex = b => [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
@@ -17,11 +18,38 @@ export function candidateIssues(c,job){
  if(typeof c.recordId!=='string'||!c.recordId.startsWith(job.city_id+':'+job.local_date+':'))e.push('invalid-record-id');
  if(!HEX.test(c.methodology?.ephemerisHash||'')||c.methodology?.ayanamsa!=='NOT_VALIDATED'||c.methodology?.rulePackId!=='NONE'||!String(c.city?.catalogVersion||'').startsWith('pilot-unverified'))e.push('unexpected-methodology');
  if(!Number.isInteger(c.validation?.blockerCount)||c.validation.blockerCount<1||c.validation?.reviewStatus!=='not-reviewed')e.push('research-blockers-missing');
- if(c.panchangAtSunrise?.nakshatra!==null||c.panchangAtSunrise?.yoga!==null||c.panchangAtSunrise?.karana!==null)e.push('unvalidated-limbs');
+ if(c.panchangAtSunrise?.nakshatra!==null||c.panchangAtSunrise?.yoga!==null)e.push('unvalidated-limbs');
+ if(c.panchangAtSunrise?.karana!==null && !KARANA_NAMES.has(c.panchangAtSunrise?.karana))e.push('invalid-research-karana');
  const {sunriseUtc:s,sunsetUtc:t,nextSunriseUtc:n}=c.sun||{};
  if(!utc(s)||!utc(t)||!utc(n)||!(Date.parse(s)<Date.parse(t)&&Date.parse(t)<Date.parse(n)))e.push('invalid-solar-order');
- if(!Array.isArray(c.transitions)||c.transitions.length<1||c.transitions.length>16||c.transitions.some(x=>x.type!=='tithi'||!utc(x.startUtc)||!utc(x.endUtc)||!(Date.parse(x.startUtc)<Date.parse(x.endUtc))))e.push('invalid-tithi-transitions');
- else if(utc(s)&&utc(n)&&(Math.abs(Date.parse(c.transitions[0].startUtc)-Date.parse(s))>1000||Math.abs(Date.parse(c.transitions.at(-1).endUtc)-Date.parse(n))>1000||c.transitions.some((x,i)=>i>0&&Math.abs(Date.parse(x.startUtc)-Date.parse(c.transitions[i-1].endUtc))>1000)))e.push('transition-gaps');
+ if(!Array.isArray(c.transitions)||c.transitions.length<1||c.transitions.length>50){e.push('invalid-transitions');return e;}
+ const ofType=kind=>c.transitions.filter(x=>x?.type===kind);
+ const checkLayer=kind=>{
+  const layer=ofType(kind);
+  return layer.length>0&&layer.every(x=>utc(x.startUtc)&&utc(x.endUtc)&&Date.parse(x.startUtc)<Date.parse(x.endUtc))&&
+   utc(s)&&utc(n)&&Math.abs(Date.parse(layer[0].startUtc)-Date.parse(s))<=1000&&
+   Math.abs(Date.parse(layer.at(-1).endUtc)-Date.parse(n))<=1000&&
+   layer.every((x,i)=>i===0||Math.abs(Date.parse(x.startUtc)-Date.parse(layer[i-1].endUtc))<=1000);
+ };
+ if(!checkLayer('tithi'))e.push('invalid-tithi-transitions');
+ const karanas=ofType('karana');
+ if(karanas.length){
+  if(!checkLayer('karana')||karanas.some(x=>!KARANA_NAMES.has(x.value)))e.push('invalid-karana-transitions');
+  if(checkLayer('tithi')&&checkLayer('karana')){
+   const edges=ofType('tithi').slice(0,-1).map(x=>Date.parse(x.endUtc));
+   const half=karanas.slice(0,-1).map(x=>Date.parse(x.endUtc));
+   if(edges.some(x=>!half.some(y=>Math.abs(x-y)<=1000)))e.push('karana-tithi-mismatch');
+  }
+ }
+ if(c.panchangAtSunrise?.karana && (!karanas.length||c.panchangAtSunrise.karana!==karanas[0].value))e.push('karana-sunrise-mismatch');
+ for(const type of ['rahu-kalam','yamaganda','gulika']){
+  const items=ofType(type);
+  if(items.length!==0&&(items.length!==1||!utc(items[0].startUtc)||!utc(items[0].endUtc)||
+     !utc(s)||!utc(t)||Date.parse(items[0].startUtc)<Date.parse(s)||
+     Date.parse(items[0].endUtc)>Date.parse(t)||
+     Date.parse(items[0].startUtc)>=Date.parse(items[0].endUtc)))e.push('invalid-'+type);
+ }
+ if(c.transitions.some(x=>!['tithi','karana','rahu-kalam','yamaganda','gulika'].includes(x?.type)))e.push('unsupported-transition-type');
  return e;
 }
 export async function authorizeRunner(request,env,body){
