@@ -6,6 +6,7 @@
 import { handleRunner } from './runner.mjs';
 import { ACTIVE_CITIES, CITY_IDS } from './city-catalog.mjs';
 import { handleAi } from './ai-editorial.mjs';
+import { runAutonomy, readiness } from './autonomy.mjs';
 
 const HEADERS = {
   'X-Robots-Tag': 'noindex, nofollow, noarchive',
@@ -80,7 +81,7 @@ export default {
     const url = new URL(request.url);
     if (request.method === 'GET' && url.pathname === '/robots.txt') return response('User-agent: *\nDisallow: /\n', 200, 'text/plain; charset=utf-8');
     if (request.method === 'GET' && url.pathname === '/api/status') {
-      return response(JSON.stringify({ privacy: 'authenticated', engine: 'research-only', publishing: 'disabled', database: Boolean(env.DB), runnerReady: Boolean(env.DB && env.CANDIDATES && env.RUNNER_HMAC_SECRET), deepseekConfigured: Boolean(env.DEEPSEEK_API_KEY && env.CANDIDATES && env.DB) }), 200, 'application/json; charset=utf-8');
+      return response(JSON.stringify({ privacy: 'authenticated', engine: 'research-only', publishing: 'disabled', database: Boolean(env.DB), runnerReady: Boolean(env.DB && env.CANDIDATES && env.RUNNER_HMAC_SECRET), deepseekConfigured: Boolean(env.DEEPSEEK_API_KEY && env.CANDIDATES && env.DB), automation: readiness(env) }), 200, 'application/json; charset=utf-8');
     }
     if (request.method === 'GET' && url.pathname === '/api/jobs') {
       if (!env.DB) return response(JSON.stringify({jobs:[],configured:false}),200,'application/json; charset=utf-8');
@@ -129,5 +130,15 @@ export default {
       return response('', 303, 'text/plain; charset=utf-8', { Location: '/' });
     }
     return response('Not found', 404);
+  },
+  async scheduled(controller, env, ctx) {
+    // Cloudflare Cron events are internal triggers, never exposed via HTTP.
+    // Without BOTH explicitly opted-in flags there are zero queued/model jobs.
+    const result=await runAutonomy(env,controller.scheduledTime);
+    console.log('PANCHAVANI private automation',JSON.stringify({
+      research:result.queue?.status,queued:result.queue?.queued||0,
+      editorial:result.draft?.status,attempted:result.draft?.attempted||0,
+      publishingAuthorized:false
+    }));
   },
 };

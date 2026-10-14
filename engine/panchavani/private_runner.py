@@ -113,10 +113,19 @@ def run_once(ephemeris: Path) -> bool:
 def main():
     parser=argparse.ArgumentParser(description='Private research candidate worker — never publish results')
     parser.add_argument('--ephemeris',type=Path,required=True)
+    parser.add_argument('--max-jobs',type=int,default=1,
+                        help='At most three private queued records per invocation')
     args=parser.parse_args()
+    if not 1 <= args.max_jobs <= 3:
+        raise SystemExit('Research runner maximum job count must be 1..3')
     if not args.ephemeris.is_file():
         raise SystemExit('Pinned JPL ephemeris file missing')
-    run_once(args.ephemeris)
+    processed=0
+    for _ in range(args.max_jobs):
+        if not run_once(args.ephemeris):
+            break
+        processed+=1
+    print('Private research jobs processed:',processed,'/ approved releases: 0')
 
 if __name__=='__main__':
     main()

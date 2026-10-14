@@ -1,6 +1,9 @@
 name: Private PANCHAVANI research queue runner (manual, no publication)
 on:
   workflow_dispatch:
+  schedule:
+    # Scheduled research requires explicit GitHub variable opt-in.
+    - cron: '30 02,05 * * *'
 permissions:
   contents: read
 concurrency:
@@ -8,6 +11,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   consume-one-research-job:
+    if: github.event_name == 'workflow_dispatch' || vars.PANCHAVANI_RESEARCH_AUTORUN == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     env:
@@ -20,19 +24,27 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Require connected private resources; fail closed if absent
+      - name: Identify missing signed-runner configuration without exposing secrets
+        id: credentials
         run: |
-          test -n "$PANCHAVANI_RUNNER_HMAC_SECRET"
-          test -n "$CF_ACCESS_CLIENT_ID"
-          test -n "$CF_ACCESS_CLIENT_SECRET"
+          if test -n "$PANCHAVANI_RUNNER_HMAC_SECRET" && \
+             test -n "$CF_ACCESS_CLIENT_ID" && test -n "$CF_ACCESS_CLIENT_SECRET"; then
+            echo 'ready=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+            echo 'Private runner credentials absent; science execution skipped safely'
+          fi
       - name: Install astronomical dependencies
+        if: steps.credentials.outputs.ready == 'true'
         run: python -m pip install -r engine/requirements.txt
       - name: Fetch pinned JPL DE440s ephemeris
+        if: steps.credentials.outputs.ready == 'true'
         run: |
           curl --fail --location --retry 3 --max-time 240 --silent --show-error \
             https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp \
             --output /tmp/panchavani-de440s.bsp
           echo 'c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2  /tmp/panchavani-de440s.bsp' | sha256sum --check
-      - name: Consume one private queued candidate; no release endpoint
+      - name: Consume at most three queued research candidates; no release endpoint
+        if: steps.credentials.outputs.ready == 'true'
         run: |
-          PYTHONPATH=engine python -m panchavani.private_runner --ephemeris /tmp/panchavani-de440s.bsp
+          PYTHONPATH=engine python -m panchavani.private_runner --ephemeris /tmp/panchavani-de440s.bsp --max-jobs 3

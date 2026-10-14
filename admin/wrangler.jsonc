@@ -17,5 +17,10 @@
       "binding": "CANDIDATES",
       "bucket_name": "panchavani-research-private"
     }
-  ]
+  ],
+  "triggers": {
+    "crons": [
+      "5 * * * *"
+    ]
+  }
 }
