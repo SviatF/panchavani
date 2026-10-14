@@ -1,8 +1,8 @@
 /** Private automated research queue API. Never approves or publishes candidates. */
+import { CITY_IDS, CATALOG_VERSION } from './city-catalog.mjs';
 const encoder = new TextEncoder();
 const HEX = /^[a-f0-9]{64}$/;
 const KARANA_NAMES=new Set(['Kimstughna','Bava','Balava','Kaulava','Taitila','Gara','Vanija','Vishti','Shakuni','Chatushpada','Naga']);
-const IDS = new Set(['delhi','mumbai','kolkata','chennai','bengaluru','ahmedabad','pune','varanasi']);
 function reply(body,status=200){return new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'private, no-store','X-Robots-Tag':'noindex, nofollow, noarchive','X-Content-Type-Options':'nosniff'}})}
 const toHex = b => [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
 async function digest(data){return toHex(await crypto.subtle.digest('SHA-256',encoder.encode(data)))}
@@ -14,9 +14,9 @@ export function candidateIssues(c,job){
  const e=[];if(!c||typeof c!=='object'||Array.isArray(c))return ['invalid-object'];
  if(c.status!=='calculated'||c.approvedBy!==null||c.releaseId!==null)e.push('published-or-approved-field');
  if(c.schemaVersion!=='1.0.0')e.push('unknown-schema');
- if(c.city?.id!==job.city_id||!IDS.has(c.city?.id)||c.localDate!==job.local_date||!finiteDate(c.localDate))e.push('job-mismatch');
+ if(c.city?.id!==job.city_id||!CITY_IDS.has(c.city?.id)||c.localDate!==job.local_date||!finiteDate(c.localDate))e.push('job-mismatch');
  if(typeof c.recordId!=='string'||!c.recordId.startsWith(job.city_id+':'+job.local_date+':'))e.push('invalid-record-id');
- if(!HEX.test(c.methodology?.ephemerisHash||'')||c.methodology?.ayanamsa!=='NOT_VALIDATED'||c.methodology?.rulePackId!=='NONE'||!String(c.city?.catalogVersion||'').startsWith('pilot-unverified'))e.push('unexpected-methodology');
+ if(!HEX.test(c.methodology?.ephemerisHash||'')||c.methodology?.ayanamsa!=='NOT_VALIDATED'||c.methodology?.rulePackId!=='NONE'||c.city?.catalogVersion!==CATALOG_VERSION)e.push('unexpected-methodology');
  if(!Number.isInteger(c.validation?.blockerCount)||c.validation.blockerCount<1||c.validation?.reviewStatus!=='not-reviewed')e.push('research-blockers-missing');
  if(c.panchangAtSunrise?.nakshatra!==null||c.panchangAtSunrise?.yoga!==null)e.push('unvalidated-limbs');
  if(c.panchangAtSunrise?.karana!==null && !KARANA_NAMES.has(c.panchangAtSunrise?.karana))e.push('invalid-research-karana');

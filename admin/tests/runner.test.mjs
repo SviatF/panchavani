@@ -2,6 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac, createHash, randomUUID } from 'node:crypto';
 import { candidateIssues, authorizeRunner, handleRunner } from '../src/runner.mjs';
+import { ACTIVE_CITIES, CITY_IDS, CATALOG_VERSION } from '../src/city-catalog.mjs';
+test('admin and runner both read the same research city catalogue',()=>{
+ assert.equal(ACTIVE_CITIES.length,8);
+ assert.ok(CITY_IDS.has('delhi')&&CITY_IDS.has('varanasi'));
+ assert.equal(CATALOG_VERSION,'pilot-unverified-v1');
+ assert.equal(new Set(ACTIVE_CITIES.map(x=>x.id)).size,ACTIVE_CITIES.length);
+});
+
 const job={city_id:'delhi',local_date:'2026-10-13'};
 function candidate(){
  const s='2026-10-13T00:50:00Z',t='2026-10-13T12:20:00Z',n='2026-10-14T00:50:00Z';

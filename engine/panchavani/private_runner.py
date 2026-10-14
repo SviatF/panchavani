@@ -18,7 +18,7 @@ from urllib.parse import urlsplit
 from urllib.request import Request, build_opener, HTTPRedirectHandler
 from urllib.error import HTTPError, URLError
 from .compute import calculate
-from .cities import PILOT_CITIES
+from .cities import RESEARCH_CITIES
 
 PINNED_JPL_SHA256 = 'c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2'
 
@@ -87,7 +87,7 @@ def run_once(ephemeris: Path) -> bool:
     lease=job['leaseToken']
     try:
         city=job['city_id']
-        if city not in PILOT_CITIES:
+        if city not in RESEARCH_CITIES:
             raise ValueError('Unsupported QA city')
         record=calculate(city,date.fromisoformat(job['local_date']),ephemeris,PINNED_JPL_SHA256)
         if record['status']!='calculated' or record['validation']['blockerCount']<1:
