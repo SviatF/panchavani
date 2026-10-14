@@ -133,6 +133,15 @@ def make_prompt_packet(candidate: dict, *, language: str = "en",
         "editorialFocus": context,
         "validatedAstronomicalFacts": [],
         "verifiedActivityRules": [],
+        # Research-only activity slots. A model must not infer what
+        # someone should do from raw Tithi or local sunset alone.
+        "dailyActivityDecisions": [
+            {"topic":topic,"decision":"NOT_EVALUATED",
+             "reason":"No independently approved city/tradition-specific rule pack",
+             "recommendedAction":None}
+            for topic in ("ordinary-planning","worship","fasting",
+                          "travel","wedding","starting-business")
+        ],
         "researchOnlyCandidate": {
             "sourceSha256":source_hash,
             "validationStatus":"UNVERIFIED",
