@@ -61,12 +61,15 @@ def _positive_motion(previous: float, current: float) -> float:
 
 def _root(phase: Callable[[datetime], float], lo: datetime, hi: datetime,
           lo_angle: float, threshold: float, tolerance_seconds: float) -> datetime:
-    base = wrap(phase(lo))
+    # Root brackets must be measured against the SAME original phase anchor.
+    # Updating the anchor to the moving low bound while retaining the initial
+    # unwrapped offset biases arbitrary (non-midpoint) crossings.
+    anchor_angle = wrap(phase(lo))
     for _ in range(80):
         if (hi - lo).total_seconds() <= tolerance_seconds:
             break
         mid = lo + (hi - lo) / 2
-        unwrapped = lo_angle + _positive_motion(base, wrap(phase(mid)))
+        unwrapped = lo_angle + _positive_motion(anchor_angle, wrap(phase(mid)))
         if unwrapped >= threshold:
             hi = mid
         else:
