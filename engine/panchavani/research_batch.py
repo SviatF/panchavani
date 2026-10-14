@@ -15,6 +15,7 @@ from zoneinfo import ZoneInfo
 from .cities import PILOT_CITIES
 from .compute import calculate
 from .periods import karana_title
+from .release_gate import EditorialEvidence, release_blockers
 
 JPL_DE440S_SHA = "c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2"
 REQUIRED_TYPES = {"tithi", "karana", "rahu-kalam", "yamaganda", "gulika"}
@@ -69,6 +70,13 @@ def run_batch(ephemeris: Path, output_dir: Path, start: date, days: int = 2) -> 
             if issues:
                 raise ValueError(f"{city_id}/{local_date}: {issues}; full batch BLOCKED")
             date_candidates.append(record)
+            # An autonomous calculator may NEVER turn its own output into an
+            # indexable page. Apply the identical strict editorial release gate.
+            empty_review = EditorialEvidence("", "", (), (), "")
+            seo_blockers = release_blockers(
+                record, empty_review, tuple(c.name for c in PILOT_CITIES.values()))
+            if not seo_blockers:
+                raise AssertionError("Research candidate bypassed SEO approval gate")
             body = (json.dumps(record, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode()
             destination = output_dir / f"{local_date.isoformat()}-{city_id}-UNAPPROVED.json"
             destination.write_bytes(body)
@@ -80,7 +88,8 @@ def run_batch(ephemeris: Path, output_dir: Path, start: date, days: int = 2) -> 
                 "file": destination.name,
                 "sunriseUtc": record["sun"]["sunriseUtc"],
                 "sunsetUtc": record["sun"]["sunsetUtc"],
-                "publicationBlockers": record["validation"]["blockerCount"]
+                "publicationBlockers": record["validation"]["blockerCount"],
+                "seoGateBlockers": seo_blockers
             })
         # If all eight city-specific solar values were accidentally duplicated
         # it is a critical location-engine regression, never a "SEO optimization".
