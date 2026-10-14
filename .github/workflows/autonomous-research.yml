@@ -13,6 +13,10 @@ on:
       - 'engine/panchavani/cities.py'
       - 'engine/panchavani/city_shards.py'
       - 'engine/catalog/cities.v1.json'
+      - 'engine/tests/test_city_scaling.py'
+      - 'engine/tests/test_editorial_quality.py'
+      - 'engine/panchavani/editorial_quality.py'
+      - 'engine/editorial/expansion-17-research-briefs.v1.json'
   schedule:
     - cron: '17 02 * * *'
   workflow_dispatch:
