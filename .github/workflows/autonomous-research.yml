@@ -55,6 +55,7 @@ jobs:
           assert report['indexableCityPagesCreated']==0
           for c in report['candidates']:
               assert c['status']=='UNAPPROVED' and c['publicationBlockers']>0
+              assert c['seoGateBlockers'] and 'not-explicitly-approved' in c['seoGateBlockers']
               p=out/c['file']
               assert p.exists()
           print('PASS: complete city/date research set; 0 indexable pages, 0 releases')
