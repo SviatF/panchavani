@@ -41,6 +41,26 @@ jobs:
           PYTHONPATH=. python -m panchavani.compare \
             --candidate artifacts/delhi-2026-10-13-candidate.json \
             --fixture fixtures/delhi-2026-10-13.references.json
+      - name: Audit independently documented external events without self-approval
+        run: |
+          PYTHONPATH=engine python -m panchavani.external_compare_cli \
+            --candidate engine/artifacts/delhi-2026-10-13-candidate.json \
+            --references engine/fixtures/delhi-2026-10-13.external-UNVERIFIED.json \
+            --out engine/artifacts/delhi-external-comparison-UNAPPROVED.json
+          python - <<'PY'
+          import json
+          p='engine/artifacts/delhi-external-comparison-UNAPPROVED.json'
+          obj=json.load(open(p))
+          assert len(obj['samples'])==6
+          assert obj['methodologicalIndependenceVerified'] is False
+          assert obj['scientificAccuracyApproved'] is False
+          assert obj['indexingAuthorized'] is False
+          assert obj['publicationAuthorized'] is False
+          assert 'unknown-upstream-family' in obj['issues']
+          assert 'missing-documented-methodology' in obj['issues']
+          assert all(sample['withinExploratoryTolerance'] for sample in obj['samples']), 'Astronomical clock discrepancy exceeds exploratory threshold'
+          print('PASS: six clock-time comparisons, no false scientific approval')
+          PY
       - name: Assert candidate only, no approval and real city-specific sunrise
         run: |
           python - <<'PY'
