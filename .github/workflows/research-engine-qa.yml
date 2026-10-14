@@ -40,7 +40,21 @@ jobs:
               pass
           else:
               raise AssertionError('PRIVATE research table allowed published status')
-          print('PASS: migrations and research-only status enforcement')
+          # Autonomy slots must reference an actual queued job, never
+          # authorize public calendar data or create duplicate city/date jobs.
+          con.execute("INSERT INTO job_requests(id,city_id,local_date,status,requested_by) VALUES('auto-job','delhi','2026-10-16','queued','panchavani-cron@internal')")
+          con.execute("INSERT INTO autonomous_research_slots(city_id,local_date,job_id) VALUES('delhi','2026-10-16','auto-job')")
+          duplicate=con.execute("INSERT OR IGNORE INTO autonomous_research_slots(city_id,local_date,job_id) VALUES('delhi','2026-10-16','auto-job')").rowcount
+          assert duplicate==0
+          con.execute("INSERT INTO autonomous_ai_slots(job_id,intent,language,prompt_version,status) VALUES('auto-job','daily-panchang','en','v1','processing')")
+          assert con.execute("SELECT COUNT(*) FROM autonomous_ai_slots").fetchone()[0]==1
+          try:
+              con.execute("INSERT INTO autonomous_ai_slots(job_id,intent,language,prompt_version,status) VALUES('auto-job','daily-panchang','en','v1','published')")
+          except sqlite3.IntegrityError:
+              pass
+          else:
+              raise AssertionError('Autonomous research AI table permitted an invalid release status')
+          print('PASS: migrations, autonomous idempotency and research-only status enforcement')
           PY
   private-admin:
     runs-on: ubuntu-latest
