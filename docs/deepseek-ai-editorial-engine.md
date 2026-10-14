@@ -18,7 +18,12 @@ content, or approved religious guidance.
    genuinely different research requirements for each type, not randomly
    shuffled wording. It retrieves a distinct *editorial research question*
    for each expansion city. A research question is not a factual claim.
-3. Critically, **the current candidate has 0 scientifically approved
+3. The request **does include the current city's local JPL research solar
+   timestamps, preliminary Tithi/Karana transitions, method details and
+   checksum**, explicitly isolated as `researchOnlyCandidate` with
+   `DO_NOT_QUOTE_AS_SETTLED_FACT`. It supplies context for identifying
+   useful day-specific editorial questions, not factual permission to publish.
+   Critically, **the current candidate has 0 scientifically approved
    numerical facts and 0 approved ritual activity rules**. The prompt
    explicitly prevents the model from inventing facts or suggesting that
    a day is auspicious. Pending review, it can write only a useful

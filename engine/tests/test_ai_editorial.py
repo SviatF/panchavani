@@ -56,6 +56,10 @@ class EditorialPipelineTests(unittest.TestCase):
         self.assertFalse(packet["indexingAuthorized"])
         self.assertEqual(packet["evidence"]["validatedAstronomicalFacts"],[])
         self.assertEqual(packet["evidence"]["verifiedActivityRules"],[])
+        activities=packet["evidence"]["dailyActivityDecisions"]
+        self.assertEqual(len(activities),6)
+        self.assertTrue(all(x["decision"]=="NOT_EVALUATED" and
+                            x["recommendedAction"] is None for x in activities))
         research=packet["evidence"]["researchOnlyCandidate"]
         self.assertEqual(research["status"],"DO_NOT_QUOTE_AS_SETTLED_FACT")
         self.assertEqual(research["researchLocalSolarTimes"]["sunrise"],
