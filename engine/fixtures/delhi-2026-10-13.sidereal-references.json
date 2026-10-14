@@ -1,0 +1,20 @@
+{
+  "city": "delhi",
+  "date": "2026-10-13",
+  "timezone": "Asia/Kolkata",
+  "purpose": "Exploratory publicly reported clock-time comparators only. These may share a common upstream provider; NOT proof of algorithmic or methodological independence.",
+  "sources": [
+    {
+      "name": "Sanatan Bhumi",
+      "url": "https://www.sanatanbhumi.org/en/panchang/2026-10-13/",
+      "nakshatraEnd": "2026-10-14T01:43:00+05:30",
+      "yogaEnd": "2026-10-13T20:24:00+05:30"
+    },
+    {
+      "name": "Ashtadha",
+      "url": "https://ashtadha.com/panchang/date/2026-10-13",
+      "nakshatraEnd": "2026-10-14T01:43:00+05:30",
+      "yogaEnd": "2026-10-13T20:24:00+05:30"
+    }
+  ]
+}

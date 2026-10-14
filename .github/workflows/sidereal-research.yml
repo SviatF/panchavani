@@ -1,0 +1,57 @@
+name: JPL provisional Lahiri/Nakshatra/Yoga research (NO publication)
+on:
+  push:
+    paths:
+      - '.github/workflows/sidereal-research.yml'
+      - 'engine/panchavani/astronomy.py'
+      - 'engine/panchavani/core.py'
+      - 'engine/panchavani/sidereal.py'
+      - 'engine/panchavani/sidereal_probe.py'
+      - 'engine/fixtures/delhi-2026-10-13.sidereal-references.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  independent-reference-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install reproducible Skyfield dependencies
+        run: pip install -r engine/requirements.txt
+      - name: Download and checksum NASA/JPL DE440s
+        run: |
+          curl --fail --location --retry 3 --max-time 240 --silent --show-error \
+            https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp \
+            --output /tmp/de440s.bsp
+          echo 'c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2  /tmp/de440s.bsp' | sha256sum --check
+      - name: Compute 27-part sidereal Nakshatra and Yoga in research mode
+        run: |
+          PYTHONPATH=engine python -m panchavani.sidereal_probe \
+            --ephemeris /tmp/de440s.bsp \
+            --city delhi --date 2026-10-13 \
+            --references engine/fixtures/delhi-2026-10-13.sidereal-references.json \
+            --out engine/artifacts/sidereal-pilot-UNAPPROVED.json
+      - name: Fail closed on omitted caveats, fake approval or missing comparators
+        run: |
+          python - <<'PY'
+          import json
+          p='engine/artifacts/sidereal-pilot-UNAPPROVED.json'
+          obj=json.load(open(p))
+          assert obj['status']=='UNAPPROVED'
+          assert obj['researchOnly'] and not obj['publicReleaseAllowed']
+          assert obj['independentScientificValidation']=='NOT_COMPLETED'
+          assert 'UNVALIDATED' in obj['method']
+          assert len(obj['comparators'])==4
+          assert len(obj['blockers'])>=5
+          print('PASS: research-only Nakshatra/Yoga — NOT ready for SEO')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: panchavani-sidereal-methodology-research-NOT-APPROVED
+          path: engine/artifacts/sidereal-pilot-UNAPPROVED.json
+          retention-days: 7
+          if-no-files-found: error
