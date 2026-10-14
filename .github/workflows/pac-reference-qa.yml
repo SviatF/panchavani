@@ -1,0 +1,74 @@
+name: Official IMD PAC solar vs JPL research QA (NO publication)
+on:
+  push:
+    paths:
+      - '.github/workflows/pac-reference-qa.yml'
+      - 'engine/fixtures/pac-rashtriya-2026-four-metros-solar-UNREVIEWED.json'
+      - 'engine/panchavani/pac_solar_reference.py'
+      - 'engine/panchavani/astronomy.py'
+      - 'engine/panchavani/cities.py'
+      - 'engine/tests/test_pac_solar_reference.py'
+  schedule:
+    # Monthly research integrity check; this does not update public pages.
+    - cron: '41 04 1 * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: panchavani-official-pac-qa
+  cancel-in-progress: false
+jobs:
+  official-solar-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Unit-test PAC source provenance, IST conversion and deny-by-default publication
+        run: |
+          cd engine
+          python -m unittest discover -s tests -p 'test_pac_solar_reference.py' -v
+      - name: Install pinned JPL/Skyfield dependencies
+        run: pip install -r engine/requirements.txt
+      - name: Download NASA/JPL DE440s and check immutable SHA-256
+        run: |
+          curl --fail --location --retry 3 --max-time 240 --silent --show-error \
+            https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp \
+            --output /tmp/de440s.bsp
+          echo 'c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2  /tmp/de440s.bsp' | sha256sum --check
+      - name: Compute actual JPL sunrise/sunset for Delhi Mumbai Kolkata Chennai against PAC dates
+        run: |
+          PYTHONPATH=engine python -m panchavani.pac_solar_reference \
+            --ephemeris /tmp/de440s.bsp \
+            --fixture engine/fixtures/pac-rashtriya-2026-four-metros-solar-UNREVIEWED.json \
+            --out engine/artifacts/pac-2026-solar-UNAPPROVED.json
+      - name: Fail closed on source mismatch, implausible drift or accidental scientific approval
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('engine/artifacts/pac-2026-solar-UNAPPROVED.json')
+          r=json.loads(p.read_text())
+          assert r['cityDayCount']==8 and r['observationCount']==16
+          assert {x['date'] for x in r['records']}=={'2026-04-21','2026-10-23'}
+          assert {x['city'] for x in r['records']}=={'delhi','mumbai','kolkata','chennai'}
+          assert len(r['fixtureSha256'])==64 and len(r['jplEphemerisSha256'])==64
+          assert r['withinExploratoryAlertThreshold'], 'Official PAC/JPL mismatch requires source and methodology investigation'
+          assert r['sourceTranscriptionReview']=='PENDING'
+          assert r['stationAndHorizonConventionReview']=='PENDING'
+          assert r['methodologicallyIndependentValidation'] is False
+          assert r['scientificallyApproved'] is False
+          assert r['publicationAuthorized'] is False and r['indexingAuthorized'] is False
+          assert r['ritualOrFestivalApproval'] is False
+          assert r['blockers']
+          print('PASS: 16 official-government clock-value research comparisons. 0 approved releases.')
+          PY
+      - name: Retain unapproved official reference comparison for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: panchavani-IMD-PAC-four-metros-2026-RESEARCH-UNAPPROVED
+          path: engine/artifacts/pac-2026-solar-UNAPPROVED.json
+          retention-days: 30
+          if-no-files-found: error
