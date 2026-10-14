@@ -7,6 +7,8 @@ on:
       - 'engine/tests/test_geodata_audit.py'
       - 'engine/catalog/cities.v1.json'
       - 'engine/panchavani/cities.py'
+  schedule:
+    - cron: '39 04 2 * *'
   workflow_dispatch:
 permissions:
   contents: read

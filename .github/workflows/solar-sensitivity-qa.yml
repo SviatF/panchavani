@@ -7,6 +7,8 @@ on:
       - 'engine/panchavani/astronomy.py'
       - 'engine/tests/test_solar_sensitivity.py'
       - 'engine/catalog/cities.v1.json'
+  schedule:
+    - cron: '17 05 2 * *'
   workflow_dispatch:
 permissions:
   contents: read
