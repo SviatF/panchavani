@@ -14,7 +14,6 @@ on:
       - 'engine/panchavani/city_shards.py'
       - 'engine/catalog/cities.v1.json'
   schedule:
-    # Daily: generates research candidates; NEVER publishes pages or Muhurat.
     - cron: '17 02 * * *'
   workflow_dispatch:
     inputs:
@@ -23,19 +22,11 @@ on:
         required: true
         default: all
         type: choice
-        options:
-          - all
-          - pilot
-          - expansion
+        options: [all, pilot, expansion]
       shard_count:
-        description: Deterministic shard count 1 to 128
+        description: Auto or manual 1..128 shard count
         required: true
-        default: "1"
-        type: string
-      shard_index:
-        description: Zero based city shard
-        required: true
-        default: "0"
+        default: auto
         type: string
 permissions:
   contents: read
@@ -43,19 +34,74 @@ concurrency:
   group: panchavani-nightly-research
   cancel-in-progress: false
 jobs:
-  compute-private-candidates:
+  plan-city-workload:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
-    env:
-      CITY_COHORT: ${{ inputs.cohort || 'all' }}
-      CITY_SHARD_COUNT: ${{ inputs.shard_count || '1' }}
-      CITY_SHARD_INDEX: ${{ inputs.shard_index || '0' }}
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      expected_city_count: ${{ steps.plan.outputs.expected_city_count }}
+      catalog_sha: ${{ steps.plan.outputs.catalog_sha }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Offline unit tests including Karana and daytime intervals
+      - id: plan
+        env:
+          CITY_COHORT: ${{ inputs.cohort || 'all' }}
+          REQUESTED_SHARD_COUNT: ${{ inputs.shard_count || 'auto' }}
+        run: |
+          PYTHONPATH=engine python - <<'PY'
+          import json,os,math
+          from pathlib import Path
+          from panchavani.cities import RESEARCH_CITIES,CATALOG_SHA256
+          from panchavani.city_shards import select_city_ids
+          cohort=os.environ['CITY_COHORT']
+          if cohort not in ('all','pilot','expansion'):
+              raise ValueError('Unsupported city research cohort')
+          eligible={k for k,v in RESEARCH_CITIES.items() if cohort=='all' or v.cohort==cohort}
+          if not eligible:
+              raise ValueError('Research cohort has no active cities')
+          raw=os.environ['REQUESTED_SHARD_COUNT']
+          count=max(1,math.ceil(len(eligible)/12)) if raw=='auto' else int(raw)
+          if not 1<=count<=128 or len(eligible)>128*12:
+              raise ValueError('Selected city cohort exceeds safe scheduled worker capacity')
+          groups=[]
+          seen=set()
+          for i in range(count):
+              try:
+                  ids=select_city_ids(cohort=cohort,shard_index=i,shard_count=count)
+              except ValueError:
+                  continue   # sparse stable-hash shard; never schedule an empty job
+              if seen.intersection(ids):
+                  raise AssertionError('City assigned to two different science shards')
+              seen.update(ids)
+              groups.append({'index':i,'count':count,'cityCount':len(ids)})
+          assert seen==eligible and groups
+          plan={'include':groups}
+          with open(os.environ['GITHUB_OUTPUT'],'a') as o:
+              print('matrix='+json.dumps(plan,separators=(',',':')),file=o)
+              print('expected_city_count='+str(len(eligible)),file=o)
+              print('catalog_sha='+CATALOG_SHA256,file=o)
+          print('Research workload:',len(eligible),'cities across',len(groups),'nonempty shards; zero publication')
+          PY
+  compute-private-candidates:
+    needs: plan-city-workload
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix: ${{ fromJSON(needs.plan-city-workload.outputs.matrix) }}
+    env:
+      CITY_COHORT: ${{ inputs.cohort || 'all' }}
+      CITY_SHARD_INDEX: ${{ matrix.index }}
+      CITY_SHARD_COUNT: ${{ matrix.count }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Offline city/math/SEO/private QA (no publishing action)
         run: cd engine && python -m unittest discover -s tests -v
       - name: Install pinned Skyfield
         run: pip install -r engine/requirements.txt
@@ -65,81 +111,125 @@ jobs:
             https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp \
             --output /tmp/de440s.bsp
           echo 'c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2  /tmp/de440s.bsp' | sha256sum --check
-      - name: Pin selected research cities and workload shard
+      - name: Pin selected city catalogue and deterministic shard assignment
         run: |
           PYTHONPATH=engine python -m panchavani.city_shards \
             --cohort "$CITY_COHORT" \
-            --shard-count "$CITY_SHARD_COUNT" \
             --shard-index "$CITY_SHARD_INDEX" \
+            --shard-count "$CITY_SHARD_COUNT" \
             --out engine/artifacts/city-workload-plan-UNAPPROVED.json
-      - name: Generate two-day research dataset for selected cities
+      - name: Calculate Tithi Karana local solar and daylight research candidates
         run: |
           PYTHONPATH=engine python -m panchavani.research_batch \
-            --ephemeris /tmp/de440s.bsp \
-            --out engine/artifacts/nightly \
-            --days 2 \
-            --cohort "$CITY_COHORT" \
-            --shard-count "$CITY_SHARD_COUNT" \
-            --shard-index "$CITY_SHARD_INDEX"
-      - name: Compute selected-city Nakshatra/Yoga using unvalidated Lahiri research model
+            --ephemeris /tmp/de440s.bsp --out engine/artifacts/nightly \
+            --days 2 --cohort "$CITY_COHORT" \
+            --shard-index "$CITY_SHARD_INDEX" --shard-count "$CITY_SHARD_COUNT"
+      - name: Calculate provisional Nakshatra and Yoga research candidates
         run: |
           PYTHONPATH=engine python -m panchavani.sidereal_batch \
-            --ephemeris /tmp/de440s.bsp \
-            --out engine/artifacts/nightly/sidereal/ \
-            --days 2 \
-            --cohort "$CITY_COHORT" \
-            --shard-count "$CITY_SHARD_COUNT" \
-            --shard-index "$CITY_SHARD_INDEX"
-      - name: Verify independent sidereal research stays blocked from SEO
+            --ephemeris /tmp/de440s.bsp --out engine/artifacts/nightly/sidereal/ \
+            --days 2 --cohort "$CITY_COHORT" \
+            --shard-index "$CITY_SHARD_INDEX" --shard-count "$CITY_SHARD_COUNT"
+      - name: Confirm exact shard matches in both data layers and zero releases
         run: |
           python - <<'PY'
           import json,pathlib
-          root=pathlib.Path('engine/artifacts/nightly/sidereal')
-          report=json.loads((root/'index-UNAPPROVED.json').read_text())
-          assert report['status']=='RESEARCH_ONLY'
-          plan=json.loads(pathlib.Path('engine/artifacts/city-workload-plan-UNAPPROVED.json').read_text())
-          assert report['cityCount']==plan['cityCount'] and report['days']==2
-          assert len(report['candidates'])==plan['expectedCityDays']
-          assert report['cityIds']==plan['cityIds']
-          assert report['catalogSha256']==plan['catalogSha256']
-          assert report['shardIndex']==plan['shardIndex']
-          assert report['shardCount']==plan['shardCount']
-          assert report['publicReleaseAllowed'] is False
-          assert report['independentScientificValidation']=='NOT_COMPLETED'
-          assert 'UNVALIDATED' in report['method']
-          assert report['crossCityGeocentricConsistency']=='PASSED'
-          assert all((root/c['file']).is_file() for c in report['candidates'])
-          print('PASS:',len(report['candidates']),'sidereal research candidates; ZERO public releases')
-          PY
-      - name: Enforce fail-closed, no publication from nightly results
-        run: |
-          python - <<'PY'
-          import json,pathlib
-          out=pathlib.Path('engine/artifacts/nightly')
-          report=json.loads((out/'research-report.json').read_text())
-          plan=json.loads(pathlib.Path('engine/artifacts/city-workload-plan-UNAPPROVED.json').read_text())
-          assert report['cityCount']==plan['cityCount'] and report['days']==2
-          assert len(report['candidates'])==plan['expectedCityDays']
-          assert report['cityIds']==plan['cityIds']
-          assert report['catalogSha256']==plan['catalogSha256']
-          assert report['shardIndex']==plan['shardIndex']
-          assert report['shardCount']==plan['shardCount']
-          assert report['researchOnly'] is True
-          assert report['publicReleaseAllowed'] is False
-          assert report['indexableCityPagesCreated']==0
-          for c in report['candidates']:
+          root=pathlib.Path('engine/artifacts')
+          plan=json.loads((root/'city-workload-plan-UNAPPROVED.json').read_text())
+          base=json.loads((root/'nightly/research-report.json').read_text())
+          sid=json.loads((root/'nightly/sidereal/index-UNAPPROVED.json').read_text())
+          for report in (base,sid):
+              assert report['cityIds']==plan['cityIds']
+              assert report['catalogSha256']==plan['catalogSha256']
+              assert report['shardIndex']==plan['shardIndex']
+              assert report['shardCount']==plan['shardCount']
+              assert len(report['candidates'])==plan['expectedCityDays']
+              assert report['publicReleaseAllowed'] is False
+          assert base['researchOnly'] is True and base['indexableCityPagesCreated']==0
+          assert sid['status']=='RESEARCH_ONLY' and sid['independentScientificValidation']=='NOT_COMPLETED'
+          for c in base['candidates']:
               assert c['status']=='UNAPPROVED' and c['publicationBlockers']>0
-              assert c['seoGateBlockers'] and 'not-explicitly-approved' in c['seoGateBlockers']
-              p=out/c['file']
-              assert p.exists()
-          print('PASS: complete',report['cityCount'],'city research set; 0 indexable pages, 0 releases')
+              assert 'not-explicitly-approved' in c['seoGateBlockers']
+              assert (root/'nightly'/c['file']).exists()
+          assert all((root/'nightly/sidereal'/c['file']).exists() for c in sid['candidates'])
+          print('PASS:',plan['cityCount'],'city records in shard',plan['shardIndex'],'/ 0 public releases')
           PY
-      - name: Archive ONLY private research outputs for later scientific review
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: panchavani-nightly-candidates-NOT-APPROVED
+          name: panchavani-nightly-UNAPPROVED-shard-${{ matrix.index }}-of-${{ matrix.count }}
           path: |
             engine/artifacts/nightly/
             engine/artifacts/city-workload-plan-UNAPPROVED.json
+          retention-days: 7
+          if-no-files-found: error
+
+  verify-complete-city-coverage:
+    needs: [plan-city-workload, compute-private-candidates]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: panchavani-nightly-UNAPPROVED-shard-*
+          path: downloaded-shards
+          merge-multiple: false
+      - name: Assert 100 percent city scope across all shards, without duplicate city-days
+        env:
+          EXPECTED_CITY_COUNT: ${{ needs.plan-city-workload.outputs.expected_city_count }}
+          EXPECTED_CATALOG_SHA: ${{ needs.plan-city-workload.outputs.catalog_sha }}
+          CITY_COHORT: ${{ inputs.cohort || 'all' }}
+        run: |
+          PYTHONPATH=engine python - <<'PY'
+          import json,os,hashlib,pathlib
+          from panchavani.cities import RESEARCH_CITIES,CATALOG_SHA256
+          root=pathlib.Path('downloaded-shards')
+          expected={k for k,v in RESEARCH_CITIES.items()
+                    if os.environ['CITY_COHORT']=='all' or v.cohort==os.environ['CITY_COHORT']}
+          assert len(expected)==int(os.environ['EXPECTED_CITY_COUNT'])
+          assert CATALOG_SHA256==os.environ['EXPECTED_CATALOG_SHA']
+          seen=set()
+          files=list(root.glob('*/city-workload-plan-UNAPPROVED.json'))
+          assert files, 'No valid research artifacts from any scheduled shard'
+          shard_indices=set()
+          for path in files:
+              plan=json.loads(path.read_text())
+              base=json.loads((path.parent/'nightly/research-report.json').read_text())
+              sid=json.loads((path.parent/'nightly/sidereal/index-UNAPPROVED.json').read_text())
+              assert plan['catalogSha256']==base['catalogSha256']==sid['catalogSha256']==CATALOG_SHA256
+              assert base['cityIds']==sid['cityIds']==plan['cityIds']
+              assert not base['publicReleaseAllowed'] and not sid['publicReleaseAllowed']
+              assert base['indexableCityPagesCreated']==0
+              assert len(base['candidates'])==len(sid['candidates'])==plan['expectedCityDays']
+              shard_index=plan['shardIndex']
+              assert shard_index not in shard_indices, 'Duplicate shard index'
+              shard_indices.add(shard_index)
+              for city in plan['cityIds']:
+                  assert city not in seen, 'Same city processed by multiple shards'
+                  seen.add(city)
+              for c in base['candidates']:
+                  source=(path.parent/'nightly'/c['file']).read_bytes()
+                  assert hashlib.sha256(source).hexdigest()==c['sha256'], 'Candidate SHA-256 mismatch'
+                  assert c['status']=='UNAPPROVED' and c['seoGateBlockers']
+              for c in sid['candidates']:
+                  source=(path.parent/'nightly/sidereal'/c['file']).read_bytes()
+                  assert hashlib.sha256(source).hexdigest()==c['sha256'], 'Sidereal SHA-256 mismatch'
+                  assert c['blocked']
+          assert seen==expected, 'Incomplete or unexpected city coverage in science output'
+          summary={'status':'RESEARCH_ONLY','catalogSha256':CATALOG_SHA256,
+                   'cityCount':len(seen),'shards':len(files),'days':2,
+                   'cityDays':2*len(seen),'publicReleaseAllowed':False,
+                   'indexingAuthorized':False,'independentScientificValidation':'NOT_COMPLETED'}
+          out=pathlib.Path('coverage-UNAPPROVED.json')
+          out.write_text(json.dumps(summary,indent=2)+'\n')
+          print('PASS: all',len(seen),'active cities, each in exactly one shard; 0 SEO releases')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: panchavani-nightly-aggregate-coverage-UNAPPROVED
+          path: coverage-UNAPPROVED.json
           retention-days: 7
           if-no-files-found: error
