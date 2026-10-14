@@ -18,6 +18,9 @@ def test_candidate():
                 "catalogVersion":city.catalog_version},
         "localDate":"2026-10-13",
         "status":"calculated",
+        "sun":{"sunriseUtc":"2026-10-13T00:50:00Z",
+               "sunsetUtc":"2026-10-13T12:24:00Z",
+               "nextSunriseUtc":"2026-10-14T00:51:00Z"},
         "approvedBy":None,"releaseId":None,
         "validation":{"blockerCount":4},
         "methodology":{"ayanamsa":"NOT_VALIDATED"},
@@ -53,6 +56,11 @@ class EditorialPipelineTests(unittest.TestCase):
         self.assertFalse(packet["indexingAuthorized"])
         self.assertEqual(packet["evidence"]["validatedAstronomicalFacts"],[])
         self.assertEqual(packet["evidence"]["verifiedActivityRules"],[])
+        research=packet["evidence"]["researchOnlyCandidate"]
+        self.assertEqual(research["status"],"DO_NOT_QUOTE_AS_SETTLED_FACT")
+        self.assertEqual(research["researchLocalSolarTimes"]["sunrise"],
+                         "2026-10-13T06:20:00+05:30")
+        self.assertEqual(research["unreviewedPanchangAtSunrise"]["tithi"],"Shukla Pratipada")
         self.assertEqual(packet["evidence"]["city"]["name"],"Delhi")
         self.assertEqual(packet["date"],"2026-10-13")
         self.assertEqual(len(packet["sourceCandidateSha256"]),64)
@@ -75,6 +83,14 @@ class EditorialPipelineTests(unittest.TestCase):
             make_prompt_packet(test_candidate(), verified_facts=[{"foo":"self approved"}])
         with self.assertRaises(ValueError):
             make_prompt_packet(test_candidate(),language="ru")
+    def test_missing_or_wrong_day_solar_data_is_blocked(self):
+        c=test_candidate()
+        c["sun"].pop("sunriseUtc")
+        with self.assertRaises(ValueError):make_prompt_packet(c)
+        c=test_candidate()
+        c["sun"]["sunriseUtc"]="2026-10-12T00:50:00Z"
+        with self.assertRaises(ValueError):make_prompt_packet(c)
+
     def test_machine_generated_page_always_blocked(self):
         packet=make_prompt_packet(test_candidate())
         report=assemble_research_draft(packet,mock_good_answer())
