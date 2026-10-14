@@ -13,7 +13,7 @@ RESEARCH_CRITERIA={"tithi-at-local-sunrise"}
 
 
 def parse_instant(value: str) -> datetime:
-    dt=datetime.fromisoformat(value.replace("Z","+00:00"))
+    if not isinstance(value, str) or not value:\n        raise ValueError("Timestamp must be a nonempty offset-aware string")\n    dt=datetime.fromisoformat(value.replace("Z","+00:00"))
     if dt.tzinfo is None or dt.utcoffset() is None:
         raise ValueError("Timezone offset required")
     return dt
