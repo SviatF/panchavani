@@ -90,7 +90,8 @@ class ResearchCityCatalogTests(unittest.TestCase):
             self.assertEqual(len(shards),len(all_ids))
             shards=[]
     def test_cohort_selection_and_unauthorized_slug(self):
-        self.assertEqual(select_city_ids(cohort="pilot"),tuple(sorted(RESEARCH_CITIES)))
+        self.assertEqual(select_city_ids(cohort="pilot"),tuple(sorted(PILOT_CITIES)))
+        self.assertEqual(len(select_city_ids(cohort="expansion")),17)
         with self.assertRaises(ValueError):select_city_ids(requested=("delhi","fake"))
         with self.assertRaises(ValueError):select_city_ids(shard_index=3,shard_count=3)
         with self.assertRaises(ValueError):select_city_ids(shard_count=0)
