@@ -8,9 +8,12 @@ from panchavani.geodata_audit import (
     km_between, geodata_research_report, candidates_for_cities,
 )
 
-def fake_row(id, name, lat, lon, *, country="IN", fclass="P", alternate="", population=1200):
+def fake_row(id, name, lat, lon, *, country="IN", fclass="P", alternate="", population=1200, dem=None, elevation=None):
     cols=[str(id),name,name,alternate,str(lat),str(lon),fclass,"PPLA",
-          country,"","36","","","",str(population),"","","Asia/Kolkata","2026-10-14"]
+          country,"","36","","","",str(population),
+          str(elevation) if elevation is not None else "",
+          str(dem) if dem is not None else "",
+          "Asia/Kolkata","2026-10-14"]
     return "\t".join(cols)+"\n"
 
 def archive_with(rows):
@@ -42,6 +45,19 @@ class GeoNamesAuditTests(unittest.TestCase):
     r=geodata_research_report(archive_with([record]),{"prayagraj":city})
     self.assertEqual(r["nearestGazetteerMatchCount"],1)
     self.assertFalse(r["records"][0]["readyForPanchangPublication"])
+ def test_dem_difference_flags_are_not_observatory_certifications(self):
+    city=SimpleNamespace(name="Ujjain",latitude=23.1765,longitude=75.7885,elevation_m=494)
+    result=geodata_research_report(
+        archive_with([fake_row(999,"Ujjain",23.1765,75.7885,dem=200)]),{"ujjain":city})
+    self.assertEqual(result["gazetteerDemAvailableCount"],1)
+    self.assertEqual(result["elevationDiffOver100mOrMissingDem"],["ujjain"])
+    self.assertEqual(result["records"][0]["researchVsGazetteerDemDeltaMeters"],294)
+    self.assertFalse(result["records"][0]["stationElevationVerified"])
+    good=geodata_research_report(
+        archive_with([fake_row(999,"Ujjain",23.1765,75.7885,dem=495)]),{"ujjain":city})
+    self.assertEqual(good["elevationDiffOver100mOrMissingDem"],[])
+    self.assertFalse(good["records"][0]["readyForPanchangPublication"])
+
  def test_invalid_archives_fail_instead_of_guessing(self):
     with self.assertRaises(ValueError):
         geodata_research_report(b"not zip")

@@ -49,6 +49,11 @@ jobs:
           assert re.fullmatch(r'[a-f0-9]{64}',x['sourceDumpSha256'])
           assert re.fullmatch(r'[a-f0-9]{64}',x['catalogSha256'])
           assert x['externalGazetteerIsNotAStationSurvey'] is True
+          assert isinstance(x['gazetteerDemAvailableCount'],int)
+          assert 0<=x['gazetteerDemAvailableCount']<=25
+          assert isinstance(x['elevationDiffOver100mOrMissingDem'],list)
+          assert all(isinstance(c['digitalElevationNeedsReview'],bool)
+                     for c in x['records'])
           assert x['cityCoordinatesVerifiedCount']==0
           assert not x['scientificallyValidated']
           assert not x['publicReleaseAuthorized'] and not x['publicIndexingAuthorized']

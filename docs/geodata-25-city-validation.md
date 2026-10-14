@@ -50,3 +50,19 @@ not automatically published or synchronized with Cloudflare D1/R2.
   editorial usefulness review before indexable routes are made.
 
 **Never rely on geographic matching alone to enable Google indexing.**
+
+## GeoNames DEM vs provisional catalogue height
+
+For each matched populated-place point, the audit now also records the
+GeoNames `dem` column, a **digital elevation model estimate** (SRTM3
+or GTOPO30), and the difference from PANCHAVANI's provisional height.
+The value is calculated at the matched gazetteer point, not necessarily
+at PANCHAVANI's adopted point. The tool flags differences above 100m
+and missing DEM values for further human review. An unflagged difference
+does NOT certify correct survey height or actual visible sunrise time.
+
+GeoNames field descriptions:
+https://download.geonames.org/export/dump/readme.txt
+
+No DEM or gazetteer field automatically modifies the city catalogue.
+Station heights, coordinates, skyline and sunrise method stay unapproved.

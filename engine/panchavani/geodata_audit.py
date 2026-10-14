@@ -66,7 +66,8 @@ def _read_record(line: str):
         if not (6 <= lat <= 37.5 and 68 <= lon <= 98):
             return None
         population = int(parts[14]) if parts[14] else 0
-        elev = int(parts[15]) if parts[15] else None
+        elev = int(parts[15]) if parts[15] and parts[15] != "-9999" else None
+        dem = int(parts[16]) if parts[16] and parts[16] != "-9999" else None
         geoname_id = int(parts[0])
     except (ValueError, TypeError):
         return None
@@ -80,6 +81,7 @@ def _read_record(line: str):
         "admin1Code": parts[10],
         "population": population,
         "gazetteerElevationMeters": elev,
+        "gazetteerDigitalElevationModelMeters": dem,
         "timezone": parts[17],
         "recordModifiedOn": parts[18],
     }
@@ -163,6 +165,18 @@ def geodata_research_report(zip_bytes: bytes, cities=None) -> dict:
             "status":status,
             "nearestCandidate":best,
             "candidateCount":len(entries),
+            # GeoNames DEM is a raster estimate at the gazetteer point, NOT a
+            # survey at our adopted city coordinates. Large differences only
+            # prioritize investigation, never justify silent height changes.
+            "researchVsGazetteerDemDeltaMeters": (
+                round(city.elevation_m-best["gazetteerDigitalElevationModelMeters"],2)
+                if best is not None and best["gazetteerDigitalElevationModelMeters"] is not None
+                else None
+            ),
+            "digitalElevationNeedsReview": (
+                best is None or best["gazetteerDigitalElevationModelMeters"] is None or
+                abs(city.elevation_m-best["gazetteerDigitalElevationModelMeters"])>100
+            ),
             "stationCoordinatesVerified":False,
             "stationElevationVerified":False,
             "horizonModelVerified":False,
@@ -176,6 +190,10 @@ def geodata_research_report(zip_bytes: bytes, cities=None) -> dict:
         "country":"IN", "researchCityCount":len(cities_out),
         "populatedPlacesScanned":populated,
         "nearestGazetteerMatchCount":sum(x["nearestCandidate"] is not None for x in cities_out),
+        "gazetteerDemAvailableCount":sum(x["researchVsGazetteerDemDeltaMeters"] is not None
+                                         for x in cities_out),
+        "elevationDiffOver100mOrMissingDem":[x["cityId"] for x in cities_out
+                                             if x["digitalElevationNeedsReview"]],
         "needsDistanceOrMissingMatchReview":[x["cityId"] for x in cities_out
                                             if x["status"]!="PROVISIONAL_GAZETTEER_MATCH"],
         "externalGazetteerIsNotAStationSurvey":True,
@@ -208,6 +226,9 @@ def main():
     print("GeoNames country gazetteer P-class rows scanned:",out["populatedPlacesScanned"])
     print("Cities with a nearby matching gazetteer populated place:",out["nearestGazetteerMatchCount"])
     print("Cities requiring distance or ambiguity review:",out["needsDistanceOrMissingMatchReview"])
+    print("DEM elevations available at GeoNames matched points:",out["gazetteerDemAvailableCount"])
+    print("Elevation discrepancies >100m OR missing model elevations:",
+          out["elevationDiffOver100mOrMissingDem"])
     print("Station coordinates independently verified:",out["cityCoordinatesVerifiedCount"])
     print("Approved public pages:",out["publicReleaseAuthorized"])
 
