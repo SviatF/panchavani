@@ -11,5 +11,11 @@
       "database_name": "panchavani-private",
       "database_id": "38a2e5ce-b378-48f9-8efd-cbd309a770b7"
     }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "CANDIDATES",
+      "bucket_name": "panchavani-research-private"
+    }
   ]
 }
