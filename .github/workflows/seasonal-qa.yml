@@ -1,0 +1,82 @@
+name: PANCHAVANI seasonal scientific QA (research only)
+on:
+  push:
+    paths:
+      - '.github/workflows/seasonal-qa.yml'
+      - 'engine/panchavani/validation_matrix.py'
+      - 'engine/panchavani/review_packet.py'
+      - 'engine/panchavani/core.py'
+      - 'engine/panchavani/astronomy.py'
+      - 'engine/panchavani/sidereal.py'
+      - 'engine/tests/test_validation_matrix.py'
+      - 'engine/tests/test_review_packet.py'
+  schedule:
+    # Weekly regression sweep (GitHub may delay scheduled Actions).
+    - cron: '43 03 * * 1'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: panchavani-seasonal-scientific-qa
+  cancel-in-progress: false
+jobs:
+  seasonal-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run offline release guard and boundary regression tests
+        run: cd engine && python -m unittest discover -s tests -v
+      - name: Install pinned Skyfield dependencies
+        run: pip install -r engine/requirements.txt
+      - name: Fetch and check the official NASA/JPL DE440s kernel
+        run: |
+          curl --fail --location --retry 3 --max-time 240 --silent --show-error \
+            https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp \
+            --output /tmp/de440s.bsp
+          echo 'c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2  /tmp/de440s.bsp' | sha256sum --check
+      - name: Compute 48 stratified city-day boundary QA cases
+        run: |
+          PYTHONPATH=engine python -m panchavani.validation_matrix \
+            --ephemeris /tmp/de440s.bsp \
+            --out engine/artifacts/seasonal-matrix-UNAPPROVED.json
+      - name: Prepare immutable external scientific + editorial review packet
+        run: |
+          PYTHONPATH=engine python -m panchavani.review_packet \
+            --qa engine/artifacts/seasonal-matrix-UNAPPROVED.json \
+            --out engine/artifacts/seasonal-review-BLOCKED.json
+      - name: Enforce explicit blocking and no automatic publication
+        run: |
+          python - <<'PY'
+          import json,pathlib,hashlib
+          base=pathlib.Path('engine/artifacts')
+          source=base/'seasonal-matrix-UNAPPROVED.json'
+          m=json.loads(source.read_text())
+          p=json.loads((base/'seasonal-review-BLOCKED.json').read_text())
+          assert m['caseCount']==48, m['caseCount']
+          assert m['cityCount']==8, m['cityCount']
+          assert len(m['sampleDays'])==6
+          assert m['transitionCount']>0
+          assert m['maxRootResidualArcsec']<=2
+          assert m['maxDualGridDisagreementSeconds']<=1
+          assert m['repeatedCrossCityEventChecks']>0
+          assert m['publicReleaseAllowed'] is False and m['indexablePagesCreated']==0
+          assert m['scientificIndependence']=='NOT_VALIDATED'
+          assert all(c['status']=='UNAPPROVED' for c in m['cases'])
+          assert p['releaseAuthorized'] is False and p['indexingAuthorized'] is False
+          assert p['sourceSha256']==hashlib.sha256(source.read_bytes()).hexdigest()
+          assert p['recordCount']==48
+          print('PASS: 48 QA cases, research only; no public or SEO release')
+          PY
+      - name: Upload immutable UNAPPROVED research evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: panchavani-seasonal-qa-scientific-review-BLOCKED
+          path: |
+            engine/artifacts/seasonal-matrix-UNAPPROVED.json
+            engine/artifacts/seasonal-review-BLOCKED.json
+          retention-days: 14
+          if-no-files-found: error
