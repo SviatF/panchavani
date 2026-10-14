@@ -26,6 +26,13 @@ from .research_batch import inspect_candidate
 
 BASE_URL = "https://api.deepseek.com/chat/completions"
 DEFAULT_MODEL = "deepseek-flash"
+EDITORIAL_INTENTS = {
+    "daily-panchang": "Explain this one local Panchang day and what evidence is still missing; never fabricate today's numerical values.",
+    "city-hub": "Explain how the city's adopted coordinates and local sunrise would affect a future reviewed Panchang guide.",
+    "festival": "Investigate which tradition-specific festival observance rules must be independently checked; do not declare a festival date.",
+    "vrat": "Investigate which fasting, sunrise, parana and tradition exceptions need independent review; do not recommend fasting.",
+    "muhurat": "Explain the limits of astronomical information versus an expert-reviewed Muhurat decision; recommend no date or time.",
+}
 PROMPT_VERSION = "panchavani-ai-editorial-draft-v1"
 FIELDS = (
     "headline", "seoTitle", "metaDescription", "introduction",
@@ -67,10 +74,13 @@ def editorial_context(city_id: str, path: Path | None = None) -> dict:
 
 
 def make_prompt_packet(candidate: dict, *, language: str = "en",
+                       intent: str = "daily-panchang",
                        verified_facts: list | None = None) -> dict:
     """Prepare a text-generation request. Never turn research facts into approvals."""
     if language not in ("en", "hi"):
         raise ValueError("Only English and Hindi research drafts supported")
+    if intent not in EDITORIAL_INTENTS:
+        raise ValueError("Unknown or unapproved editorial intent")
     if not isinstance(candidate, dict):
         raise ValueError("Astronomy candidate must be a data object")
     city_id = (candidate.get("city") or {}).get("id")
@@ -100,7 +110,8 @@ def make_prompt_packet(candidate: dict, *, language: str = "en",
                  "stationVerification":"NOT_APPROVED"},
         "date": day.isoformat(),
         "language": language,
-        "pageIntent": "day-panchang-explainer",
+        "pageIntent": intent,
+        "editorialIntentExplanation": EDITORIAL_INTENTS[intent],
         "editorialFocus": context,
         "validatedAstronomicalFacts": [],
         "verifiedActivityRules": [],
@@ -152,6 +163,7 @@ def make_prompt_packet(candidate: dict, *, language: str = "en",
         "status":"PRIVATE_RESEARCH_PROMPT_ONLY",
         "sourceCandidateSha256":source_hash,
         "city":city_id,"date":day.isoformat(),"language":language,
+        "intent":intent,
         "promptVersion":PROMPT_VERSION,
         "catalogSha256":CATALOG_SHA256,
         "sourceFactsApproved":False,
@@ -267,6 +279,7 @@ def assemble_research_draft(packet: dict, reply: dict,
         "status":"AI_DRAFT_UNAPPROVED",
         "pageCity":packet["city"],"pageDate":packet["date"],
         "language":packet["language"],
+        "intent":packet["intent"],
         "promptVersion":packet["promptVersion"],
         "model":model,
         "sourceCandidateSha256":packet["sourceCandidateSha256"],
@@ -287,6 +300,7 @@ def main() -> None:
     p.add_argument("--candidate",type=Path,required=True)
     p.add_argument("--out",type=Path,required=True)
     p.add_argument("--language",choices=["en","hi"],default="en")
+    p.add_argument("--intent",choices=sorted(EDITORIAL_INTENTS),default="daily-panchang")
     p.add_argument("--generate",action="store_true",
                    help="Requires DEEPSEEK_API_KEY secret; API call is explicitly opt-in")
     p.add_argument("--model",default=DEFAULT_MODEL)
@@ -294,7 +308,7 @@ def main() -> None:
     if args.out.exists():
         raise ValueError("Refusing to overwrite a versioned private editorial draft")
     candidate=json.loads(args.candidate.read_text(encoding="utf-8"))
-    packet=make_prompt_packet(candidate,language=args.language)
+    packet=make_prompt_packet(candidate,language=args.language,intent=args.intent)
     if args.generate:
         key=os.getenv("DEEPSEEK_API_KEY","")
         reply=deepseek_json(packet,api_key=key,model=args.model)
