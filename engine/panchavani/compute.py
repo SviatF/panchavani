@@ -9,7 +9,7 @@ from datetime import date
 from pathlib import Path
 
 from .astronomy import SkyfieldAdapter
-from .cities import PILOT_CITIES
+from .cities import RESEARCH_CITIES
 from .core import phase_intervals, tithi_title
 from .periods import karana_title, daylight_windows, WINDOW_LABELS
 from . import __version__
@@ -24,15 +24,21 @@ def digest(path: Path) -> str:
 
 
 def calculate(city_id: str, local_date: date, ephemeris: Path, expected_sha256: str) -> dict:
-    if city_id not in PILOT_CITIES:
-        raise ValueError("Unsupported city: " + city_id)
+    """Single-city API; authenticate source once then enter shared calculation."""
     if not re.fullmatch(r"[a-fA-F0-9]{64}", expected_sha256):
-        raise ValueError("Expected ephemeris SHA-256 required; never silently trust downloaded files")
+        raise ValueError("Expected ephemeris SHA-256 required")
     actual_hash = digest(ephemeris)
     if actual_hash.lower() != expected_sha256.lower():
         raise ValueError("JPL ephemeris SHA-256 mismatch, calculation blocked")
-    city = PILOT_CITIES[city_id]
-    a = SkyfieldAdapter(ephemeris)
+    return calculate_with_verified_context(city_id, local_date, SkyfieldAdapter(ephemeris), actual_hash)
+
+
+def calculate_with_verified_context(city_id: str, local_date: date, a: SkyfieldAdapter,
+                                    actual_hash: str) -> dict:
+    """Internal batch entry: caller MUST authenticate ephemeris hash before reuse."""
+    if city_id not in RESEARCH_CITIES:
+        raise ValueError("Unknown or disabled research city: " + city_id)
+    city = RESEARCH_CITIES[city_id]
     sunrise, sunset, following = a.solar_day(city, local_date)
     tithis = phase_intervals(a.elongation, sunrise, following, 12.0)
     karanas = phase_intervals(a.elongation, sunrise, following, 6.0)
@@ -50,7 +56,7 @@ def calculate(city_id: str, local_date: date, ephemeris: Path, expected_sha256: 
         "city": {
             "id": city.id, "name": city.name, "lat": city.latitude,
             "lon": city.longitude, "elevationMeters": city.elevation_m,
-            "tz": city.timezone, "catalogVersion": "pilot-unverified-v1",
+            "tz": city.timezone, "catalogVersion": city.catalog_version,
         },
         "localDate": local_date.isoformat(), "tradition": None,
         "methodology": {
@@ -97,7 +103,7 @@ def calculate(city_id: str, local_date: date, ephemeris: Path, expected_sha256: 
 
 def main() -> None:
     p = argparse.ArgumentParser(description="PANCHAVANI offline astronomy candidate generator (NOT for publication)")
-    p.add_argument("--city", required=True, choices=sorted(PILOT_CITIES))
+    p.add_argument("--city", required=True, choices=sorted(RESEARCH_CITIES))
     p.add_argument("--date", required=True, type=date.fromisoformat)
     p.add_argument("--ephemeris", required=True, type=Path)
     p.add_argument("--expected-sha256", required=True)
