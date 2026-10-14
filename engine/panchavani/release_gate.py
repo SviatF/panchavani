@@ -46,7 +46,7 @@ def release_blockers(record: dict, editorial: EditorialEvidence,
         method.get('rulePackId') in (None, 'NONE') or
         method.get('tzdbVersion') in (None, 'system-not-yet-pinned')):
         errors.append('unversioned-or-incomplete-conventions')
-    if (record.get('city') or {}).get('catalogVersion', '').startswith('pilot-unverified'):
+    if 'unverified' in (record.get('city') or {}).get('catalogVersion', '').lower():
         errors.append('unverified-city-coordinates')
     limbs = record.get('panchangAtSunrise') or {}
     if any(not limbs.get(k) for k in ('tithi','nakshatra','yoga','karana','vara','paksha')):

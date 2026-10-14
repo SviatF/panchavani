@@ -45,23 +45,25 @@ class ResearchCityCatalogTests(unittest.TestCase):
 
     def test_baseline_is_stable_and_never_auto_approved(self):
         self.assertEqual(len(PILOT_CITIES),8)
-        self.assertEqual(set(PILOT_CITIES),set(RESEARCH_CITIES))
+        self.assertTrue(set(PILOT_CITIES).issubset(RESEARCH_CITIES))
+        self.assertEqual(len(RESEARCH_CITIES),25)
+        self.assertEqual(sum(c.cohort=='expansion' for c in RESEARCH_CITIES.values()),17)
         self.assertEqual(len(CATALOG_SHA256),64)
         self.assertTrue(all(not c.coordinates_verified and not c.publishing_approved for c in RESEARCH_CITIES.values()))
     def test_catalog_extension_needs_only_new_data_not_new_python(self):
         content=json.loads(DEFAULT_CATALOG.read_text())
         next_city=copy.deepcopy(content["cities"][0])
-        next_city.update({"id":"jaipur","name":"Jaipur","latitude":26.9124,
-                          "longitude":75.7873,"elevationMeters":431,
+        next_city.update({"id":"rajkot","name":"Rajkot","latitude":22.291606,
+                          "longitude":70.793217,"elevationMeters":128,
                           "cohort":"expansion","researchEnabled":True})
         content["cities"].append(next_city)
         with tempfile.TemporaryDirectory() as temp:
             p=Path(temp)/"cities.v1.json"
             p.write_text(json.dumps(content))
             all_cities,digest=load_catalog(p)
-        self.assertEqual(len(all_cities),9)
-        self.assertEqual(all_cities["jaipur"].cohort,"expansion")
-        self.assertFalse(all_cities["jaipur"].coordinates_verified)
+        self.assertEqual(len(all_cities),26)
+        self.assertEqual(all_cities["rajkot"].cohort,"expansion")
+        self.assertFalse(all_cities["rajkot"].coordinates_verified)
     def test_reject_duplicate_or_unreviewed_approval(self):
         base=json.loads(DEFAULT_CATALOG.read_text())
         with tempfile.TemporaryDirectory() as td:

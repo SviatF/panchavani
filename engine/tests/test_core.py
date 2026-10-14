@@ -3,7 +3,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 
 from panchavani.core import phase_intervals, tithi_number, tithi_title
-from panchavani.cities import PILOT_CITIES, City
+from panchavani.cities import PILOT_CITIES, RESEARCH_CITIES, City
 
 UTC = timezone.utc
 T0 = datetime(2026, 10, 13, 0, 0, tzinfo=UTC)
@@ -78,6 +78,7 @@ class CoreTests(unittest.TestCase):
 
     def test_city_catalog_provisional(self):
         self.assertEqual(len(PILOT_CITIES), 8)
+        self.assertEqual(len(RESEARCH_CITIES), 25)
         self.assertTrue(all(not c.coordinates_verified for c in PILOT_CITIES.values()))
         self.assertTrue(all(c.timezone == 'Asia/Kolkata' for c in PILOT_CITIES.values()))
         with self.assertRaises(ValueError):
