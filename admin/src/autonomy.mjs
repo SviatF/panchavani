@@ -16,7 +16,7 @@ const MAX_DRAFTS_PER_DAY=3; // cost bound, server-side actor + D1
 const NEXT_DAYS=1;          // prepare tomorrow's city/day research
 const ONE_DAY=24*60*60*1000;
 
-function futureIndianDate(now, offsetDays=NEXT_DAYS) {
+export function futureIndianDate(now, offsetDays=NEXT_DAYS) {
   const time=new Date(now);
   if(!Number.isFinite(time.getTime()))throw new Error('Invalid schedule date');
   const parts=new Intl.DateTimeFormat('en-GB',{
@@ -49,7 +49,7 @@ async function count(db,query,bind=[]){
   return Number(result?.n||0);
 }
 
-async function enqueuePilot(env,now){
+export async function enqueuePilot(env,now){
   const localDate=futureIndianDate(now);
   const pending=await count(env.DB,
     "SELECT COUNT(*) AS n FROM job_requests WHERE requested_by=? AND status IN ('queued','running')",
@@ -88,7 +88,7 @@ function internalPost(jobId){
     body:new URLSearchParams({jobId,intent:'daily-panchang',language:'en'}).toString()
   });
 }
-async function autoDraftOnce(env,transport=fetch){
+export async function autoDraftOnce(env,transport=fetch){
   const spent=await count(env.DB,
     "SELECT COUNT(*) AS n FROM autonomous_ai_slots WHERE created_at >= strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 day')");
   if(spent>=MAX_DRAFTS_PER_DAY)return {status:'draft-cap',attempted:0};
