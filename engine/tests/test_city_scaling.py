@@ -2,6 +2,7 @@ import copy
 import json
 import tempfile
 import unittest
+from types import SimpleNamespace
 from pathlib import Path
 from panchavani.cities import (
     CITY_REGISTRY, RESEARCH_CITIES, PILOT_CITIES, CATALOG_SHA256,
@@ -10,6 +11,26 @@ from panchavani.cities import (
 from panchavani.city_shards import select_city_ids, describe_research_plan
 
 class ResearchCityCatalogTests(unittest.TestCase):
+    def test_hundred_synthetic_dispatch_ids_are_sharded_once_without_fabricating_city_coordinates(self):
+        fake={f"synthetic-city-{i:03d}":SimpleNamespace(research_enabled=True,cohort="expansion")
+              for i in range(100)}
+        partitions=[]
+        for shard in range(12):
+            try:
+                ids=select_city_ids(cohort="expansion",shard_index=shard,
+                                    shard_count=12,research_cities=fake)
+            except ValueError:
+                ids=()
+            partitions.extend(ids)
+        self.assertEqual(len(partitions),100)
+        self.assertEqual(set(partitions),set(fake))
+        before=select_city_ids(cohort="expansion",shard_index=0,shard_count=12,
+                               research_cities=fake)
+        fake["synthetic-city-100"]=SimpleNamespace(research_enabled=True,cohort="expansion")
+        after=select_city_ids(cohort="expansion",shard_index=0,shard_count=12,
+                              research_cities=fake)
+        self.assertTrue(set(before).issubset(after))
+
     def test_baseline_is_stable_and_never_auto_approved(self):
         self.assertEqual(len(PILOT_CITIES),8)
         self.assertEqual(set(PILOT_CITIES),set(RESEARCH_CITIES))

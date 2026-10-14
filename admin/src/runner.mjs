@@ -1,5 +1,5 @@
 /** Private automated research queue API. Never approves or publishes candidates. */
-import { CITY_IDS, CATALOG_VERSION } from './city-catalog.mjs';
+import { CITY_IDS, CITY_META, CATALOG_VERSION } from './city-catalog.mjs';
 const encoder = new TextEncoder();
 const HEX = /^[a-f0-9]{64}$/;
 const KARANA_NAMES=new Set(['Kimstughna','Bava','Balava','Kaulava','Taitila','Gara','Vanija','Vishti','Shakuni','Chatushpada','Naga']);
@@ -15,6 +15,16 @@ export function candidateIssues(c,job){
  if(c.status!=='calculated'||c.approvedBy!==null||c.releaseId!==null)e.push('published-or-approved-field');
  if(c.schemaVersion!=='1.0.0')e.push('unknown-schema');
  if(c.city?.id!==job.city_id||!CITY_IDS.has(c.city?.id)||c.localDate!==job.local_date||!finiteDate(c.localDate))e.push('job-mismatch');
+ const catalogCity=CITY_META.get(c.city?.id);
+ // Prevent a correctly named city from silently carrying wrong coordinates.
+ // No values are repaired or copied from the catalog: a mismatch is rejected.
+ if(!catalogCity||!Number.isFinite(c.city?.lat)||!Number.isFinite(c.city?.lon)||
+    !Number.isFinite(c.city?.elevationMeters)||
+    c.city?.tz!==catalogCity.timezone||
+    Math.abs(c.city.lat-catalogCity.latitude)>1e-7||
+    Math.abs(c.city.lon-catalogCity.longitude)>1e-7||
+    Math.abs(c.city.elevationMeters-catalogCity.elevationMeters)>1e-4)
+    e.push('catalog-geodata-mismatch');
  if(typeof c.recordId!=='string'||!c.recordId.startsWith(job.city_id+':'+job.local_date+':'))e.push('invalid-record-id');
  if(!HEX.test(c.methodology?.ephemerisHash||'')||c.methodology?.ayanamsa!=='NOT_VALIDATED'||c.methodology?.rulePackId!=='NONE'||c.city?.catalogVersion!==CATALOG_VERSION)e.push('unexpected-methodology');
  if(!Number.isInteger(c.validation?.blockerCount)||c.validation.blockerCount<1||c.validation?.reviewStatus!=='not-reviewed')e.push('research-blockers-missing');

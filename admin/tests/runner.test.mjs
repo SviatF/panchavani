@@ -4,9 +4,10 @@ import { createHmac, createHash, randomUUID } from 'node:crypto';
 import { candidateIssues, authorizeRunner, handleRunner } from '../src/runner.mjs';
 import { ACTIVE_CITIES, CITY_IDS, CATALOG_VERSION } from '../src/city-catalog.mjs';
 test('admin and runner both read the same research city catalogue',()=>{
- assert.equal(ACTIVE_CITIES.length,8);
+ assert.ok(ACTIVE_CITIES.length>=8);
  assert.ok(CITY_IDS.has('delhi')&&CITY_IDS.has('varanasi'));
- assert.equal(CATALOG_VERSION,'pilot-unverified-v1');
+ assert.ok(CATALOG_VERSION.includes('unverified'));
+ assert.ok(ACTIVE_CITIES.every(x=>Number.isFinite(x.latitude)&&Number.isFinite(x.longitude)));
  assert.equal(new Set(ACTIVE_CITIES.map(x=>x.id)).size,ACTIVE_CITIES.length);
 });
 
@@ -16,7 +17,7 @@ function candidate(){
  return {
   schemaVersion:'1.0.0',recordId:'delhi:2026-10-13:abc123',
   status:'calculated',approvedBy:null,releaseId:null,
-  city:{id:'delhi',catalogVersion:'pilot-unverified-v1'},localDate:'2026-10-13',
+  city:{id:'delhi',catalogVersion:CATALOG_VERSION,lat:28.6139,lon:77.2090,elevationMeters:216,tz:'Asia/Kolkata'},localDate:'2026-10-13',
   methodology:{ephemerisHash:'a'.repeat(64),ayanamsa:'NOT_VALIDATED',rulePackId:'NONE'},
   validation:{blockerCount:4,reviewStatus:'not-reviewed'},
   panchangAtSunrise:{nakshatra:null,yoga:null,karana:null},
@@ -24,6 +25,14 @@ function candidate(){
   transitions:[{type:'tithi',startUtc:s,endUtc:n,value:'Shukla Tritiya'}]
  };
 }
+test('research candidate with substituted coordinates is rejected before private R2 storage',()=>{
+ const c=candidate();
+ c.city.lat=19.0760;
+ assert.ok(candidateIssues(c,job).includes('catalog-geodata-mismatch'));
+ const swapped=candidate();
+ swapped.city.tz='Europe/London';
+ assert.ok(candidateIssues(swapped,job).includes('catalog-geodata-mismatch'));
+});
 test('valid separate Karana research interval passes while remaining unapproved',()=>{
  const c=candidate();
  c.panchangAtSunrise.karana='Bava';

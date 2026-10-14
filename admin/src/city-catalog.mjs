@@ -20,7 +20,11 @@ export const ACTIVE_CITIES = Object.freeze(catalog.cities
       throw new Error('Research city illegally marked approved');
     }
     return c.researchEnabled;
-  }).map(c=>Object.freeze({id:c.id,name:c.name,timezone:c.timezone}))
+  }).map(c=>Object.freeze({
+    id:c.id,name:c.name,timezone:c.timezone,
+    latitude:c.latitude,longitude:c.longitude,elevationMeters:c.elevationMeters
+  }))
   .sort((a,b)=>a.id.localeCompare(b.id)));
 export const CITY_IDS = new Set(ACTIVE_CITIES.map(c=>c.id));
+export const CITY_META = new Map(ACTIVE_CITIES.map(c=>[c.id,c]));
 export const CATALOG_VERSION = catalog.catalogVersion;
