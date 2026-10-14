@@ -1,0 +1,67 @@
+name: PANCHAVANI 25-city Solar Horizon Sensitivity Research
+on:
+  push:
+    paths:
+      - '.github/workflows/solar-sensitivity-qa.yml'
+      - 'engine/panchavani/solar_sensitivity.py'
+      - 'engine/panchavani/astronomy.py'
+      - 'engine/tests/test_solar_sensitivity.py'
+      - 'engine/catalog/cities.v1.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: panchavani-solar-sensitivity-research
+  cancel-in-progress: false
+jobs:
+  solar-model-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check fail-closed parameter sensitivity analysis
+        run: cd engine && python -m unittest discover -s tests -p 'test_solar_sensitivity.py' -v
+      - name: Install pinned Skyfield astronomy dependencies
+        run: pip install -r engine/requirements.txt
+      - name: Retrieve signed-off JPL input by exact SHA-256
+        run: |
+          curl --fail --location --retry 3 --max-time 240 --silent --show-error \
+            https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp \
+            --output /tmp/de440s.bsp
+          echo 'c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2  /tmp/de440s.bsp' | sha256sum --check
+      - name: Quantify JPL sunrise and sunset parameter stress tests for all 25 cities
+        run: |
+          PYTHONPATH=engine python -m panchavani.solar_sensitivity \
+            --ephemeris /tmp/de440s.bsp \
+            --date 2026-10-13 \
+            --out engine/artifacts/25-city-solar-sensitivity-UNAPPROVED.json
+      - name: Confirm 25-city coverage and preserve all release blockers
+        run: |
+          python - <<'PY'
+          import json,re
+          from pathlib import Path
+          r=json.loads(Path('engine/artifacts/25-city-solar-sensitivity-UNAPPROVED.json').read_text())
+          assert r['cityCount']==25 and len(r['cities'])==25
+          assert len({x['cityId'] for x in r['cities']})==25
+          assert r['scenarioCountPerCity']==5
+          assert re.fullmatch(r'[a-f0-9]{64}',r['catalogSha256'])
+          assert re.fullmatch(r'[a-f0-9]{64}',r['jplSha256'])
+          assert all(len(x['parameterPerturbations'])==5 for x in r['cities'])
+          assert all(not x['stationCoordinatesVerified'] and
+                     not x['stationElevationVerified'] and
+                     not x['physicalHorizonVerified'] and
+                     not x['publicTimeRecommendationAuthorized'] for x in r['cities'])
+          assert r['blockers'] and not r['independentScientificValidation']
+          assert not r['quantifiedPhysicalUncertainty']
+          assert not r['publicationAuthorized'] and not r['indexingAuthorized']
+          print('PASS: 25 cities, five perturbations, zero unreviewed releases')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: panchavani-25-city-solar-horizon-sensitivity-RESEARCH-UNAPPROVED
+          path: engine/artifacts/25-city-solar-sensitivity-UNAPPROVED.json
+          retention-days: 30
+          if-no-files-found: error
