@@ -8,6 +8,9 @@ on:
       - 'engine/panchavani/astronomy.py'
       - 'engine/panchavani/cities.py'
       - 'engine/tests/test_pac_solar_reference.py'
+      - 'engine/tests/test_pac_regional_months.py'
+      - 'engine/panchavani/pac_regional_months.py'
+      - 'engine/fixtures/pac-rashtriya-2026-selected-regional-solar-UNREVIEWED.json'
   schedule:
     # Monthly research integrity check; this does not update public pages.
     - cron: '41 04 1 * *'
@@ -29,7 +32,7 @@ jobs:
       - name: Unit-test PAC source provenance, IST conversion and deny-by-default publication
         run: |
           cd engine
-          python -m unittest discover -s tests -p 'test_pac_solar_reference.py' -v
+          python -m unittest discover -s tests -p 'test_pac_*.py' -v
       - name: Install pinned JPL/Skyfield dependencies
         run: pip install -r engine/requirements.txt
       - name: Download NASA/JPL DE440s and check immutable SHA-256
@@ -65,10 +68,32 @@ jobs:
           assert r['blockers']
           print('PASS: 16 official-government clock-value research comparisons. 0 approved releases.')
           PY
+      - name: Check published regional solar calendar start dates without festival inference
+        run: |
+          PYTHONPATH=engine python -m panchavani.pac_regional_months \
+            --fixture engine/fixtures/pac-rashtriya-2026-selected-regional-solar-UNREVIEWED.json \
+            --out engine/artifacts/pac-2026-regional-solar-UNAPPROVED.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('engine/artifacts/pac-2026-regional-solar-UNAPPROVED.json')
+          r=json.loads(p.read_text())
+          assert r['status']=='RESEARCH_ONLY'
+          assert r['observedRegionSpecificVariation'] is True
+          assert len(r['regionalSolarBoundaryGroups'])==2
+          assert all(c['spreadDays']==1 for c in r['regionalSolarBoundaryGroups'])
+          assert r['sourceTranscriptionReviewed'] is False
+          assert r['festivalOrVratDatesAuthorized'] is False
+          assert r['muhuratAuthorized'] is False
+          assert r['publicationAuthorized'] is False and r['indexingAuthorized'] is False
+          print('PASS: official regional solar month differences; 0 ritual or SEO releases')
+          PY
       - name: Retain unapproved official reference comparison for review
         uses: actions/upload-artifact@v4
         with:
           name: panchavani-IMD-PAC-four-metros-2026-RESEARCH-UNAPPROVED
-          path: engine/artifacts/pac-2026-solar-UNAPPROVED.json
+          path: |
+            engine/artifacts/pac-2026-solar-UNAPPROVED.json
+            engine/artifacts/pac-2026-regional-solar-UNAPPROVED.json
           retention-days: 30
           if-no-files-found: error
