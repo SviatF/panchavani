@@ -145,9 +145,24 @@ export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=
       jobs=(await env.DB.prepare("SELECT id,city_id,local_date FROM job_requests WHERE status='candidate' ORDER BY created_at DESC LIMIT 30").all()).results||[];
     }catch{return errorPage(503,'Private job listing unavailable.')}
     const connected=Boolean(env.CANDIDATES&&typeof env.DEEPSEEK_API_KEY==='string'&&env.DEEPSEEK_API_KEY.trim().length>=12);
+    const automationConfigured=env.AUTO_RESEARCH_ENABLED==='true'&&
+      env.AUTO_EDITORIAL_ENABLED==='true'&&Boolean(env.RUNNER_HMAC_SECRET&&env.DB&&env.CANDIDATES);
+    let counts={queued:0,candidates:jobs.length,drafts:0};
+    try {
+      const q=await env.DB.prepare("SELECT COUNT(*) AS n FROM job_requests WHERE requested_by='panchavani-cron@internal' AND status IN ('queued','running')").first();
+      const d=await env.DB.prepare("SELECT COUNT(*) AS n FROM autonomous_ai_slots WHERE status='stored'").first();
+      counts.queued=Number(q?.n||0); counts.drafts=Number(d?.n||0);
+    } catch { counts={queued:'N/A',candidates:jobs.length,drafts:'N/A'}; }
     const choice=jobs.map(j=>opt(j.id,j.city_id+' · '+j.local_date)).join('');
     const content='<h1>AI Editorial Drafts</h1><p class="warning">Private drafts only. No direct SEO publication, human-approved cultural advice or verified astrology.</p>'
       +'<section><h2>DeepSeek server-side secret</h2><p>'+ (connected?'Configured for private draft generation.':'Not configured or missing private R2.')+'</p></section>'
+      +'<section><h2>Automatic research and editorial scheduler</h2><p>'+(
+         automationConfigured?'Configured for research/drafts (requires active Cloudflare Cron and a connected scheduled GitHub Runner).'
+         :'NOT ACTIVE. An encrypted DeepSeek key alone does not start automatic astronomy jobs. Configure D1 migration 0003, Runner credentials, scheduled GitHub workflow and explicit AUTO_RESEARCH_ENABLED/AUTO_EDITORIAL_ENABLED flags.'
+       )+'</p><p class="muted">Waiting calculation tasks: '+escapeHtml(counts.queued)
+       +' · Finished candidates (recent): '+escapeHtml(counts.candidates)
+       +' · Saved autonomous drafts: '+escapeHtml(counts.drafts)
+       +'. This system never releases pages or enables Google indexing.</p></section>'
       +'<section><h2>Draft from a completed research candidate</h2>'
       +'<p>First compute and store a valid candidate using the authenticated research Runner. Queued jobs alone cannot be used.</p>'
       +'<form method="post" action="/ai/draft"><label>Completed research city/date</label><select required name="jobId">'+choice+'</select>'
