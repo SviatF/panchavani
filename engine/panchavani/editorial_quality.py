@@ -63,14 +63,22 @@ def copy_review_flags(body: str, compared: tuple[str,...], names: tuple[str,...]
     current=signature(body,names)
     if not current:
         issues.append("content-language-tokenization-failed")
+    def location_neutral(text: str) -> str:
+        value=text.casefold()
+        for label in sorted(names,key=len,reverse=True):
+            if isinstance(label,str) and label.strip():
+                # Exact substring for Indic scripts: Python word boundaries can
+                # split at combining marks and miss a city-name substitution.
+                value=value.replace(label.casefold()," CITY ")
+        return " ".join(value.split())
+
+    neutral=location_neutral(body)
     for other in compared:
         if not isinstance(other,str) or not other.strip():
             continue
         previous=signature(other,names)
-        if previous and current and (
-            body.strip().casefold()==other.strip().casefold() or
-            len(current & previous)/len(current | previous) >= 0.67
-        ):
+        if (neutral==location_neutral(other) or
+            (previous and current and len(current & previous)/len(current | previous) >= 0.67)):
             issues.append("location-swap-or-near-duplicate-city-prose")
             break
     return sorted(set(issues))
