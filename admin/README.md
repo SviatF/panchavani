@@ -7,8 +7,8 @@ A **separate Cloudflare Worker**, never deployed as "/admin" in the public asset
 1. Uses Cloudflare's **Worker-level verified identity** via `ctx.access.getIdentity()`; requires no manual JWT issuer, audience or JWKS configuration.
 2. Requires the authenticated email to be an exact member of `ALLOWED_ADMIN_EMAILS`; service tokens with no verified user email do not grant dashboard access.
 3. Returns `403` without `ctx.access` or an allowed email, regardless of any forged HTTP headers. Protect the **entire Worker** (All traffic, including previews and alternate domains); config has `workers_dev:false`.
-4. Sets `X-Robots-Tag: noindex, nofollow, noarchive`, `Cache-Control: private, no-store`, CSP, anti-framing and no-referrer on every response. No public sitemap references.
-5. Browser POST requires same-origin `Origin` and a valid authenticated identity. All queries use prepared statements; request values validated server-side.
+4. Sets `X-Robots-Tag: noindex, nofollow, noarchive`, `Cache-Control: private, no-store`, CSP, anti-framing and same-origin-only referrer disclosure on every response. No public sitemap references.
+5. Browser POST requires Cloudflare-verified Access identity AND validated same-origin browser signals. Modern browsers may omit or send `Origin: null` on basic HTML form posts; only `Sec-Fetch-Site: same-origin` may substitute for absent/null Origin. Explicit mismatched Origin, cross-site or same-site submissions are blocked. All queries use prepared statements; request values validated server-side.
 6. Audit log stores the actor for all queued jobs.
 7. No publishing/approval endpoint exists. Research jobs cannot become public records through this interface.
 
@@ -48,3 +48,7 @@ The admin Worker currently depends on **externally provisioned bindings**; `wran
 ## Next iteration
 
 A manual GitHub Actions research runner and signed candidate ingestion endpoint are now **implemented in code**, but not deployed or connected to your Cloudflare resources. Next: verified coordinates and Lahiri methodology, human ritual review interface, publication manifests, and fail-closed release gate. The public website continues to use preview-only values and `noindex`.
+
+## Form POST regression (2026-10-14)
+
+A previous `Referrer-Policy: no-referrer` combined with a mandatory nonempty `Origin` incorrectly rejected legitimate browser form POSTs with `Access denied`. The policy is now `same-origin`; `isTrustedBrowserPost` accepts absent/null Origin **only** with the browser-controlled `Sec-Fetch-Site: same-origin` header. E2E-style simulated POST tests verify D1 writes and cross-origin blocking. The admin and public Worker remain isolated; Cloudflare Access authentication is still mandatory on every route. No math results are published as part of form submissions.
