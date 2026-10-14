@@ -121,3 +121,107 @@ encrypted Cloudflare key is valid, has credit or is accepted by DeepSeek.
 No live paid API call was made during QA.
 
 Official API: https://api-docs.deepseek.com/api/create-chat-completion/
+
+
+## Opt-in unattended research + AI drafts (2026-10-14)
+
+The manual /ai page is NOT the autonomous producer. It shows an empty
+Completed research city/date selector until the private signed runner
+sends calculated candidates into the Worker D1 + R2 store.
+
+### What is implemented (CODE ONLY until deployed and enabled)
+
+A Cloudflare Cron scheduled handler runs at minute 05 of every UTC hour.
+It is **disabled by default**. There is NO public /cron API endpoint:
+only Cloudflare-internal scheduled events can invoke it.
+
+On explicit activation:
+- Determine **tomorrow's date in Asia/Kolkata**.
+- Queue a bounded pilot cohort of **Delhi, Mumbai and Chennai** into
+  private D1 once per city/date; cap unfinished automatic queue at 6.
+- A separate signed GitHub Python/Skyfield runner is scheduled at
+  **02:30 and 05:30 UTC**, behind an explicit GitHub Actions variable.
+  Each successful run consumes at most 3 queued jobs and checks the
+  JPL DE440s hash before submitting research candidates into private R2.
+- On each Cloudflare Cron invocation, inspect D1 for the oldest
+  completed candidate without a matching private AI attempt.
+  Reserve a unique city/day/prompt-version slot in D1 so scheduled
+  retries cannot repeatedly purchase model output for the same job.
+- Generate **one English daily Panchang RESEARCH draft per tick**, up to
+  3 total autonomous attempts in a rolling 24h window, under the private
+  internal actor. A failed request is marked failed and is NOT blindly
+  retried at cost.
+- Each draft uses existing server-side DeepSeek integration, source
+  candidate integrity checks and AI_DRAFT_UNAPPROVED R2 storage.
+  **Zero publication / sitemap / GSC authorization**. This pilot is
+  not the complete 25-city editorial content pipeline.
+
+This is a *bounded, unattended draft workflow*, NOT a functioning
+fully verified Panchang release pipeline. Human review and independent
+source validation remain mandatory before ANY generated text is
+used on a public indexable page.
+
+### One-time operator activation (NEVER put secrets in GitHub code)
+
+1. In Cloudflare D1 Console for panchavani-private, apply migrations
+   admin/migrations/0001_private_jobs.sql and
+   0002_private_runner.sql **only if not already applied**, then
+   **new** 0003_autonomous_research.sql exactly once.
+   0003 creates duplicate-protected autonomous research and AI slots.
+2. Confirm R2 panchavani-research-private is PRIVATE and Worker has
+   D1 binding DB and R2 binding CANDIDATES.
+3. Keep existing Cloudflare Worker Production Secret DEEPSEEK_API_KEY.
+   Add a second distinct **Production Secret** named
+   RUNNER_HMAC_SECRET, 32+ random characters. DO NOT reuse
+   DeepSeek API key as the runner HMAC secret.
+4. Create a dedicated Cloudflare Access **Service Token** and permit it
+   through an appropriately scoped policy for private /internal/runner/*
+   requests while retaining Cloudflare Access protection over the
+   entire Worker and its human email allowlist. Do not expose a
+   worker.dev or public bypass.
+5. Add GitHub repository **Actions Secrets**:
+   PANCHAVANI_RUNNER_HMAC_SECRET (same HMAC value as Worker);
+   PANCHAVANI_ACCESS_CLIENT_ID;
+   PANCHAVANI_ACCESS_CLIENT_SECRET.
+   These are secrets, NEVER Variables or public JS.
+6. Deploy NEW admin/ Worker **after QA and migrations**.
+   admin/wrangler.jsonc specifies hourly Cron Trigger at minute 05 UTC,
+   and keep_vars:true. Check Production Deployments and Cron Triggers
+   in Cloudflare, not only GitHub CI.
+7. Test one manual queue job + GitHub private runner dispatch, confirm
+   it reaches D1 status candidate and private R2. Then perform
+   **one** private /ai generation and check it stays unapproved.
+8. ONLY after the end-to-end run succeeds set Cloudflare **Production
+   Variables** AUTO_RESEARCH_ENABLED=true and
+   AUTO_EDITORIAL_ENABLED=true. Set GitHub repository **Actions Variable**
+   PANCHAVANI_RESEARCH_AUTORUN=true. This activates the cron producer,
+   cron DeepSeek consumer, and twice-daily Runner automatically.
+
+IMPORTANT: GitHub secret/key setup and Cloudflare deployed binding state
+cannot be inferred from screenshots displaying only the DeepSeek secret.
+Never claim that unattended research is running until both scheduled
+systems and real candidates/drafts are observed in D1/R2.
+
+### Operations / safe rollback
+
+- Cloudflare /ai displays the manual draft workshop and an
+  **automation status** section including queue/draft counters.
+- Set Cloudflare AUTO_EDITORIAL_ENABLED=false to immediately stop
+  new paid DeepSeek calls, without affecting existing private drafts.
+- Set AUTO_RESEARCH_ENABLED=false to stop new city-date task creation.
+- Set GitHub PANCHAVANI_RESEARCH_AUTORUN=false to stop scheduled JPL
+  research runner job execution. A manual workflow dispatch remains
+  available for controlled troubleshooting.
+- The cron *event* itself may still run hourly when disabled, but
+  it performs **no D1/API work** when both Cloudflare flags are off.
+- R2 draft content is never public; audit the D1 autonomous tables and
+  audit_log. Keep provider billing alert / spend cap configured.
+- The current AI quality checks are basic heuristics, not evidence of
+  sufficient SEO uniqueness, mathematical or cultural correctness.
+- To expand to 25 cities, first validate independent geodata, calendar
+  source conventions and actual reader value, then raise workload caps
+  with monitoring and reviewed cost controls. Do not blindly expand 3
+  pilot cities to thousands of indexable city/day pages.
+
+Cloudflare reference:
+https://developers.cloudflare.com/workers/configuration/cron-triggers/
