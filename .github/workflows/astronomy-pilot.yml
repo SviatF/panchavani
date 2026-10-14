@@ -65,7 +65,7 @@ jobs:
         run: |
           python - <<'PY'
           import glob,json,datetime
-          rows=[json.load(open(p)) for p in sorted(glob.glob('engine/artifacts/*.json'))]
+          rows=[json.load(open(p)) for p in sorted(glob.glob('engine/artifacts/*-candidate.json'))]
           assert len(rows)==3
           assert all(r['status']=='calculated' and r['validation']['blockerCount']>0 for r in rows)
           assert all(r['panchangAtSunrise']['nakshatra'] is None for r in rows)
