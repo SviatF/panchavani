@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "datasetId": "imd-pac-rashtriya-saka-1948-selected-regional-solar-month-starts-research-v1",
+  "publisher": "India Meteorological Department / Positional Astronomy Centre",
+  "sourceUrl": "https://packolkata.imd.gov.in/panchang/en/regional-calendars",
+  "sourcePublication": "Rashtriya Panchang Saka 1948 (2026–27)",
+  "accessDate": "2026-10-14",
+  "calendarScope": "selected regional SOLAR month start dates only; no lunar-month, festival, or Muhurat inference",
+  "transcriptionIndependentlyReviewed": false,
+  "publishingAllowed": false,
+  "monthStarts": [
+    {
+      "regionId": "bengal-assam",
+      "regionalTable": "Bengal & Assam Calendar",
+      "localMonthName": "Vaisakha",
+      "cycle": "mesha-solar-season",
+      "gregorianStart": "2026-04-15",
+      "sourceRow": "Vaisakha – 25 Chaitra (15 April 2026)"
+    },
+    {
+      "regionId": "punjab-haryana-odisha",
+      "regionalTable": "Punjab, Haryana, Odisha Calendar",
+      "localMonthName": "Vaisakha",
+      "cycle": "mesha-solar-season",
+      "gregorianStart": "2026-04-14",
+      "sourceRow": "Vaisakha – 24 Chaitra (14 April 2026)"
+    },
+    {
+      "regionId": "tamil-nadu",
+      "regionalTable": "Tamil Nadu Calendar",
+      "localMonthName": "Chittirai",
+      "cycle": "mesha-solar-season",
+      "gregorianStart": "2026-04-14",
+      "sourceRow": "Vaisakha / Chittirai – 24 Chaitra (14 April 2026)"
+    },
+    {
+      "regionId": "kerala",
+      "regionalTable": "Kerala Calendar",
+      "localMonthName": "Mesha",
+      "cycle": "mesha-solar-season",
+      "gregorianStart": "2026-04-14",
+      "sourceRow": "Vaisakha / Mesha – 24 Chaitra (14 April 2026)"
+    },
+    {
+      "regionId": "bengal-assam",
+      "regionalTable": "Bengal & Assam Calendar",
+      "localMonthName": "Kartika",
+      "cycle": "tula-solar-season",
+      "gregorianStart": "2026-10-18",
+      "sourceRow": "Kartika – 26 Asvina (18 October 2026)"
+    },
+    {
+      "regionId": "punjab-haryana-odisha",
+      "regionalTable": "Punjab, Haryana, Odisha Calendar",
+      "localMonthName": "Kartika",
+      "cycle": "tula-solar-season",
+      "gregorianStart": "2026-10-17",
+      "sourceRow": "Kartika – 25 Asvina (17 October 2026)"
+    },
+    {
+      "regionId": "tamil-nadu",
+      "regionalTable": "Tamil Nadu Calendar",
+      "localMonthName": "Arppisi",
+      "cycle": "tula-solar-season",
+      "gregorianStart": "2026-10-18",
+      "sourceRow": "Kartika / Arppisi – 26 Asvina (18 October 2026)"
+    },
+    {
+      "regionId": "kerala",
+      "regionalTable": "Kerala Calendar",
+      "localMonthName": "Thula",
+      "cycle": "tula-solar-season",
+      "gregorianStart": "2026-10-18",
+      "sourceRow": "Kartika / Thula – 26 Asvina (18 October 2026)"
+    }
+  ]
+}
