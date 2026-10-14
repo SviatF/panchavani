@@ -24,7 +24,7 @@ def signature(value: str, city_labels: tuple[str, ...]) -> set[str]:
     s = value.lower()
     for label in sorted(city_labels, key=len, reverse=True):
         s = re.sub(r'\b' + re.escape(label.lower()) + r'\b', ' CITY ', s)
-    terms = re.findall(r'[a-z0-9]+', s)
+    # Preserve Indic and other Unicode script tokens instead of English-only regex.\n    terms = re.findall(r'[\w\u0900-\u0D7F]+', s, flags=re.UNICODE)
     return {' '.join(terms[i:i + 4]) for i in range(max(0, len(terms) - 3))}
 
 
