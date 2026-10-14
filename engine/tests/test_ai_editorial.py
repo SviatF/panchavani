@@ -10,6 +10,7 @@ from panchavani.ai_editorial import (
 
 def test_candidate():
     from panchavani.core import tithi_title
+    from panchavani.periods import karana_title
     city=RESEARCH_CITIES["delhi"]
     return {
         "city":{"id":city.id,"name":city.name,"lat":city.latitude,
@@ -20,10 +21,15 @@ def test_candidate():
         "approvedBy":None,"releaseId":None,
         "validation":{"blockerCount":4},
         "methodology":{"ayanamsa":"NOT_VALIDATED"},
-        "panchangAtSunrise":{"tithi":"Shukla Tritiya",
-                             "nakshatra":None,"yoga":None,"karana":"Vanij"},
-        "transitions":[{"type":x} for x in
-                       ("tithi","karana","rahu-kalam","yamaganda","gulika")],
+        "panchangAtSunrise":{"tithi":tithi_title(1),
+                             "nakshatra":None,"yoga":None,"karana":karana_title(1)},
+        "transitions":[
+            {"type":"tithi","value":tithi_title(1),
+             "startUtc":"2026-10-13T00:45:00Z","endUtc":"2026-10-14T00:46:00Z"},
+            {"type":"karana","value":karana_title(1),
+             "startUtc":"2026-10-13T00:45:00Z","endUtc":"2026-10-14T00:46:00Z"},
+            {"type":"rahu-kalam"},{"type":"yamaganda"},{"type":"gulika"},
+        ],
     }
 
 def mock_good_answer():
