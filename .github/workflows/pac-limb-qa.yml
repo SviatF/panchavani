@@ -1,0 +1,70 @@
+name: Official IMD PAC four-limb reference QA (RESEARCH ONLY)
+on:
+  push:
+    paths:
+      - '.github/workflows/pac-limb-qa.yml'
+      - 'engine/panchavani/pac_limb_reference.py'
+      - 'engine/panchavani/sidereal.py'
+      - 'engine/panchavani/core.py'
+      - 'engine/tests/test_pac_limb_reference.py'
+      - 'engine/fixtures/pac-2026-09-22-central-limbs-UNREVIEWED.json'
+  schedule:
+    # Monthly. This source entry is date-fixed, not dynamically scraped.
+    - cron: '23 05 1 * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: panchavani-pac-limb-scientific-qa
+  cancel-in-progress: false
+jobs:
+  pac-limb-research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check PAC 24-30h sunrise-day notation and deny-by-default logic
+        run: cd engine && python -m unittest discover -s tests -p 'test_pac_limb_reference.py' -v
+      - name: Install pinned Skyfield/JPL dependencies
+        run: pip install -r engine/requirements.txt
+      - name: Download immutable NASA JPL DE440s with SHA-256 verification
+        run: |
+          curl --fail --location --retry 3 --max-time 240 --silent --show-error \
+            https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp \
+            --output /tmp/de440s.bsp
+          echo 'c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2  /tmp/de440s.bsp' | sha256sum --check
+      - name: Compare PAC central-station Tithi Nakshatra Yoga and two Karana endings to JPL
+        run: |
+          PYTHONPATH=engine python -m panchavani.pac_limb_reference \
+            --ephemeris /tmp/de440s.bsp \
+            --fixture engine/fixtures/pac-2026-09-22-central-limbs-UNREVIEWED.json \
+            --out engine/artifacts/pac-central-four-limbs-UNAPPROVED.json
+      - name: Fail on numerical/source mismatch and any research publication bypass
+        run: |
+          python - <<'PY'
+          import json
+          r=json.load(open('engine/artifacts/pac-central-four-limbs-UNAPPROVED.json'))
+          assert r['status']=='PAC_LIMBS_RESEARCH_ONLY'
+          assert r['date']=='2026-09-22'
+          assert r['referenceStation']=='CENTRAL_INDIA'
+          assert r['citySpecificClaims']==0
+          assert r['observationCount']==5
+          assert {x['type'] for x in r['comparisons']}=={'tithi','karana','nakshatra','yoga'}
+          assert r['tithiKaranaCrossingAgreeWithinSecond']
+          assert r['allWithinExploratoryAlert'], 'Official PAC clock-value research discrepancy >30m: investigate method before publication'
+          assert not r['methodologicallyIndependentValidation']
+          assert not r['ritualOrMuhuratApproved']
+          assert not r['indexingAuthorized'] and not r['publicationAuthorized']
+          assert r['blockers'] and 'UNVALIDATED' in r['provisionalLahiriMethod']
+          print('PASS: PAC central station clock comparison; NO city claim; NO release')
+          PY
+      - name: Preserve unapproved official-source research output for scientific review
+        uses: actions/upload-artifact@v4
+        with:
+          name: panchavani-pac-four-limbs-central-station-UNAPPROVED
+          path: engine/artifacts/pac-central-four-limbs-UNAPPROVED.json
+          retention-days: 30
+          if-no-files-found: error
