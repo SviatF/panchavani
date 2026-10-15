@@ -49,7 +49,7 @@ function fakeDb({count=0,hasCandidate=true}={}){
       async first(){
        calls.push({sql,args});
        if(sql.includes('FROM job_requests'))return hasCandidate?record:null;
-       if(sql.includes('SELECT job_id,source_hash,status,r2_key'))return slots.get(args.slice(0,4).join('|'))||null;
+       if(sql.includes('FROM editorial_one_shot'))return slots.get(args.slice(0,4).join('|'))||null;
        if(sql.includes('COUNT(*)'))return {n:count};
        return null;
       },
@@ -287,6 +287,35 @@ test('null and malformed FAQ entries never crash private draft previews',async()
   assert.equal(reread.status,200);
   assert.match(await reread.text(),/FAQ format requires editorial review/);
  }
+});
+test('read-only cached integrity check distinguishes model FAQ schema from missing R2',async()=>{
+ const env=fakeEnv();
+ const malformed={...modelDraft,faq:{question:'About Delhi',answer:'Read local time conventions.'}};
+ let paid=0;
+ const once=async()=>{paid++;return new Response(JSON.stringify({choices:[{
+   finish_reason:'stop',message:{content:JSON.stringify(malformed)}
+ }]}),{status:200})};
+ const gen=await handleAi(form(),env,actor,isTrustedBrowserPost,once);
+ assert.equal(gen.status,200);
+ const url='https://admin.panchavani.com/ai/cache-health?city=delhi&date=2026-10-13';
+ const health=await handleAi(new Request(url),env,actor,isTrustedBrowserPost,
+   ()=>{throw Error('Read-only diagnostic cannot call DeepSeek')});
+ assert.equal(health.status,200);
+ const status=await health.text();
+ assert.match(status,/stored-artifact-readable/);
+ assert.match(status,/nonarray-original-retained/);
+ assert.match(status,/research-candidate-valid/);
+ assert.ok(!status.includes(env.DEEPSEEK_API_KEY));
+ assert.equal(paid,1);
+ const originalGet=env.CANDIDATES.get.bind(env.CANDIDATES);
+ env.CANDIDATES.get=async key=>
+   key===env.writes[0].key?null:originalGet(key);
+ const unavailable=await handleAi(new Request(url),env,actor,isTrustedBrowserPost);
+ assert.equal(unavailable.status,200);
+ assert.match(await unavailable.text(),/stored-r2-object-missing/);
+ const denied=await handleAi(new Request(url),env,null,isTrustedBrowserPost);
+ assert.equal(denied.status,403);
+ assert.equal(env.writes.length,1);
 });
 test('failed one-shot locks repeated attempts instead of charging again',async()=>{
  const env=fakeEnv();
