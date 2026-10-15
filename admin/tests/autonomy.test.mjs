@@ -80,7 +80,7 @@ test('automatic drafting refuses to spend DeepSeek credits if there are no candi
    return null;
   }}}}}};
  const report=await autoDraftOnce({DB:db},()=>{throw Error('No DeepSeek API call')});
- assert.equal(report.status,'awaiting-research-candidates');
+ assert.equal(report.status,'awaiting-new-city-guide-candidates');
  assert.equal(report.attempted,0);
  assert.equal(reads,2);
 });
@@ -93,14 +93,22 @@ test('provider cost capped before attempting a new draft',async()=>{
  assert.equal(report.status,'draft-cap');
  assert.equal(reads,1);
 });
-test('a previously reserved draft slot prevents duplicate calls from overlapping schedules',async()=>{
- let queryIndex=0;
- const db={prepare(sql){return {bind(){return {
-   async first(){queryIndex++;return sql.includes('COUNT(*)')?{n:0}:{id:'job-test'}},
-   async run(){assert.ok(sql.includes('INSERT OR IGNORE'));return {meta:{changes:0}}}
-  }}}}};
- const result=await autoDraftOnce({DB:db},()=>{throw Error('No DeepSeek API call')});
- assert.equal(result.status,'already-reserved');
- assert.equal(result.attempted,0);
- assert.equal(queryIndex,2);
+test('SEO Cron selects only a pending unique city hub, never a daily draft',async()=>{
+ let selected=[];
+ const db={prepare(sql){return {bind(...args){return {async first(){
+  if(sql.includes('COUNT(*)'))return {n:0};
+  assert.match(sql,/intent='city-hub'/);
+  selected=args;return null;
+ }}}}}};
+ const output=await autoDraftOnce({DB:db,AUTO_EDITORIAL_CITY_IDS:'delhi,mumbai'},()=>{throw Error('No new model call')});
+ assert.equal(output.status,'awaiting-new-city-guide-candidates');
+ assert.deepEqual(selected,['delhi','mumbai']);
+ assert.equal(output.attempted,0);
+});
+test('unlisted/duplicate or more than 10 city opt-ins fail closed',async()=>{
+ const {enabledEditorialCities}=await import('../src/autonomy.mjs');
+ assert.deepEqual(enabledEditorialCities({}),['delhi','mumbai','chennai']);
+ assert.deepEqual(enabledEditorialCities({AUTO_EDITORIAL_CITY_IDS:'delhi,jaipur'}),['delhi','jaipur']);
+ assert.throws(()=>enabledEditorialCities({AUTO_EDITORIAL_CITY_IDS:'delhi,delhi'}));
+ assert.throws(()=>enabledEditorialCities({AUTO_EDITORIAL_CITY_IDS:'bad-city'}));
 });

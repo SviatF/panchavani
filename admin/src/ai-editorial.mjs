@@ -5,6 +5,7 @@
 import { candidateIssues } from './runner.mjs';
 import { readOneShot, reserveOneShot, storeOneShot, failOneShot, ONE_SHOT_PILOT_CITIES } from './one-shot-editorial.mjs';
 import { CITY_META } from './city-catalog.mjs';
+import { buildSeoBrief,composeSeoDraft } from './seo-automation.mjs';
 import { EDITORIAL_V4_POLICY, CITY_RESEARCH_QUESTIONS, v4QualityIssues, canonicalSimilarity, readerWordCount } from './editorial-v4.mjs';
 import briefs from '../../engine/editorial/expansion-17-research-briefs.v1.json' with {type:'json'};
 
@@ -40,6 +41,7 @@ const opt=(value,label)=>'<option value="'+escapeHtml(value)+'">'+escapeHtml(lab
 
 export function buildEditorialPrompt(candidate,city,intent,lang,sourceHash){
   const context=(briefs.cityBriefs||[]).find(b=>b.cityId===city.id);
+  const seoBrief=intent==='city-hub'?buildSeoBrief(city,{language:lang}):null;
   const research={
     city:city.name,cityId:city.id,date:candidate.localDate,timezone:city.timezone,
     language:lang,intent,promptVersion:POLICY,sourceCandidateSha256:sourceHash,
@@ -61,6 +63,15 @@ export function buildEditorialPrompt(candidate,city,intent,lang,sourceHash){
     approvedAstronomicalFacts:[],
     approvedLocalRitualRules:[],
     approvedDailyActivities:[],
+    seoTask:seoBrief?{
+      primaryQuery:seoBrief.primaryQuery,
+      readerIntent:seoBrief.searchIntent,
+      focusQuestion:seoBrief.practicalQuestion,
+      groundedContext:seoBrief.groundedLocalContext,
+      supportedBackgroundFacts:seoBrief.sourceFacts,
+      unapprovedAstronomy:[],
+      unapprovedRegionalCustoms:[]
+    }:null,
   };
   const isHub=intent==='city-hub';
   const topic=isHub?'EVERGREEN CITY GUIDE':'DAILY CALENDAR (ONLY AFTER SCIENTIFIC APPROVAL)';
@@ -80,6 +91,12 @@ export function buildEditorialPrompt(candidate,city,intent,lang,sourceHash){
     +'dailyUnderstanding 40–55 words, and optional FAQ 15–25 words. '
     +'SEO title max 65 characters; meta description max 155 characters. '
     +'Avoid duplicate statements across fields and repetitive stock openings. '
+    +'Write actionable, specific explanations for the reader intent and question. '
+    +'Do not add any geography, sunrise direction, regional practice or calendar '
+    +'fact unless it appears in supportedBackgroundFacts. '
+    +'Avoid repeating the same idea in introduction and dailyUnderstanding. '
+    +'The application composes SEO title, metadata, local context and FAQ '
+    +'deterministically from its sourced brief; focus on substantial body copy. '
     +'Make the city paragraph substantive, but a city research question is '
     +'NOT proof of a city-specific religious or astronomical fact. '
     +'Do not invent regional customs, source citations, numerical clock '
@@ -435,7 +452,7 @@ export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=
     if(!candidate)return errorPage(409,'A completed, verified-by-runner research candidate is required.');
     // Pilot is deliberately limited to three cities; expanding to ten
     // requires a reviewed rollout, not an automatic 25-city cost explosion.
-    if(!ONE_SHOT_PILOT_CITIES.includes(record.city_id))
+    if(intent==='city-hub'?!CITY_META.has(record.city_id):!ONE_SHOT_PILOT_CITIES.includes(record.city_id))
       return errorPage(409,'City not included in the three-city one-shot pilot.');
     const city=CITY_META.get(record.city_id);
     if(!city)return errorPage(409,'Research city not in current catalogue.');
@@ -507,8 +524,13 @@ export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=
         throw new Error('Provider completion did not finish normally');
       }
       failureCode='provider-draft-json-invalid';
-      const draft=JSON.parse(parsed.choices[0].message.content);
+      const rawDraft=JSON.parse(parsed.choices[0].message.content);
+      const composition=intent==='city-hub'
+        ?composeSeoDraft(rawDraft,buildSeoBrief(city,{language}))
+        :null;
+      const draft=composition?.draft||rawDraft;
       const issues=[...new Set([
+        ...(composition?.blockers||[]),
         ...draftIssues(draft,city),
         ...v4QualityIssues(draft,city,{intent,lang:language})
       ])];
@@ -518,7 +540,12 @@ export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=
         schemaVersion:1,status:'AI_DRAFT_UNAPPROVED',model:'deepseek-flash',
         policyVersion:POLICY,sourceCandidateHash:record.content_hash,
         cityId:record.city_id,localDate:record.local_date,intent,language,
-        draft,reviewBlockers:issues,publicationAuthorized:false,
+        draft,rawModelDraft:rawDraft,seoComposition:composition?{
+          version:composition.seoBriefVersion,autoRepairs:composition.repairs,
+          wordCount:composition.wordCount,canonicalPath:composition.canonicalPath,
+          supportingSources:composition.provenance
+        }:null,
+        reviewBlockers:issues,publicationAuthorized:false,
         indexingAuthorized:false,scienceApproved:false,ritualApproved:false,
         tokenUsage:{
           input:Number.isInteger(parsed.usage?.prompt_tokens)?parsed.usage.prompt_tokens:null,
