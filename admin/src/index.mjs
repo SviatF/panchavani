@@ -146,6 +146,7 @@ export default {
     const result=await runAutonomy(env,controller.scheduledTime);
     console.log('PANCHAVANI private automation',JSON.stringify({
       research:result.queue?.status,queued:result.queue?.queued||0,
+      ingest:result.ingest?.status,ingested:result.ingest?.stored||0,
       editorial:result.draft?.status,attempted:result.draft?.attempted||0,
       publishingAuthorized:false
     }));
