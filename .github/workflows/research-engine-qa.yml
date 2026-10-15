@@ -54,7 +54,17 @@ jobs:
               pass
           else:
               raise AssertionError('Autonomous research AI table permitted an invalid release status')
-          print('PASS: migrations, autonomous idempotency and research-only status enforcement')
+          con.execute("INSERT INTO editorial_one_shot(city_id,local_date,intent,language,job_id,source_hash,policy_version,requested_by,status) VALUES('delhi','2026-10-16','daily-panchang','en','auto-job',?,'v2','test@example.com','reserved')", ('a'*64,))
+          rowcount=con.execute("INSERT OR IGNORE INTO editorial_one_shot(city_id,local_date,intent,language,job_id,source_hash,policy_version,requested_by,status) VALUES('delhi','2026-10-16','daily-panchang','en','auto-job',?,'v3','test@example.com','reserved')", ('a'*64,)).rowcount
+          assert rowcount==0, 'One-shot must survive policy/model upgrades without a second paid attempt'
+          try:
+              con.execute("UPDATE editorial_one_shot SET status='published' WHERE city_id='delhi'")
+          except sqlite3.IntegrityError:
+              pass
+          else:
+              raise AssertionError('One-shot row permitted published status')
+          print('PASS: migrations, autonomous and one-shot idempotency, zero release status')
+
           PY
   private-admin:
     runs-on: ubuntu-latest
