@@ -16,6 +16,7 @@ const MAX_DRAFTS_PER_DAY=3;
 const MAX_SOURCE_BYTES=210000;
 const MAX_MODEL_REPLY_BYTES=25000;
 const POLICY='deepseek-private-reader-first-v3';
+export const EDITORIAL_POLICY_VERSION=POLICY;
 const htmlHeaders={
   'Content-Type':'text/html; charset=utf-8',
   'Cache-Control':'private, no-store, max-age=0',
@@ -158,7 +159,7 @@ async function loadCandidate(env,jobId){
   return {candidate,record};
 }
 
-function preview(draft,job,issues){
+function preview(draft,job,issues,tokenUsage=null){
   const fields=[
     ['headline','Headline'],['seoTitle','SEO title'],['metaDescription','Meta description'],
     ['introduction','Introduction'],['localContext','Local context'],
@@ -166,9 +167,16 @@ function preview(draft,job,issues){
   ].map(([k,label])=>'<section><h2>'+escapeHtml(label)+'</h2><article>'+
     escapeHtml(draft[k]||'')+'</article></section>').join('');
   const faqs=(draft.faq||[]).map(x=>'<section><h2>'+escapeHtml(x.question)+'</h2><article>'+escapeHtml(x.answer)+'</article></section>').join('');
+  const input=Number.isInteger(tokenUsage?.input)?tokenUsage.input:'not provided';
+  const output=Number.isInteger(tokenUsage?.output)?tokenUsage.output:'not provided';
+  const usage='<section><h2>DeepSeek token usage</h2>'
+    +'<p>Input tokens: <strong>'+escapeHtml(input)+'</strong>'
+    +' · Output tokens: <strong>'+escapeHtml(output)+'</strong></p>'
+    +'<p class="muted">Provider-reported tokens for this saved draft. '
+    +'Cached preview: zero new API calls. Billing depends on provider rates.</p></section>';
   return basePage('<h1>Draft · '+escapeHtml(job.city_id)+' · '+escapeHtml(job.local_date)+'</h1>'
     +'<p class="warning">UNAPPROVED AI RESEARCH. No factual, traditional or SEO clearance. Do NOT publish this text yet.</p>'
-    +fields+faqs+'<section><h2>Mandatory review blockers</h2><ul>'
+    +usage+fields+faqs+'<section><h2>Mandatory review blockers</h2><ul>'
     +issues.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul></section>');
 }
 
@@ -235,7 +243,7 @@ export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=
     // Schema/migration errors fail closed and do not call the AI provider.
     const prior=await readOneShot(env,record,intent,language);
     if(prior.state==='cached')
-      return html(preview(prior.artifact.draft,record,prior.artifact.reviewBlockers));
+      return html(preview(prior.artifact.draft,record,prior.artifact.reviewBlockers,prior.artifact.tokenUsage));
     if(prior.state==='stale')
       return errorPage(409,'Astronomy source changed. Existing text is locked for review; no new AI charge.');
     if(prior.state==='locked')
@@ -284,7 +292,7 @@ export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=
       await storeOneShot(env,record,intent,language,artifact,key);
       await env.DB.prepare("INSERT INTO audit_log(id,actor,action,subject_id) VALUES (?,?,'ai_research_draft_created',?)")
         .bind(crypto.randomUUID(),actor,id2).run();
-      return html(preview(draft,record,issues));
+      return html(preview(draft,record,issues,artifact.tokenUsage));
     }catch{
       // Do not automatically retry: provider might have billed even on failure.
       await failOneShot(env,record,intent,language);
