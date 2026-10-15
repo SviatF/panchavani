@@ -269,7 +269,7 @@ test('malformed object FAQ remains STORED and readable from R2 without a second 
  assert.equal(cached.status,200);
  const html=await cached.text();
  assert.match(html,/How do I read a local Panchang/);
- assert.match(html,/Input tokens: <strong>505<\\/strong>/);
+ assert.ok(html.includes('Input tokens: <strong>505</strong>'));
  assert.equal(paid,1);
 });
 test('null and malformed FAQ entries never crash private draft previews',async()=>{
