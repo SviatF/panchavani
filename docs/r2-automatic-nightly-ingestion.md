@@ -1,12 +1,12 @@
 # PANCHAVANI — private nightly JPL delivery through an isolated R2 inbox
 
 ## Dataflow
-GitHub Actions computes the existing 25-city x 2-day research and verifies every shard. After successful coverage checks, the opt-in step uploads original candidate JSON files to a NEW private R2 bucket, panchavani-automation-inbox, then uploads a completion manifest LAST. The private Admin Worker scheduled handler checks names, hashes, NASA/JPL DE440s, city/day identity, research status and source conventions, then imports up to 20 candidates per hourly run into existing private CANDIDATES R2 and D1. The table automated_research_import_slots provides a fail-closed one-per-city/day reservation.
+GitHub Actions computes the existing 25-city x 2-day research and verifies every shard. After successful coverage checks, the opt-in step uploads original candidate JSON files to a NEW private R2 bucket, panchavani-jpl-research-inbox, then uploads a completion manifest LAST. The private Admin Worker scheduled handler checks names, hashes, NASA/JPL DE440s, city/day identity, research status and source conventions, then imports up to 20 candidates per hourly run into existing private CANDIDATES R2 and D1. The table automated_research_import_slots provides a fail-closed one-per-city/day reservation.
 
 This path never contacts admin.panchavani.com from GitHub. It does not weaken Cloudflare Access, create any public ingest endpoint or invoke DeepSeek. No public page or SEO approval occurs.
 
 ## One-time activation (not yet performed)
-1. Create a private R2 bucket named panchavani-automation-inbox (not the public or original private candidate bucket). Set suitable private retention, at least two weeks during rollout.
+1. Create a private R2 bucket named panchavani-jpl-research-inbox (not the public or original private candidate bucket). Set suitable private retention, at least two weeks during rollout.
 2. Create an R2 API token restricted to THIS inbox bucket, with Object Read & Write for HEAD/PUT. Never use your account-global token. Store it in GitHub Actions secrets PANCHAVANI_R2_ACCOUNT_ID, PANCHAVANI_R2_ACCESS_KEY_ID, PANCHAVANI_R2_SECRET_ACCESS_KEY.
 3. Apply the new migration admin/migrations/0006_automated_research_import.sql ONCE to the existing private D1 panchavani-private. Back up existing D1 first.
 4. Deploy the private panchavani-admin Worker using admin/wrangler.jsonc, now with INGEST_INBOX binding to the new bucket. Keep existing Cloudflare Access and ALLOWED_ADMIN_EMAILS intact. Do not add an R2 inbox binding to the public site.
