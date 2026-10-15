@@ -147,7 +147,7 @@ test('prompt separates unapproved astronomy from approved facts and decision rul
  const msgs=buildEditorialPrompt(candidate,location,'vrat','hi',hash);
  const packet=JSON.parse(msgs[1].content.split('\n').at(-1));
  assert.equal(packet.language,'hi');
- assert.equal(packet.researchAstronomy_DO_NOT_PUBLISH.verified,false);
+ assert.equal(packet.evidenceState.astronomyVerified,false);
  assert.deepEqual(packet.approvedLocalRitualRules,[]);
  assert.deepEqual(packet.approvedAstronomicalFacts,[]);
  assert.ok(msgs[0].content.includes('Return only a JSON object'));
