@@ -86,7 +86,8 @@ function fakeDb({count=0,hasCandidate=true}={}){
        return {results:[...slots.entries()].map(([key,row])=>{
         const [city_id,local_date,intent,language]=key.split('|');
         return {city_id,local_date,intent,language,status:row.status,
-          error_code:row.error_code||null,policy_version:'v3'};
+          job_id:row.job_id,source_hash:row.source_hash,
+          error_code:row.error_code||null,policy_version:'v4'};
        })};
      return {results:hasCandidate?[{id:jobId,city_id:'delhi',local_date:'2026-10-13'}]:[]};
     }
@@ -324,6 +325,29 @@ test('read-only cached integrity check distinguishes model FAQ schema from missi
  const denied=await handleAi(new Request(url),env,null,isTrustedBrowserPost);
  assert.equal(denied.status,403);
  assert.equal(env.writes.length,1);
+});
+test('V4 private cross-city quality route reuses saved R2 without model calls',async()=>{
+ const env=fakeEnv();
+ let requests=0;
+ const first=await handleAi(form(),env,actor,isTrustedBrowserPost,async()=>{
+  requests++;
+  return new Response(JSON.stringify({choices:[{
+   finish_reason:'stop',message:{content:JSON.stringify(modelDraft)}
+  }]}),{status:200});
+ });
+ assert.equal(first.status,200);
+ const report=await handleAi(new Request('https://admin.panchavani.com/ai/quality-report'),
+  env,actor,isTrustedBrowserPost,()=>{throw Error('Report cannot trigger API calls')});
+ assert.equal(report.status,200);
+ const body=await report.text();
+ assert.match(body,/Stored V4 city guides/);
+ assert.match(body,/Eligible city-hub drafts found: 1/);
+ assert.match(body,/zero new DeepSeek calls/);
+ assert.equal(body.includes(env.DEEPSEEK_API_KEY),false);
+ assert.equal(requests,1);
+ const blocked=await handleAi(new Request('https://admin.panchavani.com/ai/quality-report'),
+  env,null,isTrustedBrowserPost);
+ assert.equal(blocked.status,403);
 });
 test('V4 daily research without independently approved values does NOT reserve a paid slot',async()=>{
  const env=fakeEnv(); let calls=0;
