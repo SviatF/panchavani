@@ -6,6 +6,7 @@
 import { handleRunner } from './runner.mjs';
 import { ACTIVE_CITIES, CITY_IDS } from './city-catalog.mjs';
 import { handleAi, EDITORIAL_POLICY_VERSION } from './ai-editorial.mjs';
+import { SEO_PIPELINE_VERSION } from './seo-automation.mjs';
 import { runAutonomy, readiness } from './autonomy.mjs';
 import { handleResearchImport } from './research-handoff.mjs';
 import { pilotReadiness } from './pilot-readiness.mjs';
@@ -86,7 +87,7 @@ export default {
     if (request.method === 'GET' && url.pathname === '/robots.txt') return response('User-agent: *\nDisallow: /\n', 200, 'text/plain; charset=utf-8');
     if (request.method === 'GET' && url.pathname === '/api/status') {
       const pilot=await pilotReadiness(env);
-      return response(JSON.stringify({ privacy: 'authenticated', engine: 'research-only', publishing: 'disabled', database: Boolean(env.DB), runnerReady: Boolean(env.DB && env.CANDIDATES && env.RUNNER_HMAC_SECRET), deepseekConfigured: Boolean(env.DEEPSEEK_API_KEY && env.CANDIDATES && env.DB), editorialPolicyVersion: EDITORIAL_POLICY_VERSION, automation: readiness(env), pilot }), 200, 'application/json; charset=utf-8');
+      return response(JSON.stringify({ privacy: 'authenticated', engine: 'research-only', publishing: 'disabled', database: Boolean(env.DB), runnerReady: Boolean(env.DB && env.CANDIDATES && env.RUNNER_HMAC_SECRET), deepseekConfigured: Boolean(env.DEEPSEEK_API_KEY && env.CANDIDATES && env.DB), editorialPolicyVersion: EDITORIAL_POLICY_VERSION, seoPipelineVersion: SEO_PIPELINE_VERSION, automation: readiness(env), pilot }), 200, 'application/json; charset=utf-8');
     }
     if (request.method === 'GET' && url.pathname === '/api/jobs') {
       if (!env.DB) return response(JSON.stringify({jobs:[],configured:false}),200,'application/json; charset=utf-8');

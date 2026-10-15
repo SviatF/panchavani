@@ -46,6 +46,11 @@ test('catalogue allows research-only SEO briefs beyond 3 cities, without claimin
  assert.equal(b.approvedRitualFacts.length,0);
  assert.equal(b.indexingAuthorized,false);
  assert.ok(b.researchQuestion);
+ assert.equal(b.practicalQuestion,b.researchQuestion);
+ assert.ok(b.groundedLocalContext.includes('Which local sunrise-based Panchang values'));
+ const hyderabad=buildSeoBrief(city('hyderabad'));
+ assert.notEqual(b.groundedLocalContext,hyderabad.groundedLocalContext);
+ assert.notEqual(b.practicalQuestion,hyderabad.practicalQuestion);
 });
 test('one-shot repair uses zero model calls and never mutates the immutable raw response',()=>{
  const m=buildSeoBrief(city('chennai'));

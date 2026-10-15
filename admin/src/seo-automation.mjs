@@ -50,6 +50,20 @@ export function buildSeoBrief(city,{language='en'}={}){
   answer:'Check the stated city, sunrise calculation method and regional observance convention before comparing daily Panchang entries.',
   context:'For '+city.name+', start with the locality and sunrise convention used by the almanac. Distinguish a lunar transition timestamp from the observance date assigned by a documented calendar rule.'
  };
+ // City research briefs create genuinely distinct reader tasks without
+ // misrepresenting an unverified local ritual claim as a fact.
+ if(!topic&&clean(other?.localResearchAngle)){
+   focus.question=clean(other.localResearchAngle);
+   focus.context='For '+city.name+', a useful check is: '+focus.question+
+     ' Compare the source’s city, sunrise method and calendar rule with any '+
+     'lunar transition before applying an observance or daily label.';
+   focus.answer='Begin with the locally specified sunrise and the source’s '+
+     'calendar convention. Treat this question as something to verify, '+
+     'not as proof of an observance or numerical calculation.';
+   focus.meta='Read '+city.name+' Panchang: review local sunrise, calendar '+
+     'method and regional conventions before relying on daily dates.';
+ }
+
  const secondary=[city.name+' Panchang guide',city.name+' sunrise Panchang',
   'how to read Panchang in '+city.name];
  return Object.freeze({
