@@ -49,6 +49,14 @@ function fakeDb({count=0,hasCandidate=true}={}){
       async first(){
        calls.push({sql,args});
        if(sql.includes('FROM job_requests'))return hasCandidate?record:null;
+       if(sql.includes("intent='city-hub'")){
+         for(const [key,row] of slots){
+           const [city,day,intent,language]=key.split('|');
+           if(city===args[0]&&intent==='city-hub'&&language===args[1])
+             return {local_date:day,status:row.status};
+         }
+         return null;
+       }
        if(sql.includes('FROM editorial_one_shot'))return slots.get(args.slice(0,4).join('|'))||null;
        if(sql.includes('COUNT(*)'))return {n:count};
        return null;
@@ -100,7 +108,7 @@ function fakeEnv(opts={}){
  return {DB:fakeDb(opts),CANDIDATES:store,DEEPSEEK_API_KEY:'test-server-side-secret-only',writes};
 }
 function form({origin='https://admin.panchavani.com',site='same-origin',
-              path='/ai/draft',id=jobId,intent='daily-panchang',lang='en'}={}){
+              path='/ai/draft',id=jobId,intent='city-hub',lang='en'}={}){
  return new Request('https://admin.panchavani.com'+path,{
   method:'POST',
   headers:{Origin:origin,'Sec-Fetch-Site':site,'Content-Type':'application/x-www-form-urlencoded'},
@@ -297,7 +305,7 @@ test('read-only cached integrity check distinguishes model FAQ schema from missi
  }]}),{status:200})};
  const gen=await handleAi(form(),env,actor,isTrustedBrowserPost,once);
  assert.equal(gen.status,200);
- const url='https://admin.panchavani.com/ai/cache-health?city=delhi&date=2026-10-13';
+ const url='https://admin.panchavani.com/ai/cache-health?city=delhi&date=2026-10-13&intent=city-hub';
  const health=await handleAi(new Request(url),env,actor,isTrustedBrowserPost,
    ()=>{throw Error('Read-only diagnostic cannot call DeepSeek')});
  assert.equal(health.status,200);
@@ -316,6 +324,47 @@ test('read-only cached integrity check distinguishes model FAQ schema from missi
  const denied=await handleAi(new Request(url),env,null,isTrustedBrowserPost);
  assert.equal(denied.status,403);
  assert.equal(env.writes.length,1);
+});
+test('V4 daily research without independently approved values does NOT reserve a paid slot',async()=>{
+ const env=fakeEnv(); let calls=0;
+ const result=await handleAi(form({intent:'daily-panchang'}),env,actor,isTrustedBrowserPost,
+   ()=>{calls++;throw Error('No unverified daily generation allowed')});
+ assert.equal(result.status,409);
+ assert.match(await result.text(),/paused until independently approved/);
+ assert.equal(calls,0);
+ assert.equal(env.DB.slots.size,0);
+ assert.equal(env.writes.length,0);
+ const blockedRitual=await handleAi(form({intent:'muhurat'}),env,actor,isTrustedBrowserPost,
+   ()=>{calls++;throw Error('No unverified Muhurat copy allowed')});
+ assert.equal(blockedRitual.status,409);
+ assert.equal(calls,0);
+});
+test('V4 city-hub one-shot is blocked on later source dates before paid generation',async()=>{
+ const env=fakeEnv();
+ env.DB.slots.set('delhi|2026-10-12|city-hub|en',{
+   status:'stored',source_hash:'a'.repeat(64),content_hash:'b'.repeat(64),
+   r2_key:'unapproved/ai-editorial/old/draft.json'
+ });
+ let calls=0;
+ const result=await handleAi(form({intent:'city-hub'}),env,actor,isTrustedBrowserPost,
+   ()=>{calls++;throw Error('Must be blocked')});
+ assert.equal(result.status,409);
+ assert.match(await result.text(),/already exists for this city and language/);
+ assert.equal(calls,0);
+ assert.equal(env.DB.slots.size,1);
+});
+test('V4 city-hub prompt is evergreen and explicit about exact FAQ ARRAY schema',()=>{
+ const messages=buildEditorialPrompt(candidate,location,'city-hub','en',hash);
+ const instructions=messages[0].content;
+ assert.match(instructions,/EVERGREEN CITY GUIDE/);
+ assert.match(instructions,/faq as a JSON ARRAY/);
+ assert.match(instructions,/faq":\[\]/);
+ assert.match(instructions,/never write it/);
+ const sent=JSON.parse(messages[1].content.split('\n').at(-1));
+ assert.equal(sent.promptVersion,'deepseek-private-editorial-v4');
+ assert.equal(sent.localResearchQuestion.includes('Delhi'),true);
+ assert.deepEqual(sent.approvedAstronomicalFacts,[]);
+ assert.equal(JSON.stringify(sent).includes('Shukla Tritiya'),false);
 });
 test('failed one-shot locks repeated attempts instead of charging again',async()=>{
  const env=fakeEnv();
