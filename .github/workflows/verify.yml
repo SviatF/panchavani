@@ -66,5 +66,21 @@ jobs:
           assert 'sitemap.xml' in Path('out/robots.txt').read_text().lower()
           print('PASS: valid empty sitemap, no draft/day URLs indexed')
           PY
+      - name: Reject legacy mocked calendar dates and preview labels in public HTML
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          forbidden = [
+              'VISUAL DESIGN PREVIEW', 'Delhi design preview',
+              'Tuesday, 13 October 2026', '13 October 2026',
+              '20 October 2026', 'Vishakha', 'Shukla Paksha',
+              'Current Planetary Position', 'Calculated values coming soon',
+          ]
+          for path in Path('out').rglob('*.html'):
+              content=path.read_text(encoding='utf-8')
+              leaked=[word for word in forbidden if word.casefold() in content.casefold()]
+              assert not leaked, f'{path}: outdated or fabricated content: {leaked}'
+          print('PASS: no legacy preview, false calendar date or unsupported planetary claims')
+          PY
       - name: Validate Wrangler assets-only deployment configuration (dry run)
         run: npx wrangler deploy --dry-run
