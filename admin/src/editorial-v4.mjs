@@ -41,8 +41,9 @@ export function v4QualityIssues(draft,city,{intent='city-hub',lang='en'}={}){
   errors.push('v4-serp-length');
  const body=[draft.introduction,draft.localContext,draft.dailyUnderstanding,
     ...(Array.isArray(draft.faq)?draft.faq.map(x=>x?.answer):[])].map(clean);
- const normalized=body.filter(Boolean).map(norm);
- const sentences=normalized.join(' ').split(/[.!?]+/).filter(x=>x.length>=55);
+ const sentences=body.filter(Boolean)
+  .flatMap(paragraph=>paragraph.split(/[.!?]+/))
+  .map(norm).filter(x=>x.length>=55);
  // Long, duplicated literal statements are a deterministic warning. A
  // semantic similarity audit across independent city records is STILL needed.
  if(new Set(sentences).size!==sentences.length)errors.push('v4-repeated-sentence');
