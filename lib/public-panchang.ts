@@ -89,7 +89,7 @@ export function loadApprovedDays(bundle:unknown, expectedDigest:string|undefined
  const serialized=JSON.stringify(bundle);
  if(createHash('sha256').update(serialized).digest('hex')!==expectedDigest)
    throw new Error('Approved release bundle digest mismatch');
- if(bundle.releaseStatus!=='SIGNED_EDITORIAL_AND_SCIENTIFIC_REVIEW')
+ if(bundle.releaseStatus!=='HUMAN_REVIEWED_WITH_EVIDENCE')
    throw new Error('Approved release status missing');
  const seen=new Set<string>();
  return bundle.records.map(item=>{
