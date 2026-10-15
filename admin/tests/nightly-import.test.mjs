@@ -34,7 +34,7 @@ const manifest={
 const mfkey=`inbox/manifests/${run}.json`;
 function fakeEnv(){
  let existing=null,slot=null;
- const writes=[],events=[];
+ const writes=[],events=[],schemaActions=[];
  const env={
   AUTO_RESEARCH_IMPORT_ENABLED:'true',
   INGEST_INBOX:{
@@ -45,11 +45,18 @@ function fakeEnv(){
    }
   },
   CANDIDATES:{async put(path,body){writes.push({path,body})}},
-  DB:{async exec(sql){
-    assert.match(sql,/CREATE TABLE IF NOT EXISTS automated_research_import_slots/);
-    assert.match(sql,/CREATE INDEX IF NOT EXISTS idx_auto_import_created/);
-    return {count:0,duration:0};
-   },prepare(sql){return{
+  DB:{async exec(){throw new Error('Never execute multiline DDL in importer')},
+   prepare(sql){
+    if(sql.startsWith('CREATE TABLE IF NOT EXISTS automated_research_import_slots')){
+      return {async run(){schemaActions.push('table');return {success:true}}};
+    }
+    if(sql.startsWith('CREATE INDEX IF NOT EXISTS idx_auto_import_created')){
+      return {async run(){schemaActions.push('index');return {success:true}}};
+    }
+    if(sql.includes('FROM sqlite_master')){
+      return {async first(){schemaActions.push('probe');return {n:1}}};
+    }
+    return{
    bind(...args){return {
     async first(){
      if(sql.includes('FROM research_candidates'))return existing;
@@ -74,7 +81,7 @@ function fakeEnv(){
    return [{meta:{changes:1}}];
   }}
  };
- return {env,writes,events,setExisting(value){existing=value}};
+ return {env,writes,events,schemaActions,setExisting(value){existing=value}};
 }
 test('opt-in ingestion consumes private SHA-verified research once, caches R2, zero AI',async()=>{
  const f=fakeEnv();
@@ -85,6 +92,7 @@ test('opt-in ingestion consumes private SHA-verified research once, caches R2, z
  assert.equal(f.writes[0].body,raw);
  assert.match(f.writes[0].path,/^unapproved\//);
  assert.deepEqual(f.events,['reserve','batch']);
+ assert.deepEqual(f.schemaActions,['table','index','probe']);
  const again=await ingestNightly(f.env);
  assert.equal(again.stored,0);
  assert.equal(again.existing,1);
@@ -101,14 +109,44 @@ test('preexisting manual city/date hash conflict never overwrites R2 or blocks p
  assert.equal(f.writes.length,0);
  assert.equal(f.events.length,0);
 });
-test('schema bootstrap requires only private D1 and never exposes a public endpoint',async()=>{
+test('D1 bootstrap executes separate fixed DDL statements, not multiline exec',async()=>{
  const f=fakeEnv();
- let invoked=0;
- const original=f.env.DB.exec;
- f.env.DB.exec=async sql=>{invoked++;return original(sql)};
  const output=await ingestNightly(f.env);
  assert.equal(output.stored,1);
- assert.equal(invoked,1);
+ assert.deepEqual(f.schemaActions,['table','index','probe']);
+});
+test('a table-creation failure is visible as a safe code and prevents all R2 writes',async()=>{
+ const f=fakeEnv();
+ const prepare=f.env.DB.prepare.bind(f.env.DB);
+ f.env.DB.prepare=sql=>sql.startsWith('CREATE TABLE IF NOT EXISTS')?
+  {async run(){throw Error('sensitive account identifiers from D1')}}:prepare(sql);
+ await assert.rejects(ingestNightly(f.env),{
+  message:'private-d1-import-table-create-failed'
+ });
+ assert.equal(f.writes.length,0);
+ assert.equal(f.events.length,0);
+});
+test('a D1 index-creation failure is differentiated from a table failure',async()=>{
+ const f=fakeEnv();
+ const prepare=f.env.DB.prepare.bind(f.env.DB);
+ f.env.DB.prepare=sql=>sql.startsWith('CREATE INDEX IF NOT EXISTS')?
+  {async run(){throw Error('private details must not leak')}}:prepare(sql);
+ await assert.rejects(ingestNightly(f.env),{
+  message:'private-d1-import-index-create-failed'
+ });
+ assert.equal(f.writes.length,0);
+ assert.equal(f.events.length,0);
+});
+test('failed read-only schema verification cannot reserve research or write R2',async()=>{
+ const f=fakeEnv();
+ const prepare=f.env.DB.prepare.bind(f.env.DB);
+ f.env.DB.prepare=sql=>sql.includes('FROM sqlite_master')?
+  {async first(){return {n:0}}}:prepare(sql);
+ await assert.rejects(ingestNightly(f.env),{
+  message:'private-d1-import-schema-verification-failed'
+ });
+ assert.equal(f.writes.length,0);
+ assert.equal(f.events.length,0);
 });
 test('without explicit opt-in, not even D1 or R2 is touched',async()=>{
  const result=await ingestNightly({DB:{list(){throw Error('unexpected')}},INGEST_INBOX:{},CANDIDATES:{}});
