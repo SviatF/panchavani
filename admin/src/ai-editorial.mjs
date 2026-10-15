@@ -3,6 +3,7 @@
  * No publishing, sitemap, validated ritual rules or approval APIs.
  */
 import { candidateIssues } from './runner.mjs';
+import { readOneShot, reserveOneShot, storeOneShot, failOneShot, ONE_SHOT_PILOT_CITIES } from './one-shot-editorial.mjs';
 import { CITY_META } from './city-catalog.mjs';
 import briefs from '../../engine/editorial/expansion-17-research-briefs.v1.json' with {type:'json'};
 
@@ -14,7 +15,7 @@ const FIELD_NAMES=['headline','seoTitle','metaDescription','introduction',
 const MAX_DRAFTS_PER_DAY=3;
 const MAX_SOURCE_BYTES=210000;
 const MAX_MODEL_REPLY_BYTES=25000;
-const POLICY='deepseek-private-research-draft-v1';
+const POLICY='deepseek-private-one-shot-v2';
 const htmlHeaders={
   'Content-Type':'text/html; charset=utf-8',
   'Cache-Control':'private, no-store, max-age=0',
@@ -64,8 +65,11 @@ export function buildEditorialPrompt(candidate,city,intent,lang,sourceHash){
     +'source citations, favorable wedding/business periods, or what to do today. '
     +'You may explain useful questions and the method conceptually. '
     +'No local factual claim without approved evidence; if missing, say so. '
-    +'Write natural, human-sounding, nonformulaic editorial research text '
-    +'appropriate to this city/date/intent. No repetitive keyword stuffing. '
+    +'Write natural, human-sounding, city-specific editorial research text. '
+    +'Keep the COMPLETE output short: 120–200 words across ALL text fields '
+    +'and FAQ combined; use short sentences and 0–1 short FAQ. '
+    +'Do not restate clock times from research values. '
+    +'No generic filler, repetitive phrases, or keyword stuffing. '
     +'Any day-specific activity recommendation is currently WITHHELD. '
     +'Output EXACT JSON keys headline,seoTitle,metaDescription,introduction,'
     +'localContext,dailyUnderstanding,uncertaintyNote,faq,referencedFactIds. '
@@ -168,7 +172,7 @@ export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=
       +'<form method="post" action="/ai/draft"><label>Completed research city/date</label><select required name="jobId">'+choice+'</select>'
       +'<label>Content type</label><select name="intent">'+[...INTENTS].map(v=>opt(v,v)).join('')+'</select>'
       +'<label>Language</label><select name="language">'+opt('en','English')+opt('hi','Hindi')+'</select>'
-      +'<p class="muted">Limit: 3 AI drafts per authenticated editor per 24h. The model receives unapproved research facts as context, never as verified publication evidence.</p>'
+      +'<p class="muted">ONE SHOT: at most one paid attempt per city + date + content type + language. Cached text is returned for free. Pilot: Delhi, Mumbai, Chennai. Max 3 new drafts per editor per 24h. Never published automatically.</p>'
       +'<button type="submit" '+(!connected||!jobs.length?'disabled':'')+'>Generate PRIVATE research draft</button></form></section>';
     return html(basePage(content));
   }
@@ -185,47 +189,72 @@ export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=
   try{
     const {candidate,record}=await loadCandidate(env,id)||{};
     if(!candidate)return errorPage(409,'A completed, verified-by-runner research candidate is required.');
+    // Pilot is deliberately limited to three cities; expanding to ten
+    // requires a reviewed rollout, not an automatic 25-city cost explosion.
+    if(!ONE_SHOT_PILOT_CITIES.includes(record.city_id))
+      return errorPage(409,'City not included in the three-city one-shot pilot.');
+    const city=CITY_META.get(record.city_id);
+    if(!city)return errorPage(409,'Research city not in current catalogue.');
+
+    // Always read the one-shot cache BEFORE charging the daily quota.
+    // Schema/migration errors fail closed and do not call the AI provider.
+    const prior=await readOneShot(env,record,intent,language);
+    if(prior.state==='cached')
+      return html(preview(prior.artifact.draft,record,prior.artifact.reviewBlockers));
+    if(prior.state==='stale')
+      return errorPage(409,'Astronomy source changed. Existing text is locked for review; no new AI charge.');
+    if(prior.state==='locked')
+      return errorPage(409,'One-shot already reserved, processing or failed. No paid retry is permitted.');
     const count=await env.DB.prepare(
       "SELECT COUNT(*) AS n FROM audit_log WHERE actor=? AND action='ai_research_draft_created' AND created_at >= strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 day')"
     ).bind(actor).first();
-    if(Number(count?.n||0)>=MAX_DRAFTS_PER_DAY)return errorPage(429,'Research draft limit reached for the last 24 hours.');
-    const city=CITY_META.get(record.city_id);
-    if(!city)return errorPage(409,'Research city not in current catalogue.');
+    if(Number(count?.n||0)>=MAX_DRAFTS_PER_DAY)
+      return errorPage(429,'Research draft limit reached for the last 24 hours.');
+    if(!await reserveOneShot(env,record,intent,language,actor,POLICY))
+      return errorPage(409,'Another request already owns this one-shot generation. No duplicate AI call.');
+
     const payload={
       model:'deepseek-flash',thinking:{type:'disabled'},
       messages:buildEditorialPrompt(candidate,city,intent,language,record.content_hash),
-      response_format:{type:'json_object'},stream:false,max_tokens:2200,temperature:0.55
+      response_format:{type:'json_object'},stream:false,max_tokens:850,temperature:0.3
     };
-    let reply;
-    let draft;
     try{
-      reply=await transport(API,{
+      const reply=await transport(API,{
         method:'POST',headers:{Authorization:'Bearer '+env.DEEPSEEK_API_KEY,
           'Content-Type':'application/json'},
         body:JSON.stringify(payload),signal:AbortSignal.timeout(45000)
       });
-      if(!reply.ok)return errorPage(502,'DeepSeek returned an unsuccessful response. Check the private provider account; no draft was published.');
+      if(!reply.ok)throw new Error('DeepSeek response unsuccessful');
       const responseText=await reply.text();
-      if(responseText.length>MAX_MODEL_REPLY_BYTES)return errorPage(502,'Model response exceeded the allowed draft size.');
+      if(responseText.length>MAX_MODEL_REPLY_BYTES)
+        throw new Error('Model response too large');
       const parsed=JSON.parse(responseText);
-      if(parsed?.choices?.[0]?.finish_reason!=='stop')return errorPage(502,'Model did not complete the JSON draft.');
-      draft=JSON.parse(parsed.choices[0].message.content);
-    }catch{return errorPage(502,'DeepSeek call or JSON parsing failed. No draft was published.');}
-    const issues=draftIssues(draft,city);
-    const id2=crypto.randomUUID();
-    const key='unapproved/ai-editorial/'+record.id+'/'+id2+'.json';
-    const serialized=JSON.stringify({
-      schemaVersion:1,status:'AI_DRAFT_UNAPPROVED',model:'deepseek-flash',
-      policyVersion:POLICY,sourceCandidateHash:record.content_hash,
-      cityId:record.city_id,localDate:record.local_date,intent,language,
-      draft,reviewBlockers:issues,publicationAuthorized:false,
-      indexingAuthorized:false,scienceApproved:false,ritualApproved:false,
-    });
-    await env.CANDIDATES.put(key,serialized,{httpMetadata:{contentType:'application/json'},
-      customMetadata:{approval:'NONE',source_sha256:record.content_hash}});
-    await env.DB.prepare("INSERT INTO audit_log(id,actor,action,subject_id) VALUES (?,?,'ai_research_draft_created',?)")
-      .bind(crypto.randomUUID(),actor,id2).run();
-    return html(preview(draft,record,issues));
+      if(parsed?.choices?.[0]?.finish_reason!=='stop')
+        throw new Error('Model incomplete');
+      const draft=JSON.parse(parsed.choices[0].message.content);
+      const issues=draftIssues(draft,city);
+      const id2=crypto.randomUUID();
+      const key='unapproved/ai-editorial/'+record.id+'/'+id2+'.json';
+      const artifact={
+        schemaVersion:1,status:'AI_DRAFT_UNAPPROVED',model:'deepseek-flash',
+        policyVersion:POLICY,sourceCandidateHash:record.content_hash,
+        cityId:record.city_id,localDate:record.local_date,intent,language,
+        draft,reviewBlockers:issues,publicationAuthorized:false,
+        indexingAuthorized:false,scienceApproved:false,ritualApproved:false,
+        tokenUsage:{
+          input:Number.isInteger(parsed.usage?.prompt_tokens)?parsed.usage.prompt_tokens:null,
+          output:Number.isInteger(parsed.usage?.completion_tokens)?parsed.usage.completion_tokens:null
+        }
+      };
+      await storeOneShot(env,record,intent,language,artifact,key);
+      await env.DB.prepare("INSERT INTO audit_log(id,actor,action,subject_id) VALUES (?,?,'ai_research_draft_created',?)")
+        .bind(crypto.randomUUID(),actor,id2).run();
+      return html(preview(draft,record,issues));
+    }catch{
+      // Do not automatically retry: provider might have billed even on failure.
+      await failOneShot(env,record,intent,language);
+      return errorPage(502,'One-shot generation failed or could not be stored. Retry is LOCKED to prevent duplicate charges.');
+    }
   }catch{
     // No stacktrace, secret, model request or private metadata reaches client.
     return errorPage(503,'Private draft storage is unavailable. Nothing was published.');
