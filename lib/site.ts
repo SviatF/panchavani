@@ -15,7 +15,7 @@ export const featureNav = [
   { label: 'Festivals', desc: 'Upcoming & History', icon: 'flame', href: '/festivals/' },
   { label: 'Muhurat Finder', desc: 'Find Auspicious Dates', icon: 'compass', href: '/muhurat/' },
   { label: 'Vrat & Fasting', desc: 'Dates & Parana', icon: 'flower', href: '/vrat/' },
-  { label: 'Horoscope', desc: 'Editorial preview', icon: 'orbit', href: '/learn/' },
+  { label: 'Horoscope', desc: 'Calendar concepts', icon: 'orbit', href: '/learn/' },
   { label: 'Tools', desc: 'Calculators & Charts', icon: 'calculator', href: '/tools/' },
   { label: 'Regional', desc: 'State-wise Traditions', icon: 'sparkle', href: '/regional/' },
 ] as const;
