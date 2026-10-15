@@ -1,0 +1,63 @@
+name: PANCHAVANI three-city JPL private handoff (manual, UNAPPROVED)
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "India local YYYY-MM-DD; empty = tomorrow IST"
+        required: false
+        default: ""
+        type: string
+permissions:
+  contents: read
+jobs:
+  make-research-handoff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test research-only handoff integrity (no API credentials)
+        run: PYTHONPATH=engine python -m unittest discover -s engine/tests -p 'test_three_city_handoff.py' -v
+      - name: Install pinned Skyfield
+        run: pip install -r engine/requirements.txt
+      - name: Download official NASA/JPL DE440s and verify pinned SHA-256
+        run: |
+          curl --fail --location --retry 3 --max-time 240 --silent --show-error \
+            https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp \
+            --output /tmp/de440s.bsp
+          echo 'c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2  /tmp/de440s.bsp' | sha256sum --check
+      - name: Generate one private JSON bundle for Delhi Mumbai Chennai
+        env:
+          PANCHAVANI_LOCAL_DATE: ${{ inputs.date }}
+        run: |
+          PYTHONPATH=engine python -m panchavani.three_city_handoff \
+            --ephemeris /tmp/de440s.bsp \
+            --date "$PANCHAVANI_LOCAL_DATE" \
+            --out engine/artifacts/panchavani-three-city-handoff-UNAPPROVED.json
+      - name: Validate no scientific approval, SEO release or DeepSeek bill
+        run: |
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          x=json.loads(Path('engine/artifacts/panchavani-three-city-handoff-UNAPPROVED.json').read_text())
+          assert x['artifactType']=='PANCHAVANI_PRIVATE_THREE_CITY_HANDOFF'
+          assert not x['releaseAuthorized'] and not x['indexingAuthorized']
+          assert not x['modelInvocationAuthorized']
+          assert [i['cityId'] for i in x['entries']]==['delhi','mumbai','chennai']
+          assert len({i['localDate'] for i in x['entries']})==1
+          for item in x['entries']:
+              raw=item['candidateJson'].encode('utf8')
+              assert hashlib.sha256(raw).hexdigest()==item['candidateSha256']
+              data=json.loads(raw)
+              assert data['status']=='calculated' and data['approvedBy'] is None
+              assert data['validation']['blockerCount']>=1
+          print('PASS: 3 NASA/JPL scientific research candidates, still UNAPPROVED')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: panchavani-three-city-JPL-handoff-UNAPPROVED
+          path: engine/artifacts/panchavani-three-city-handoff-UNAPPROVED.json
+          retention-days: 7
+          if-no-files-found: error
