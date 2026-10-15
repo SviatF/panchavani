@@ -16,10 +16,13 @@ It does not grant GitHub any new authority to call the private Worker.
 
 1. After this PR is merged, update production **panchavani-admin** Worker to
    the matching `admin/src/index.mjs` code. GitHub QA alone is not deployment.
-2. In Cloudflare D1 **panchavani-private**, confirm existing migrations
-   `0001`–`0004` have applied, then execute
-   `admin/migrations/0005_private_handoff.sql` **once**. Do not share DB IDs,
-   tokens or secret values. This table locks each city+day research import.
+2. In Cloudflare D1 **panchavani-private** (NOT the public Worker),
+   confirm 0001–0003 already exist. Then copy and run the single consolidated
+   `admin/ops/enable-three-city-pilot.sql` script in the D1 SQL Console.
+   It applies 0004+0005 in dependency order using `IF NOT EXISTS` and prints
+   four readiness columns; ALL must equal 1. No existing application rows
+   are altered. Do not share DB IDs, tokens or secret values. If a column
+   remains 0, stop and inspect the migration error instead of attempting import.
 3. Leave Cloudflare Access policies intact. Keep
    `AUTO_RESEARCH_ENABLED=false` and `AUTO_EDITORIAL_ENABLED=false`.
    This import makes no DeepSeek calls.
@@ -35,7 +38,11 @@ It does not grant GitHub any new authority to call the private Worker.
 3. Sign in to `https://admin.panchavani.com` through existing Cloudflare
    Access. Under **ONE-TIME SCIENCE IMPORT · THREE CITIES**, choose this
    exact JSON and click **Import three research candidates**.
-4. Expected response: `RESEARCH ONLY: 3 candidates privately stored...`
+4. First open `https://admin.panchavani.com/api/status` and check
+   `pilot.schemaReady=true`, `pilot.importReady=true`, and
+   `pilot.privateDraftReady=true`. If `pilot` is absent, the deployed Worker
+   is still an older version; update **panchavani-admin** without changing
+   Cloudflare Access. Expected upload response: `RESEARCH ONLY: 3 candidates privately stored...`
    Reimporting the same file returns `0 candidates ... 3 unchanged`.
    Different data for the same city+day is **locked** rather than overwritten.
 5. Open **Private AI Editorial Drafts**; expect three completed

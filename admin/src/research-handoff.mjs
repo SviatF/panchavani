@@ -6,6 +6,7 @@
  * No model call is made by this module.
  */
 import {candidateIssues} from './runner.mjs';
+import {pilotReadiness} from './pilot-readiness.mjs';
 
 const FIXED_CITIES=['delhi','mumbai','chennai'];
 const JPL_HASH='c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2';
@@ -134,6 +135,8 @@ export async function handleResearchImport(request,env,actor,isTrustedBrowserPos
  if(request.method!=='POST')return new Response('Method not allowed',{status:405});
  if(!isTrustedBrowserPost(request))return new Response('Same-origin confirmation required',{status:403});
  if(!env.DB||!env.CANDIDATES)return new Response('Private bindings unavailable',{status:503});
+ const pilot=await pilotReadiness(env);
+ if(!pilot.importReady)return new Response('Private pilot schema not ready: apply the D1 migrations before uploading.',{status:503});
  if(!request.headers.get('content-type')?.toLowerCase().startsWith('multipart/form-data'))
   return new Response('Expected multipart upload',{status:415});
  const size=Number(request.headers.get('content-length')||0);

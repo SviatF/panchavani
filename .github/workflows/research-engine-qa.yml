@@ -72,6 +72,19 @@ jobs:
               pass
           else:
               raise AssertionError('Import cannot directly approve or publish a candidate')
+          combined=pathlib.Path('admin/ops/enable-three-city-pilot.sql').read_text()
+          source4=pathlib.Path('admin/migrations/0004_one_shot_editorial.sql').read_text().strip()
+          source5=pathlib.Path('admin/migrations/0005_private_handoff.sql').read_text().strip()
+          assert source4 in combined and source5 in combined
+          assert combined.index(source4)<combined.index(source5)
+          testdb=sqlite3.connect(':memory:')
+          testdb.execute('PRAGMA foreign_keys=ON')
+          for p in ('admin/migrations/0001_private_jobs.sql','admin/migrations/0002_private_runner.sql','admin/migrations/0003_autonomous_research.sql'):
+              testdb.executescript(pathlib.Path(p).read_text())
+          testdb.executescript(combined)
+          testdb.executescript(combined) # must be idempotent
+          rows=testdb.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('job_requests','research_candidates','editorial_one_shot','private_research_handoff_slots')").fetchall()
+          assert len(rows)==4, 'Consolidated migration failed to install required tables'
           print('PASS: migrations, autonomous and one-shot idempotency, locked handoff, zero release status')
 
           PY
