@@ -153,12 +153,12 @@
 .verified-release{padding:29px 31px;margin-top:20px}
 .verified-muted{padding:15px 18px;border-left:2px solid #c4934c;background:#12140f;color:#c1b9a8!important}
 .verified-dates{display:flex;flex-direction:column;gap:9px}
-.verified-dates a{display:flex;justify-content:space-between;gap:20px;padding:14px 16px;background:#110f0d;border:1px solid #6c543654;border-radius:8px;color:#f6d39b}
-.verified-dates a:hover{border-color:#eabb77}
-.verified-dates a span:last-child{display:flex;align-items:center;gap:9px;font-size:12px;color:#c6b9a6}
+.verified-dates .verified-day-row{display:flex;justify-content:space-between;gap:20px;padding:14px 16px;background:#110f0d;border:1px solid #6c543654;border-radius:8px;color:#f6d39b}
+
+.verified-dates .verified-day-row span:last-child{display:flex;align-items:center;gap:9px;font-size:12px;color:#c6b9a6}
 .verified-daily-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
 .verified-daily-grid article{min-height:95px;background:#12100f;border:1px solid #7e634555;padding:20px;border-radius:10px}
 .verified-daily-grid article span{display:block;color:#c2b7a7;font-size:11px;text-transform:capitalize;margin-bottom:13px}
 .verified-daily-grid article strong{color:#f4d09b;font:normal 25px var(--font-serif)}
 @media(max-width:950px){.verified-city-grid,.verified-explain{grid-template-columns:1fr}.verified-city-card,.verified-explain article{min-height:0}.verified-daily-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:680px){.verified-hub{padding-block:38px 70px}.verified-hub h1{font-size:52px}.verified-intro{font-size:14px}.verified-city-card{padding:22px}.verified-method{padding:17px}.verified-release{padding:19px}.verified-dates a{flex-direction:column;gap:5px}}
+@media(max-width:680px){.verified-hub{padding-block:38px 70px}.verified-hub h1{font-size:52px}.verified-intro{font-size:14px}.verified-city-card{padding:22px}.verified-method{padding:17px}.verified-release{padding:19px}.verified-dates .verified-day-row{flex-direction:column;gap:5px}}

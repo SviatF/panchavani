@@ -6,7 +6,7 @@
 
 - `/panchang/`: browsable city directory with independent, informational city guides.
 - `/panchang/delhi/`, `/panchang/mumbai/`, `/panchang/chennai/`: static city hubs. These contain **no fabricated current-day timings** and remain `noindex`.
-- `/panchang/{city}/{YYYY-MM-DD}/`: static generation **only** from `approvedCityDays()`. Currently no approved records, so **zero daily URL pages**.
+- Date-specific review data is rendered only on the matching city hub **once approved**. Standalone date URLs are intentionally deferred because static export cannot build an empty dynamic route and no valid approved city-day release exists yet.
 - Build-time data: `data/approved-panchang.json`, intentionally empty.
 - `lib/public-panchang.ts`: checks the three pilot cities, UTC time validity, Tithi/Nakshatra/Yoga/Karana/Vara/Paksha completeness, two distinct evidence entries, human and scientific review fields and editorial source. An exact SHA-256 pinned outside the repository via `PANCHAVANI_APPROVED_RELEASE_SHA256` is required to use any nonempty release bundle.
 - All built pages and the existing sitemap remain `noindex` / empty. There is no publication permission in this bridge; a separately reviewed release process must be implemented before any indexability changes.
@@ -18,7 +18,7 @@ The nightly JPL/Skyfield pipeline is a **research-only** producer. It currently 
 
 Do **not** set a release SHA-256 simply to bypass verification. SHA pinning detects accidental changes to a *reviewed bundle*; it does NOT mathematically prove the factual quality, scientific independence, ritual correctness, or authority of the reviewers.
 
-Before the FIRST calendar-date page may be created:
+Before the FIRST calendar-day fact may be displayed publicly:
 1. Obtain verified city station coordinates/elevation/horizon, fixed calendar conventions/ayanamsa/tzdb, complete six Panchang fields and independently reconciled transitions.
 2. Produce audit evidence, independent reference comparisons, versioned sources, expert review and city-specific human editorial approval.
 3. Run the existing Python `release_gate.release_blockers` plus `seo_review.audit_city_pages` on the full source record and cross-city corpus. Both must return zero outstanding blockers.
@@ -30,3 +30,7 @@ There is currently **no automated conversion from raw research artifacts to appr
 ## DeepSeek cost controls
 
 The separate private Admin Worker now has one-shot D1/R2 draft caching for the three pilot cities and no automatic retries after an uncertain paid attempt. This public site does not call the DeepSeek API at runtime and does not expose AI research drafts. Data review and Cloudflare deployment are still required.
+
+## Date URLs after the first live review
+
+The final `/panchang/{city}/{YYYY-MM-DD}/` route generator and its canonical/sitemap entries must be introduced only when at least one independently approved city-day record exists. The static export is intentionally not filled with dummy fallback dates.

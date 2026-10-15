@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import {notFound} from 'next/navigation';
 import type {Metadata} from 'next';
-import {ArrowLeft,ArrowRight,BookOpen,CalendarDays,Clock3} from 'lucide-react';
-import {approvedCityDays,CITY_GUIDES,PILOT_CITY_IDS,cityDayRoute,indiaTime} from '@/lib/public-panchang';
+import {ArrowLeft,BookOpen,CalendarDays,Clock3} from 'lucide-react';
+import {approvedCityDays,CITY_GUIDES,PILOT_CITY_IDS,indiaTime} from '@/lib/public-panchang';
 type Props={params:Promise<{city:string}>};
 export function generateStaticParams(){return PILOT_CITY_IDS.map(city=>({city}));}
 export async function generateMetadata({params}:Props):Promise<Metadata>{
@@ -27,10 +27,10 @@ export default async function CityPanchang({params}:Props){
    <article><CalendarDays size={21}/><h2>Calendar interpretation</h2><p>{guide.method}</p></article></div>
   <section className="verified-release"><div><p className="section-eyebrow">REVIEWED DAILY PANCHANG</p><h2>Available dates</h2></div>
   {releases.length?
-   <div className="verified-dates">{releases.map(day=><Link key={day.date} href={cityDayRoute(day)}>
-     <span>{day.date} · {day.panchang.tithi}</span>
-     <span>Sunrise {indiaTime(day.sun.sunriseUtc)} IST <ArrowRight size={14}/></span>
-    </Link>)}</div>:
+   <div className="verified-dates">{releases.map(day=><div key={day.date} className="verified-day-row">
+     <span>{day.date} · {day.panchang.tithi} · {day.panchang.nakshatra}</span>
+     <span>Sunrise {indiaTime(day.sun.sunriseUtc)} IST</span>
+    </div>)}</div>:
    <p className="verified-muted">There are no independently approved daily timing records for this city yet. Our research process is running; unpublished results are not presented as calendar facts.</p>}
   </section>
  </div>;
