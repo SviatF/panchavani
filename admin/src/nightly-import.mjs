@@ -17,8 +17,10 @@ const MAX_PER_RUN=20;
 // migration session from blocking private research ingestion. This only
 // creates the table from migration 0006; it never updates public calendars,
 // grants review approval, deletes an old job or alters existing D1 tables.
-const IMPORT_SCHEMA=`
-CREATE TABLE IF NOT EXISTS automated_research_import_slots (
+// Avoid passing a multiline two-statement script into D1.exec: DDL is
+// instead prepared and executed one statement at a time. Each statement is
+// fixed source code (no user input), additive and safe to run repeatedly.
+const CREATE_IMPORT_TABLE=`CREATE TABLE IF NOT EXISTS automated_research_import_slots (
  city_id TEXT NOT NULL,
  local_date TEXT NOT NULL,
  run_id TEXT NOT NULL,
@@ -29,12 +31,32 @@ CREATE TABLE IF NOT EXISTS automated_research_import_slots (
  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
  updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
  PRIMARY KEY(city_id, local_date)
-);
-CREATE INDEX IF NOT EXISTS idx_auto_import_created ON automated_research_import_slots(created_at DESC);
-`;
-async function ensureImportSchema(db){
- if(typeof db.exec!=='function')throw new Error('private-d1-schema-interface-unavailable');
- await db.exec(IMPORT_SCHEMA);
+)`;
+const CREATE_IMPORT_INDEX=`CREATE INDEX IF NOT EXISTS idx_auto_import_created
+ ON automated_research_import_slots(created_at DESC)`;
+export async function ensureImportSchema(db){
+ if(typeof db?.prepare!=='function')
+  throw new Error('private-d1-schema-interface-unavailable');
+ try{
+  await db.prepare(CREATE_IMPORT_TABLE).run();
+ }catch{
+  throw new Error('private-d1-import-table-create-failed');
+ }
+ try{
+  await db.prepare(CREATE_IMPORT_INDEX).run();
+ }catch{
+  throw new Error('private-d1-import-index-create-failed');
+ }
+ // A successful DDL return is not a substitute for reading the real schema.
+ // The probe is read-only; never delete or rewrite a table on disagreement.
+ try{
+  const row=await db.prepare(
+    "SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name='automated_research_import_slots'"
+  ).first();
+  if(Number(row?.n)!==1)throw new Error('missing-import-table');
+ }catch{
+  throw new Error('private-d1-import-schema-verification-failed');
+ }
 }
 
 export function ingestReadiness(env){
