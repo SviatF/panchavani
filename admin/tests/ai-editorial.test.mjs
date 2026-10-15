@@ -241,6 +241,53 @@ test('same city/date/content/language returns cached copy without a second paid 
  assert.match(cached,/Input tokens: <strong>341<\/strong>/);
  assert.match(cached,/Output tokens: <strong>173<\/strong>/);
 });
+test('malformed object FAQ remains STORED and readable from R2 without a second paid request',async()=>{
+ const env=fakeEnv();
+ let paid=0;
+ const malformed={...modelDraft,
+   faq:{question:'How do I read a local Panchang?',answer:'Start with city and local sunrise.'}
+ };
+ const model=async()=>{
+   paid++;
+   return new Response(JSON.stringify({choices:[{
+     finish_reason:'stop',message:{content:JSON.stringify(malformed)}
+   }],usage:{prompt_tokens:505,completion_tokens:202}}),{status:200});
+ };
+ const generated=await handleAi(form(),env,actor,isTrustedBrowserPost,model);
+ assert.equal(generated.status,200);
+ assert.equal(env.DB.slots.size,1);
+ assert.equal([...env.DB.slots.values()][0].status,'stored');
+ assert.equal(env.writes.length,1);
+ const initial=await generated.text();
+ assert.match(initial,/How do I read a local Panchang/);
+ assert.match(initial,/saved FAQ format requires editorial review/);
+ const stored=JSON.parse(env.writes[0].data);
+ assert.deepEqual(stored.draft.faq,malformed.faq);
+ assert.ok(stored.reviewBlockers.includes('invalid-faq'));
+ const cached=await handleAi(form(),env,actor,isTrustedBrowserPost,
+   ()=>{throw new Error('Repeat must not call the model')});
+ assert.equal(cached.status,200);
+ const html=await cached.text();
+ assert.match(html,/How do I read a local Panchang/);
+ assert.match(html,/Input tokens: <strong>505<\\/strong>/);
+ assert.equal(paid,1);
+});
+test('null and malformed FAQ entries never crash private draft previews',async()=>{
+ for(const badFaq of [null,'free text',[null,42,{question:123,answer:{bad:true}}]]){
+  const env=fakeEnv();
+  const malformed={...modelDraft,faq:badFaq};
+  const reply=await handleAi(form(),env,actor,isTrustedBrowserPost,async()=>new Response(
+    JSON.stringify({choices:[{finish_reason:'stop',
+      message:{content:JSON.stringify(malformed)}}]}),{status:200}));
+  assert.equal(reply.status,200);
+  assert.equal([...env.DB.slots.values()][0].status,'stored');
+  assert.match(await reply.text(),/FAQ format requires editorial review/);
+  const reread=await handleAi(form(),env,actor,isTrustedBrowserPost,
+    ()=>{throw new Error('No further model call permitted')});
+  assert.equal(reread.status,200);
+  assert.match(await reread.text(),/FAQ format requires editorial review/);
+ }
+});
 test('failed one-shot locks repeated attempts instead of charging again',async()=>{
  const env=fakeEnv();
  let calls=0;
