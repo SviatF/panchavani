@@ -182,9 +182,39 @@ function preview(draft,job,issues,tokenUsage=null){
 
 export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=fetch){
   const url=new URL(request.url);
-  if(url.pathname!=='/ai'&&url.pathname!=='/ai/draft')return null;
+  if(!['/ai','/ai/draft','/ai/provider-status'].includes(url.pathname))return null;
   // Called ONLY after verified Cloudflare Access identity and allowlist.
   if(!actor)return errorPage(403,'Access denied.');
+  if(request.method==='GET'&&url.pathname==='/ai/provider-status'){
+    if(typeof env.DEEPSEEK_API_KEY!=='string'||env.DEEPSEEK_API_KEY.trim().length<12)
+      return errorPage(503,'DeepSeek server-side secret is not configured.');
+    // Official provider read-only balance endpoint: NO completion and NO tokens.
+    // Only show readiness; never reveal balance, secret, API body or headers.
+    let state='provider-connection-unavailable';
+    try{
+      const check=await transport('https://api.deepseek.com/user/balance',{
+        method:'GET',headers:{Authorization:'Bearer '+env.DEEPSEEK_API_KEY},
+        signal:AbortSignal.timeout(15000)
+      });
+      if(!check.ok){
+        state='provider-http-'+(
+          Number.isInteger(check.status)&&check.status>=400&&check.status<=599
+            ? check.status:'unknown');
+      }else{
+        const result=await check.json();
+        state=result?.is_available===true?'provider-ready':
+          result?.is_available===false?'provider-insufficient-balance':
+          'provider-balance-response-invalid';
+      }
+    }catch{
+      state='provider-connection-unavailable';
+    }
+    return html(basePage('<h1>DeepSeek · connection check</h1>'+
+      '<section><h2>'+escapeHtml(state)+'</h2>'+
+      '<p>Read-only API balance check; no language-model generation or token usage.'+
+      ' No API key, balance figure, or private data is displayed.</p></section>'+
+      '<p><a href="/ai">← Return to private drafts</a></p>'));
+  }
   if(request.method==='GET'&&url.pathname==='/ai'){
     if(!env.DB)return errorPage(503,'Private D1 research queue is not configured.');
     let jobs;
@@ -224,7 +254,7 @@ export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=
       '</tbody></table></div></section>';
     const choice=jobs.map(j=>opt(j.id,j.city_id+' · '+j.local_date)).join('');
     const content='<h1>AI Editorial Drafts</h1><p class="warning">Private drafts only. No direct SEO publication, human-approved cultural advice or verified astrology.</p>'
-      +'<section><h2>DeepSeek server-side secret</h2><p>'+ (connected?'Configured for private draft generation.':'Not configured or missing private R2.')+'</p></section>'
+      +'<section><h2>DeepSeek server-side secret</h2><p>'+ (connected?'Configured for private draft generation.':'Not configured or missing private R2.')+'</p><p><a href="/ai/provider-status">Check DeepSeek API connection and balance availability (no model call)</a></p></section>'
       +'<section><h2>Automatic research and editorial scheduler</h2><p>'+(
          automationConfigured?'Configured for research/drafts (requires active Cloudflare Cron and a connected scheduled GitHub Runner).'
          :'NOT ACTIVE. An encrypted DeepSeek key alone does not start automatic astronomy jobs. Configure D1 migration 0003, Runner credentials, scheduled GitHub workflow and explicit AUTO_RESEARCH_ENABLED/AUTO_EDITORIAL_ENABLED flags.'
