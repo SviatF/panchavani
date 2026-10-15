@@ -49,7 +49,7 @@ function fakeDb({count=0,hasCandidate=true}={}){
       async first(){
        calls.push({sql,args});
        if(sql.includes('FROM job_requests'))return hasCandidate?record:null;
-       if(sql.includes('SELECT job_id,source_hash,status,r2_key'))return slots.get(args.slice(0,4).join('|'))||null;
+       if(sql.includes('FROM editorial_one_shot'))return slots.get(args.slice(0,4).join('|'))||null;
        if(sql.includes('COUNT(*)'))return {n:count};
        return null;
       },
@@ -240,6 +240,82 @@ test('same city/date/content/language returns cached copy without a second paid 
  assert.match(cached,/UNAPPROVED AI RESEARCH/);
  assert.match(cached,/Input tokens: <strong>341<\/strong>/);
  assert.match(cached,/Output tokens: <strong>173<\/strong>/);
+});
+test('malformed object FAQ remains STORED and readable from R2 without a second paid request',async()=>{
+ const env=fakeEnv();
+ let paid=0;
+ const malformed={...modelDraft,
+   faq:{question:'How do I read a local Panchang?',answer:'Start with city and local sunrise.'}
+ };
+ const model=async()=>{
+   paid++;
+   return new Response(JSON.stringify({choices:[{
+     finish_reason:'stop',message:{content:JSON.stringify(malformed)}
+   }],usage:{prompt_tokens:505,completion_tokens:202}}),{status:200});
+ };
+ const generated=await handleAi(form(),env,actor,isTrustedBrowserPost,model);
+ assert.equal(generated.status,200);
+ assert.equal(env.DB.slots.size,1);
+ assert.equal([...env.DB.slots.values()][0].status,'stored');
+ assert.equal(env.writes.length,1);
+ const initial=await generated.text();
+ assert.match(initial,/How do I read a local Panchang/);
+ assert.match(initial,/saved FAQ format requires editorial review/);
+ const stored=JSON.parse(env.writes[0].data);
+ assert.deepEqual(stored.draft.faq,malformed.faq);
+ assert.ok(stored.reviewBlockers.includes('invalid-faq'));
+ const cached=await handleAi(form(),env,actor,isTrustedBrowserPost,
+   ()=>{throw new Error('Repeat must not call the model')});
+ assert.equal(cached.status,200);
+ const html=await cached.text();
+ assert.match(html,/How do I read a local Panchang/);
+ assert.ok(html.includes('Input tokens: <strong>505</strong>'));
+ assert.equal(paid,1);
+});
+test('null and malformed FAQ entries never crash private draft previews',async()=>{
+ for(const badFaq of [null,'free text',[null,42,{question:123,answer:{bad:true}}]]){
+  const env=fakeEnv();
+  const malformed={...modelDraft,faq:badFaq};
+  const reply=await handleAi(form(),env,actor,isTrustedBrowserPost,async()=>new Response(
+    JSON.stringify({choices:[{finish_reason:'stop',
+      message:{content:JSON.stringify(malformed)}}]}),{status:200}));
+  assert.equal(reply.status,200);
+  assert.equal([...env.DB.slots.values()][0].status,'stored');
+  assert.match(await reply.text(),/FAQ format requires editorial review/);
+  const reread=await handleAi(form(),env,actor,isTrustedBrowserPost,
+    ()=>{throw new Error('No further model call permitted')});
+  assert.equal(reread.status,200);
+  assert.match(await reread.text(),/FAQ format requires editorial review/);
+ }
+});
+test('read-only cached integrity check distinguishes model FAQ schema from missing R2',async()=>{
+ const env=fakeEnv();
+ const malformed={...modelDraft,faq:{question:'About Delhi',answer:'Read local time conventions.'}};
+ let paid=0;
+ const once=async()=>{paid++;return new Response(JSON.stringify({choices:[{
+   finish_reason:'stop',message:{content:JSON.stringify(malformed)}
+ }]}),{status:200})};
+ const gen=await handleAi(form(),env,actor,isTrustedBrowserPost,once);
+ assert.equal(gen.status,200);
+ const url='https://admin.panchavani.com/ai/cache-health?city=delhi&date=2026-10-13';
+ const health=await handleAi(new Request(url),env,actor,isTrustedBrowserPost,
+   ()=>{throw Error('Read-only diagnostic cannot call DeepSeek')});
+ assert.equal(health.status,200);
+ const status=await health.text();
+ assert.match(status,/stored-artifact-readable/);
+ assert.match(status,/nonarray-original-retained/);
+ assert.match(status,/research-candidate-valid/);
+ assert.ok(!status.includes(env.DEEPSEEK_API_KEY));
+ assert.equal(paid,1);
+ const originalGet=env.CANDIDATES.get.bind(env.CANDIDATES);
+ env.CANDIDATES.get=async key=>
+   key===env.writes[0].key?null:originalGet(key);
+ const unavailable=await handleAi(new Request(url),env,actor,isTrustedBrowserPost);
+ assert.equal(unavailable.status,200);
+ assert.match(await unavailable.text(),/stored-r2-object-missing/);
+ const denied=await handleAi(new Request(url),env,null,isTrustedBrowserPost);
+ assert.equal(denied.status,403);
+ assert.equal(env.writes.length,1);
 });
 test('failed one-shot locks repeated attempts instead of charging again',async()=>{
  const env=fakeEnv();

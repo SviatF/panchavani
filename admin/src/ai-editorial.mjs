@@ -111,8 +111,10 @@ export function draftIssues(draft,city){
   }
   if(!Array.isArray(draft.referencedFactIds)||draft.referencedFactIds.length!==0)errors.push('unverified-citation');
   if(!Array.isArray(draft.faq)||draft.faq.length>2||draft.faq.some(q=>
-    !q||typeof q!=='object'||Object.keys(q).sort().join('|')!=='answer|question'||
-    !q.question?.trim()||!q.answer?.trim()))errors.push('invalid-faq');
+    !q||typeof q!=='object'||Array.isArray(q)||
+    Object.keys(q).sort().join('|')!=='answer|question'||
+    typeof q.question!=='string'||!q.question.trim()||
+    typeof q.answer!=='string'||!q.answer.trim()))errors.push('invalid-faq');
   const prose=FIELD_NAMES.map(f=>typeof draft[f]==='string'?draft[f]:'').join(' ')
     +((Array.isArray(draft.faq)?draft.faq:[]).map(q=>q?.answer||'').join(' '));
   if(!prose.toLowerCase().includes(city.name.toLowerCase()))errors.push('city-not-mentioned');
@@ -160,13 +162,32 @@ async function loadCandidate(env,jobId){
 }
 
 function preview(draft,job,issues,tokenUsage=null){
+  // The model can violate the instructed FAQ array schema. The original
+  // immutable R2 artifact must remain viewable for private editorial review,
+  // even if it contains an object, null or malformed FAQ entry. Previously
+  // (draft.faq||[]).map() threw AFTER D1 had already marked the draft STORED,
+  // causing both a misleading generation error and failed cached previews.
+  const data=draft&&typeof draft==='object'&&!Array.isArray(draft)?draft:{};
   const fields=[
     ['headline','Headline'],['seoTitle','SEO title'],['metaDescription','Meta description'],
     ['introduction','Introduction'],['localContext','Local context'],
     ['dailyUnderstanding','Day interpretation'],['uncertaintyNote','Verification note']
   ].map(([k,label])=>'<section><h2>'+escapeHtml(label)+'</h2><article>'+
-    escapeHtml(draft[k]||'')+'</article></section>').join('');
-  const faqs=(draft.faq||[]).map(x=>'<section><h2>'+escapeHtml(x.question)+'</h2><article>'+escapeHtml(x.answer)+'</article></section>').join('');
+    escapeHtml(typeof data[k]==='string'?data[k]:'[Invalid field format — requires editorial review]')+
+    '</article></section>').join('');
+  const faqRows=Array.isArray(data.faq)?data.faq:
+    (data.faq&&typeof data.faq==='object'&&!Array.isArray(data.faq)?[data.faq]:[]);
+  const faqs=faqRows.filter(x=>x&&typeof x==='object'&&!Array.isArray(x)&&
+    typeof x.question==='string'&&typeof x.answer==='string')
+    .slice(0,4).map(x=>'<section><h2>'+escapeHtml(x.question)+'</h2><article>'+
+      escapeHtml(x.answer)+'</article></section>').join('');
+  const originalFaqIsValid=Array.isArray(data.faq)&&data.faq.length<=2&&
+    data.faq.every(q=>q&&typeof q==='object'&&!Array.isArray(q)&&
+      typeof q.question==='string'&&typeof q.answer==='string');
+  const shapeNote=originalFaqIsValid?'':('<p class="warning">The saved FAQ format requires '+
+    'editorial review; its original R2 content has not been changed. '+
+    'Nothing here is authorized for publication.</p>');
+  const blockers=Array.isArray(issues)?issues:['private-draft-review-required'];
   const input=Number.isInteger(tokenUsage?.input)?tokenUsage.input:'not provided';
   const output=Number.isInteger(tokenUsage?.output)?tokenUsage.output:'not provided';
   const usage='<section><h2>DeepSeek token usage</h2>'
@@ -176,15 +197,78 @@ function preview(draft,job,issues,tokenUsage=null){
     +'Cached preview: zero new API calls. Billing depends on provider rates.</p></section>';
   return basePage('<h1>Draft · '+escapeHtml(job.city_id)+' · '+escapeHtml(job.local_date)+'</h1>'
     +'<p class="warning">UNAPPROVED AI RESEARCH. No factual, traditional or SEO clearance. Do NOT publish this text yet.</p>'
-    +usage+fields+faqs+'<section><h2>Mandatory review blockers</h2><ul>'
-    +issues.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul></section>');
+    +usage+shapeNote+fields+faqs+'<section><h2>Mandatory review blockers</h2><ul>'
+    +blockers.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul></section>');
 }
 
 export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=fetch){
   const url=new URL(request.url);
-  if(!['/ai','/ai/draft','/ai/provider-status'].includes(url.pathname))return null;
+  if(!['/ai','/ai/draft','/ai/provider-status','/ai/cache-health'].includes(url.pathname))return null;
   // Called ONLY after verified Cloudflare Access identity and allowlist.
   if(!actor)return errorPage(403,'Access denied.');
+  if(request.method==='GET'&&url.pathname==='/ai/cache-health'){
+    // Read-only, owner-only integrity diagnostic. Never call DeepSeek, expose
+    // private R2 keys, candidate payloads, prompts or raw error messages.
+    const cityId=url.searchParams.get('city');
+    const day=url.searchParams.get('date');
+    const intent=url.searchParams.get('intent')||'daily-panchang';
+    const language=url.searchParams.get('lang')||'en';
+    if(!ONE_SHOT_PILOT_CITIES.includes(cityId)||
+       !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(day||'')||
+       !INTENTS.has(intent)||!LANGUAGES.has(language))
+      return errorPage(400,'Invalid private cache diagnostic selector.');
+    if(!env.DB||!env.CANDIDATES)return errorPage(503,'Private D1/R2 binding missing.');
+    let research='not-checked',cache='not-checked',faq='unknown';
+    try{
+      const row=await env.DB.prepare(
+        'SELECT job_id,source_hash,status FROM editorial_one_shot '+
+        'WHERE city_id=? AND local_date=? AND intent=? AND language=?'
+      ).bind(cityId,day,intent,language).first();
+      if(!row){cache='one-shot-slot-missing';}
+      else if(row.status!=='stored'){cache='one-shot-slot-'+
+        (row.status==='failed'?'failed':row.status==='reserved'?'reserved':'unknown');}
+      else{
+        try{
+          const loaded=await loadCandidate(env,row.job_id);
+          research=loaded?'research-candidate-valid':'research-candidate-missing';
+        }catch{research='research-candidate-invalid-or-unreadable';}
+        try{
+          const checked=await readOneShot(env,{
+            id:row.job_id,city_id:cityId,local_date:day,
+            content_hash:row.source_hash
+          },intent,language);
+          if(checked.state==='cached'){
+            try{
+              preview(checked.artifact.draft,
+                {city_id:cityId,local_date:day},
+                checked.artifact.reviewBlockers,checked.artifact.tokenUsage);
+              cache='stored-artifact-readable';
+              faq=Array.isArray(checked.artifact.draft?.faq)?
+                'array':'nonarray-original-retained';
+            }catch{cache='stored-artifact-preview-invalid';}
+          }else{cache='stored-artifact-'+checked.state;}
+        }catch(e){
+          const known={
+            'Stored one-shot reference integrity failure':'stored-reference-invalid',
+            'Stored one-shot object missing':'stored-r2-object-missing',
+            'Stored one-shot SHA-256 verification failed':'stored-r2-hash-mismatch',
+            'Stored one-shot content integrity failure':'stored-artifact-invalid'
+          };
+          cache=known[e?.message]||'stored-artifact-unreadable';
+        }
+      }
+    }catch{cache='private-d1-query-failed';}
+    return html(basePage('<h1>Saved draft health</h1><section>'+
+      '<p><strong>Location:</strong> '+escapeHtml(cityId)+
+      ' · <strong>Date:</strong> '+escapeHtml(day)+'</p>'+
+      '<p><strong>Research source:</strong> '+escapeHtml(research)+'</p>'+
+      '<p><strong>Stored draft:</strong> '+escapeHtml(cache)+'</p>'+
+      '<p><strong>Original FAQ shape:</strong> '+escapeHtml(faq)+'</p>'+
+      '<p class="muted">Diagnostic reads only. Zero DeepSeek calls. '+
+      'No private text, R2 paths or secret values are exposed. '+
+      'Do not delete or regenerate stored one-shot drafts.</p></section>'+
+      '<p><a href="/ai">← Return to private drafts</a></p>'));
+  }
   if(request.method==='GET'&&url.pathname==='/ai/provider-status'){
     if(typeof env.DEEPSEEK_API_KEY!=='string'||env.DEEPSEEK_API_KEY.trim().length<12)
       return errorPage(503,'DeepSeek server-side secret is not configured.');
@@ -243,14 +327,19 @@ export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=
       '</td><td>'+escapeHtml(a.local_date)+'</td><td>'+escapeHtml(a.intent)+
       '</td><td>'+escapeHtml(a.language)+'</td><td>'+escapeHtml(a.status)+
       '</td><td><code>'+escapeHtml(a.error_code||'—')+
-      '</code></td><td>'+escapeHtml(a.policy_version||'—')+'</td></tr>').join('');
+      '</code></td><td>'+escapeHtml(a.policy_version||'—')+
+      '</td><td>'+(a.status==='stored'?'<a href="/ai/cache-health?city='+
+      encodeURIComponent(a.city_id)+'&date='+encodeURIComponent(a.local_date)+
+      '&intent='+encodeURIComponent(a.intent)+'&lang='+
+      encodeURIComponent(a.language)+'">Check saved draft</a>':'—')+
+      '</td></tr>').join('');
     const oneShotState='<section><h2>One-shot request diagnostics</h2>'+
       '<p class="muted">Stored = reusable at zero new API calls. Failed/reserved = '+
       'locked pending a manual billing and storage audit. Error codes are sanitized; '+
       'existing older attempts may only say provider-or-storage-error.</p>'+
       '<div style="overflow-x:auto"><table><thead><tr><th>City</th><th>Date</th>'+
       '<th>Type</th><th>Lang</th><th>State</th><th>Error code</th>'+
-      '<th>Prompt</th></tr></thead><tbody>'+attemptRows+
+      '<th>Prompt</th><th>Integrity</th></tr></thead><tbody>'+attemptRows+
       '</tbody></table></div></section>';
     const choice=jobs.map(j=>opt(j.id,j.city_id+' · '+j.local_date)).join('');
     const content='<h1>AI Editorial Drafts</h1><p class="warning">Private drafts only. No direct SEO publication, human-approved cultural advice or verified astrology.</p>'
