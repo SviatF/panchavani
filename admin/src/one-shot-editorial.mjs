@@ -38,11 +38,20 @@ export async function readOneShot(env,record,intent,language){
 }
 
 export async function reserveOneShot(env,record,intent,language,actor,policyVersion){
-  const result=await env.DB.prepare(
-    "INSERT OR IGNORE INTO "+SLOT_TABLE+
-    " (city_id,local_date,intent,language,job_id,source_hash,policy_version,requested_by,status)"+
-    " VALUES (?,?,?,?,?,?,?,?,'reserved')"
-  ).bind(...keyArgs(record,intent,language),record.id,record.content_hash,policyVersion,actor).run();
+  const fields=" (city_id,local_date,intent,language,job_id,source_hash,policy_version,requested_by,status)";
+  const args=[...keyArgs(record,intent,language),record.id,record.content_hash,policyVersion,actor];
+  // A city hub is evergreen. Reserve at most ONE paid attempt per city and
+  // language, regardless of candidate date or the number of concurrent Cron
+  // workers. The NOT EXISTS check and INSERT happen in one D1 statement.
+  const cityHub=intent==='city-hub';
+  const sql=cityHub
+    ? "INSERT OR IGNORE INTO "+SLOT_TABLE+fields+
+      " SELECT ?,?,?,?,?,?,?,?,'reserved' WHERE NOT EXISTS ("+
+      " SELECT 1 FROM "+SLOT_TABLE+
+      " WHERE city_id=? AND intent='city-hub' AND language=?)"
+    : "INSERT OR IGNORE INTO "+SLOT_TABLE+fields+
+      " VALUES (?,?,?,?,?,?,?,?,'reserved')";
+  const result=await env.DB.prepare(sql).bind(...args,...(cityHub?[record.city_id,language]:[])).run();
   return result.meta?.changes===1;
 }
 
