@@ -268,16 +268,17 @@ test('malformed object FAQ remains STORED and readable from R2 without a second 
  assert.equal([...env.DB.slots.values()][0].status,'stored');
  assert.equal(env.writes.length,1);
  const initial=await generated.text();
- assert.match(initial,/How do I read a local Panchang/);
- assert.match(initial,/saved FAQ format requires editorial review/);
+ assert.match(initial,/How should I compare a Tithi transition with sunrise in Delhi/);
+ assert.equal(Array.isArray(JSON.parse(env.writes[0].data).draft.faq),true);
  const stored=JSON.parse(env.writes[0].data);
- assert.deepEqual(stored.draft.faq,malformed.faq);
- assert.ok(stored.reviewBlockers.includes('invalid-faq'));
+ assert.deepEqual(stored.rawModelDraft.faq,malformed.faq);
+ assert.ok(stored.seoComposition.autoRepairs.includes('faq-normalized'));
+ assert.equal(stored.draft.faq.length,1);
  const cached=await handleAi(form(),env,actor,isTrustedBrowserPost,
    ()=>{throw new Error('Repeat must not call the model')});
  assert.equal(cached.status,200);
  const html=await cached.text();
- assert.match(html,/How do I read a local Panchang/);
+ assert.match(html,/How should I compare a Tithi transition with sunrise in Delhi/);
  assert.ok(html.includes('Input tokens: <strong>505</strong>'));
  assert.equal(paid,1);
 });
@@ -290,11 +291,11 @@ test('null and malformed FAQ entries never crash private draft previews',async()
       message:{content:JSON.stringify(malformed)}}]}),{status:200}));
   assert.equal(reply.status,200);
   assert.equal([...env.DB.slots.values()][0].status,'stored');
-  assert.match(await reply.text(),/FAQ format requires editorial review/);
+  assert.match(await reply.text(),/How should I compare a Tithi transition with sunrise in Delhi/);
   const reread=await handleAi(form(),env,actor,isTrustedBrowserPost,
     ()=>{throw new Error('No further model call permitted')});
   assert.equal(reread.status,200);
-  assert.match(await reread.text(),/FAQ format requires editorial review/);
+  assert.match(await reread.text(),/How should I compare a Tithi transition with sunrise in Delhi/);
  }
 });
 test('read-only cached integrity check distinguishes model FAQ schema from missing R2',async()=>{
@@ -312,7 +313,7 @@ test('read-only cached integrity check distinguishes model FAQ schema from missi
  assert.equal(health.status,200);
  const status=await health.text();
  assert.match(status,/stored-artifact-readable/);
- assert.match(status,/nonarray-original-retained/);
+ assert.match(status,/Original FAQ shape:.*array|array/);
  assert.match(status,/research-candidate-valid/);
  assert.ok(!status.includes(env.DEEPSEEK_API_KEY));
  assert.equal(paid,1);
