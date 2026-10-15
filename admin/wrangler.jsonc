@@ -26,5 +26,8 @@
     "crons": [
       "5 * * * *"
     ]
+  },
+  "vars": {
+    "AUTO_RESEARCH_IMPORT_ENABLED": "true"
   }
 }
