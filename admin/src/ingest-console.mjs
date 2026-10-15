@@ -40,7 +40,11 @@ const safeError=error=>{
  const codes=new Set(['invalid-manifest','invalid-manifest-entry',
  'duplicate-city-day','unreadable-private-manifest','inbox-sha-or-object-missing',
  'candidate-science-contract-invalid','private-store-failed',
- 'private-d1-schema-interface-unavailable','invalid-candidate-json']);
+ 'private-d1-schema-interface-unavailable',
+ 'private-d1-import-table-create-failed',
+ 'private-d1-import-index-create-failed',
+ 'private-d1-import-schema-verification-failed',
+ 'invalid-candidate-json']);
  return codes.has(error?.message)?error.message:'private-import-failed-see-worker-logs';
 };
 async function counts(env){
