@@ -45,7 +45,11 @@ function fakeEnv(){
    }
   },
   CANDIDATES:{async put(path,body){writes.push({path,body})}},
-  DB:{prepare(sql){return{
+  DB:{async exec(sql){
+    assert.match(sql,/CREATE TABLE IF NOT EXISTS automated_research_import_slots/);
+    assert.match(sql,/CREATE INDEX IF NOT EXISTS idx_auto_import_created/);
+    return {count:0,duration:0};
+   },prepare(sql){return{
    bind(...args){return {
     async first(){
      if(sql.includes('FROM research_candidates'))return existing;
@@ -96,6 +100,15 @@ test('preexisting manual city/date hash conflict never overwrites R2 or blocks p
  assert.equal(result.stored,0);
  assert.equal(f.writes.length,0);
  assert.equal(f.events.length,0);
+});
+test('schema bootstrap requires only private D1 and never exposes a public endpoint',async()=>{
+ const f=fakeEnv();
+ let invoked=0;
+ const original=f.env.DB.exec;
+ f.env.DB.exec=async sql=>{invoked++;return original(sql)};
+ const output=await ingestNightly(f.env);
+ assert.equal(output.stored,1);
+ assert.equal(invoked,1);
 });
 test('without explicit opt-in, not even D1 or R2 is touched',async()=>{
  const result=await ingestNightly({DB:{list(){throw Error('unexpected')}},INGEST_INBOX:{},CANDIDATES:{}});
