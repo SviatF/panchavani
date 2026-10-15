@@ -7,3 +7,7 @@ public/imgs/
 .env*
 !.env.example
 .wrangler/
+
+# Generated reviewed city-date physical routes (static export)
+/app/panchang/.generated-reviewed-day-paths.json
+/app/panchang/*/20??-??-??/page.tsx
