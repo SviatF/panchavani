@@ -214,7 +214,7 @@ export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=
     const intent=url.searchParams.get('intent')||'daily-panchang';
     const language=url.searchParams.get('lang')||'en';
     if(!ONE_SHOT_PILOT_CITIES.includes(cityId)||
-       !/^\\d{4}-\\d{2}-\\d{2}$/.test(day||'')||
+       !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(day||'')||
        !INTENTS.has(intent)||!LANGUAGES.has(language))
       return errorPage(400,'Invalid private cache diagnostic selector.');
     if(!env.DB||!env.CANDIDATES)return errorPage(503,'Private D1/R2 binding missing.');
