@@ -63,6 +63,21 @@ test('reports a sanitized error code without exposing internal details',async()=
  assert.match(text,/private-import-failed-see-worker-logs/);
  assert.equal(text.includes('TOPSECRET'),false);
 });
+test('D1 schema failures show precise sanitized stage codes to the authenticated operator',async()=>{
+ for(const code of [
+  'private-d1-import-table-create-failed',
+  'private-d1-import-index-create-failed',
+  'private-d1-import-schema-verification-failed'
+ ]){
+  const e=env();
+  const response=await handleIngestConsole(post(),e,'owner',()=>true,
+   async()=>{throw new Error(code)});
+  assert.equal(response.status,503);
+  const html=await response.text();
+  assert.match(html,new RegExp(code));
+  assert.equal(html.includes('secret'),false);
+ }
+});
 test('endpoint returns null to unrelated routes and disabled state blocks manual runs',async()=>{
  const e=env();e.AUTO_RESEARCH_IMPORT_ENABLED='false';
  assert.equal(await handleIngestConsole(new Request('https://admin.panchavani.com/ai'),e,'owner',()=>true),null);
