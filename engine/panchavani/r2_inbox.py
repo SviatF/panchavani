@@ -79,6 +79,7 @@ def prepare(root: Path, run_id: str) -> tuple[dict, list[tuple[str, bytes]]]:
 
 def upload(manifest: dict, objects: list[tuple[str, bytes]]):
     import boto3
+    from botocore.exceptions import ClientError
     account = os.environ["PANCHAVANI_R2_ACCOUNT_ID"]
     access_id = os.environ["PANCHAVANI_R2_ACCESS_KEY_ID"]
     secret = os.environ["PANCHAVANI_R2_SECRET_ACCESS_KEY"]
@@ -92,7 +93,7 @@ def upload(manifest: dict, objects: list[tuple[str, bytes]]):
     for key, raw in objects:
         try:
             found = client.head_object(Bucket=BUCKET, Key=key)
-        except client.exceptions.ClientError as exc:
+        except ClientError as exc:
             if exc.response.get("ResponseMetadata", {}).get("HTTPStatusCode") != 404:
                 raise
         else:
