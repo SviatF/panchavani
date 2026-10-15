@@ -250,6 +250,36 @@ test('failed one-shot locks repeated attempts instead of charging again',async()
  assert.equal(repeat.status,409);
  assert.equal(calls,1);
 });
+test('manual account check verifies provider readiness without calling completion or revealing balance',async()=>{
+ const env=fakeEnv();
+ let requests=0;
+ const checker=async(url,opts)=>{
+   requests++;assert.equal(url,'https://api.deepseek.com/user/balance');
+   assert.equal(opts.method,'GET');
+   assert.equal(opts.headers.Authorization,'Bearer test-server-side-secret-only');
+   return new Response(JSON.stringify({is_available:true,
+     balance_infos:[{total_balance:'DELIBERATELY-HIDDEN-BALANCE'}]}),{status:200});
+ };
+ const resp=await handleAi(new Request('https://admin.panchavani.com/ai/provider-status'),
+    env,actor,isTrustedBrowserPost,checker);
+ assert.equal(resp.status,200);assert.equal(requests,1);
+ const content=await resp.text();
+ assert.match(content,/provider-ready/);
+ assert.equal(content.includes('DELIBERATELY-HIDDEN-BALANCE'),false);
+ assert.equal(content.includes(env.DEEPSEEK_API_KEY),false);
+ assert.equal(env.DB.slots.size,0);
+ const denied=await handleAi(new Request('https://admin.panchavani.com/ai/provider-status'),
+    env,null,isTrustedBrowserPost,()=>{throw Error('should not call')});
+ assert.equal(denied.status,403);
+ const noFunds=await handleAi(new Request('https://admin.panchavani.com/ai/provider-status'),
+    env,actor,isTrustedBrowserPost,async()=>new Response(JSON.stringify({is_available:false}),{status:200}));
+ assert.match(await noFunds.text(),/provider-insufficient-balance/);
+ const authFail=await handleAi(new Request('https://admin.panchavani.com/ai/provider-status'),
+    env,actor,isTrustedBrowserPost,async()=>new Response('secret provider body',{status:401}));
+ const authContent=await authFail.text();
+ assert.match(authContent,/provider-http-401/);
+ assert.equal(authContent.includes('secret provider body'),false);
+});
 test('DeepSeek HTTP errors are classified without leaking provider text or creating repeat charges',async()=>{
  const env=fakeEnv();
  let billedRequests=0;
