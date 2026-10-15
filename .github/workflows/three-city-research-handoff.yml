@@ -1,5 +1,10 @@
 name: PANCHAVANI three-city JPL private handoff (manual, UNAPPROVED)
 on:
+  # One-off bootstrap on workflow changes in main; no daily recurrence.
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/three-city-research-handoff.yml'
   workflow_dispatch:
     inputs:
       date:
