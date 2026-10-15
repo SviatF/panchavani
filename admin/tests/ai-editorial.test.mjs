@@ -121,7 +121,7 @@ function mockDeepSeek(expect){
   assert.equal(transmitted.includes(utc.sunriseUtc),false);
   assert.equal(transmitted.includes(candidate.panchangAtSunrise.karana),false);
   if(expect)expect(packet);
-  return new Response(JSON.stringify({choices:[{finish_reason:'stop',message:{content:JSON.stringify(modelDraft)}}]}),{status:200});
+  return new Response(JSON.stringify({choices:[{finish_reason:'stop',message:{content:JSON.stringify(modelDraft)}}],usage:{prompt_tokens:341,completion_tokens:173}}),{status:200});
  };
 }
 test('native Cloudflare Access identity required before entering AI workshop',async()=>{
@@ -211,6 +211,8 @@ test('valid same-origin posted draft calls DeepSeek server side, stores unapprov
  assert.ok(env.DB.calls.some(x=>x.sql.includes('INSERT INTO audit_log')));
  const text=await response.text();
  assert.match(text,/UNAPPROVED AI RESEARCH/);
+ assert.match(text,/Input tokens: <strong>341<\/strong>/);
+ assert.match(text,/Output tokens: <strong>173<\/strong>/);
  assert.ok(!text.includes(env.DEEPSEEK_API_KEY));
  assert.equal(response.headers.get('X-Robots-Tag'),'noindex, nofollow, noarchive');
 });
@@ -226,7 +228,10 @@ test('same city/date/content/language returns cached copy without a second paid 
  assert.equal(charged,1);
  assert.equal(env.writes.length,1);
  assert.equal(env.DB.slots.size,1);
- assert.match(await repeat.text(),/UNAPPROVED AI RESEARCH/);
+ const cached=await repeat.text();
+ assert.match(cached,/UNAPPROVED AI RESEARCH/);
+ assert.match(cached,/Input tokens: <strong>341<\/strong>/);
+ assert.match(cached,/Output tokens: <strong>173<\/strong>/);
 });
 test('failed one-shot locks repeated attempts instead of charging again',async()=>{
  const env=fakeEnv();
