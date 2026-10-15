@@ -6,6 +6,7 @@
  */
 import { CITY_IDS } from './city-catalog.mjs';
 import { handleAi } from './ai-editorial.mjs';
+import { ingestNightly,ingestReadiness } from './nightly-import.mjs';
 
 export const AUTO_ACTOR='panchavani-cron@internal';
 export const PILOT_CITY_IDS=Object.freeze(['delhi','mumbai','chennai']);
@@ -40,6 +41,7 @@ export function readiness(env){
     deepseekSecretConfigured:deepseek,
     researchOperational:enabled&&db&&storage&&runner,
     draftOperational:aiEnabled&&db&&storage&&deepseek,
+    nightlyIngestion:ingestReadiness(env),
     note:'Worker secret presence alone does not verify GitHub Runner credentials, provider billing or a live deployed schedule.'
   };
 }
@@ -137,7 +139,9 @@ export async function autoDraftOnce(env,transport=fetch){
 export async function runAutonomy(env,now=Date.now(),transport=fetch){
   const ready=readiness(env);
   const report={status:'research-only-autonomous-pilot',indexingAuthorized:false,
-    publishingAuthorized:false,ready,queue:null,draft:null};
+    publishingAuthorized:false,ready,ingest:null,queue:null,draft:null};
+  try{report.ingest=await ingestNightly(env)}
+  catch{report.ingest={status:'private-import-error',stored:0}};
   if(ready.researchOperational){
     report.queue=await enqueuePilot(env,now);
   }else report.queue={status:'disabled-or-missing-research-bindings',queued:0};

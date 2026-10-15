@@ -213,9 +213,36 @@ jobs:
           out.write_text(json.dumps(summary,indent=2)+'\n')
           print('PASS: all',len(seen),'active cities, each in exactly one shard; 0 SEO releases')
           PY
+      - name: Test GitHub-to-R2 research manifest packaging without credentials
+        run: PYTHONPATH=engine python -m unittest discover -s engine/tests -p 'test_r2_inbox.py' -v
+      - name: Build private R2 ingestion manifest (research only)
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          GITHUB_RESEARCH_RUN_ID: ${{ github.run_id }}
+        run: |
+          PYTHONPATH=engine python -m panchavani.r2_inbox \
+            --root . --run-id "$GITHUB_RESEARCH_RUN_ID" \
+            --out inbox-manifest-UNAPPROVED.json
+      - name: Send 25-city research to isolated private R2 inbox (explicit opt-in)
+        if: ${{ vars.PANCHAVANI_R2_INGEST_ENABLED == 'true' }}
+        env:
+          PANCHAVANI_R2_ACCOUNT_ID: ${{ secrets.PANCHAVANI_R2_ACCOUNT_ID }}
+          PANCHAVANI_R2_ACCESS_KEY_ID: ${{ secrets.PANCHAVANI_R2_ACCESS_KEY_ID }}
+          PANCHAVANI_R2_SECRET_ACCESS_KEY: ${{ secrets.PANCHAVANI_R2_SECRET_ACCESS_KEY }}
+          GITHUB_RESEARCH_RUN_ID: ${{ github.run_id }}
+        run: |
+          test -n "$PANCHAVANI_R2_ACCOUNT_ID" &&
+          test -n "$PANCHAVANI_R2_ACCESS_KEY_ID" &&
+          test -n "$PANCHAVANI_R2_SECRET_ACCESS_KEY"
+          python -m pip install 'boto3>=1.34,<2'
+          PYTHONPATH=engine python -m panchavani.r2_inbox \
+            --root . --run-id "$GITHUB_RESEARCH_RUN_ID" --upload \
+            --out inbox-manifest-UNAPPROVED.json
       - uses: actions/upload-artifact@v4
         with:
           name: panchavani-nightly-aggregate-coverage-UNAPPROVED
-          path: coverage-UNAPPROVED.json
+          path: |
+            coverage-UNAPPROVED.json
+            inbox-manifest-UNAPPROVED.json
           retention-days: 7
           if-no-files-found: error

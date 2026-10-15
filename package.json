@@ -9,6 +9,7 @@
     "build": "next build",
     "start": "wrangler dev",
     "typecheck": "tsc --noEmit",
+    "audit:content": "node scripts/audit-city-content.mjs",
     "deploy": "npm run build && wrangler deploy",
     "clean": "node scripts/clean-assets.mjs"
   },

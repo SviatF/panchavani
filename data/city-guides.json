@@ -1,0 +1,29 @@
+{
+  "delhi": {
+    "label": "Delhi",
+    "region": "National Capital Territory",
+    "tagline": "Understand your Delhi Panchang, from sunrise to Tithi.",
+    "metaDescription": "Learn how to read Delhi Panchang values, compare local sunrise and Tithi transitions, and understand why observance dates need clear calendar rules.",
+    "introduction": "Checking the Panchang for Delhi? Start with the city's sunrise and the day's Tithi. A Tithi follows the angle between the Moon and Sun, so it can change between two sunrises. That is why an almanac may show one Tithi at sunrise and a transition later on the same date.",
+    "insight": "Two Delhi Panchangs can show different timings even though both use the IST clock. Check the location used for sunrise, the calculation convention and whether the displayed Tithi is measured at sunrise or at another point in the day. A lunar transition is an astronomical event; an observance date may require another rule.",
+    "method": "Compare Delhi as the selected location, the sunrise definition and the transition timestamp. If your question concerns a fast or festival, find the source's observance rule rather than assuming that the transition alone settles the date."
+  },
+  "mumbai": {
+    "label": "Mumbai",
+    "region": "Maharashtra",
+    "tagline": "Read Mumbai's local sunrise and lunar-day timings with confidence.",
+    "metaDescription": "Understand Mumbai Panchang timing: how local sunrise relates to IST, why Tithi can change during the day, and what to compare between calendars.",
+    "introduction": "Mumbai uses India Standard Time like the rest of the country, but the sunrise in a Mumbai Panchang must be calculated for the selected local point. If a Tithi changes close to dawn, a sunrise calculated for another city could give you a different Tithi at the start of the day.",
+    "insight": "A local sunrise is an event, not a second time zone: its calculated time can be expressed in IST. If two almanacs disagree, first compare the places and sunrise conventions they use. Then check whether both label the day by the Tithi at sunrise or by another method.",
+    "method": "Before relying on a timing, check that the source uses Mumbai and gives the time in IST. For a festival or fasting date, look for the stated observance convention: lunar timing on its own does not decide every traditional date."
+  },
+  "chennai": {
+    "label": "Chennai",
+    "region": "Tamil Nadu",
+    "tagline": "Make sense of Chennai's sunrise, Tithi and regional calendar rules.",
+    "metaDescription": "Learn how Chennai Panchang readings use local sunrise and lunar transitions, and why regional calendar conventions matter when comparing observance dates.",
+    "introduction": "For Chennai, begin with the local sunrise used by the Panchang. The Moon's phase does not wait for midnight: a Tithi can begin or end during the day. A useful local Panchang therefore shows both the Tithi at sunrise and the time of its next transition.",
+    "insight": "Chennai shares IST with other Indian cities, but a calendar prepared for Delhi cannot simply reuse Delhi's sunrise. Tamil and other Hindu calendar traditions can also name months or assign observances differently. Check which method a source follows before comparing festival dates.",
+    "method": "Read the city, sunrise time and Tithi transition together. If your question is about a vrata or festival, check the regional convention as well. An isolated astronomical timestamp is not a complete ritual instruction."
+  }
+}

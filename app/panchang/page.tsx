@@ -4,8 +4,8 @@ import {CITY_GUIDES,PILOT_CITY_IDS} from '@/lib/public-panchang';
 export default function PanchangDirectory(){
  return <div className="page-width verified-hub">
   <p className="section-eyebrow">PANCHAVANI · LOCAL PANCHANG</p>
-  <h1>Time belongs to a place.</h1>
-  <p className="verified-intro">Explore how Hindu timekeeping combines the five Angas with sunrise at a specific location. The first three city guides are live; day-specific numbers appear only once scientific and editorial checks are complete.</p>
+  <h1>Panchang by City</h1>
+  <p className="verified-intro">Choose Delhi, Mumbai or Chennai to understand local sunrise, Tithi transitions and the calendar conventions that can change how a date is read. Daily timing records will appear when their sources and calculations are independently reviewed.</p>
   <div className="verified-city-grid">{PILOT_CITY_IDS.map(id=>{
    const city=CITY_GUIDES[id];
    return <Link href={`/panchang/${id}/`} key={id} className="verified-city-card">

@@ -7,29 +7,8 @@ import { createHash } from 'node:crypto';
 import raw from '@/data/approved-panchang.json';
 export const PILOT_CITY_IDS=['delhi','mumbai','chennai'] as const;
 export type PilotCityId=typeof PILOT_CITY_IDS[number];
-export const CITY_GUIDES={
- delhi:{
-  label:'Delhi',region:'National Capital Territory',
-  tagline:'Panchang at the meeting of solar time and lunar tradition',
-  introduction:'For Delhi, the location of sunrise is fundamental to the Panchang date. A lunar phase transition may occur at the same astronomical instant worldwide, yet the local sunrise used for assigning Tithi differs from other Indian cities.',
-  insight:'Delhi belongs to India Standard Time, but identical civil clocks do not imply identical sunrise times. Panchang calculations must use city coordinates, an explicitly documented sunrise convention and the local civil calendar date.',
-  method:'Compare sunrise-anchored Tithi, lunar transitions and the selected calendar tradition before interpreting an observance.'
- },
- mumbai:{
-  label:'Mumbai',region:'Maharashtra',
-  tagline:'India’s western coast, interpreted through local sunrise',
-  introduction:'Mumbai follows India Standard Time, while its western location influences the local sunrise anchor used in Panchang calculations. This distinction matters whenever a Tithi or Karana transition occurs near sunrise.',
-  insight:'A scientifically consistent transition timestamp should not be altered to make Mumbai different from Delhi. Instead, we explain its correct relationship to local sunrise and explicitly sourced regional traditions.',
-  method:'Use geographical coordinates and the agreed astronomical convention; ritual interpretations need separately reviewed Maharashtra-specific evidence.'
- },
- chennai:{
-  label:'Chennai',region:'Tamil Nadu',
-  tagline:'Local solar timing and the diversity of Hindu calendars',
-  introduction:'Chennai uses India Standard Time like other Indian cities, but its geographical position produces its own sunrise and sunset. Reliable daily Panchang data must therefore be anchored to Chennai rather than copied from a national calendar.',
-  insight:'Tamil calendar traditions may use conventions that differ from those applied in other regions. We distinguish the astronomical calculation from any tradition-specific observance or recommendation.',
-  method:'Show only independently checked solar and lunar information; do not infer a fasting date or Muhurat without an approved local rule pack.'
- }
-} as const;
+import cityGuides from '@/data/city-guides.json';
+export const CITY_GUIDES=cityGuides;
 export type ApprovedCityDay={
  cityId:PilotCityId;
  date:string;
