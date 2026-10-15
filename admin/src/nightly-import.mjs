@@ -131,19 +131,34 @@ export async function ingestNightly(env){
   if(page===9)return {status:'manifest-backlog-limit',checked:0,stored:0};
  }
  manifests.sort();
- let stored=0,checked=0,existing=0;
+ let stored=0,checked=0,existing=0,conflicts=0;
+ const conflictExamples=[];
  for(const key of manifests){
   const raw=await fetchRaw(env.INGEST_INBOX,key,100000);
   if(!raw)throw new Error('unreadable-private-manifest');
   const m=checkManifest(JSON.parse(raw),key);
   for(const entry of m.entries){
-   if(stored>=MAX_PER_RUN)return {status:'batch-cap',stored,existing,checked};
-   // A hash conflict is an explicit operator blocker, never overwritten.
-   const state=await importOne(env,m,entry);
+   if(stored>=MAX_PER_RUN)return {status:'batch-cap',stored,existing,checked,conflicts,conflictExamples};
+   let state;
+   try{state=await importOne(env,m,entry)}
+   catch(error){
+    // A preexisting *different* city/day must NEVER overwrite the original.
+    // Report and move to other legitimate cities, rather than starving the
+    // remaining 24 cities behind one conflicting manual-imported Delhi.
+    if(['existing-candidate-hash-conflict','reserved-or-conflicting-import']
+       .includes(error?.message)){
+      conflicts++;
+      if(conflictExamples.length<5)conflictExamples.push(entry.cityId+'/'+entry.localDate);
+      checked++;
+      continue;
+    }
+    throw error;
+   }
    checked++;
    if(state==='stored')stored++;
    if(state==='existing')existing++;
   }
  }
- return {status:'complete',stored,existing,checked};
+ return {status:conflicts?'conflicts-needing-review':'complete',
+   stored,existing,checked,conflicts,conflictExamples};
 }
