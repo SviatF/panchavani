@@ -160,13 +160,32 @@ async function loadCandidate(env,jobId){
 }
 
 function preview(draft,job,issues,tokenUsage=null){
+  // The model can violate the instructed FAQ array schema. The original
+  // immutable R2 artifact must remain viewable for private editorial review,
+  // even if it contains an object, null or malformed FAQ entry. Previously
+  // (draft.faq||[]).map() threw AFTER D1 had already marked the draft STORED,
+  // causing both a misleading generation error and failed cached previews.
+  const data=draft&&typeof draft==='object'&&!Array.isArray(draft)?draft:{};
   const fields=[
     ['headline','Headline'],['seoTitle','SEO title'],['metaDescription','Meta description'],
     ['introduction','Introduction'],['localContext','Local context'],
     ['dailyUnderstanding','Day interpretation'],['uncertaintyNote','Verification note']
   ].map(([k,label])=>'<section><h2>'+escapeHtml(label)+'</h2><article>'+
-    escapeHtml(draft[k]||'')+'</article></section>').join('');
-  const faqs=(draft.faq||[]).map(x=>'<section><h2>'+escapeHtml(x.question)+'</h2><article>'+escapeHtml(x.answer)+'</article></section>').join('');
+    escapeHtml(typeof data[k]==='string'?data[k]:'[Invalid field format — requires editorial review]')+
+    '</article></section>').join('');
+  const faqRows=Array.isArray(data.faq)?data.faq:
+    (data.faq&&typeof data.faq==='object'&&!Array.isArray(data.faq)?[data.faq]:[]);
+  const faqs=faqRows.filter(x=>x&&typeof x==='object'&&!Array.isArray(x)&&
+    typeof x.question==='string'&&typeof x.answer==='string')
+    .slice(0,4).map(x=>'<section><h2>'+escapeHtml(x.question)+'</h2><article>'+
+      escapeHtml(x.answer)+'</article></section>').join('');
+  const originalFaqIsValid=Array.isArray(data.faq)&&data.faq.length<=2&&
+    data.faq.every(q=>q&&typeof q==='object'&&!Array.isArray(q)&&
+      typeof q.question==='string'&&typeof q.answer==='string');
+  const shapeNote=originalFaqIsValid?'':('<p class="warning">The saved FAQ format requires '+
+    'editorial review; its original R2 content has not been changed. '+
+    'Nothing here is authorized for publication.</p>');
+  const blockers=Array.isArray(issues)?issues:['private-draft-review-required'];
   const input=Number.isInteger(tokenUsage?.input)?tokenUsage.input:'not provided';
   const output=Number.isInteger(tokenUsage?.output)?tokenUsage.output:'not provided';
   const usage='<section><h2>DeepSeek token usage</h2>'
@@ -176,8 +195,8 @@ function preview(draft,job,issues,tokenUsage=null){
     +'Cached preview: zero new API calls. Billing depends on provider rates.</p></section>';
   return basePage('<h1>Draft · '+escapeHtml(job.city_id)+' · '+escapeHtml(job.local_date)+'</h1>'
     +'<p class="warning">UNAPPROVED AI RESEARCH. No factual, traditional or SEO clearance. Do NOT publish this text yet.</p>'
-    +usage+fields+faqs+'<section><h2>Mandatory review blockers</h2><ul>'
-    +issues.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul></section>');
+    +usage+shapeNote+fields+faqs+'<section><h2>Mandatory review blockers</h2><ul>'
+    +blockers.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul></section>');
 }
 
 export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=fetch){
