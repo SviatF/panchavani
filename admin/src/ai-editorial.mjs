@@ -111,8 +111,10 @@ export function draftIssues(draft,city){
   }
   if(!Array.isArray(draft.referencedFactIds)||draft.referencedFactIds.length!==0)errors.push('unverified-citation');
   if(!Array.isArray(draft.faq)||draft.faq.length>2||draft.faq.some(q=>
-    !q||typeof q!=='object'||Object.keys(q).sort().join('|')!=='answer|question'||
-    !q.question?.trim()||!q.answer?.trim()))errors.push('invalid-faq');
+    !q||typeof q!=='object'||Array.isArray(q)||
+    Object.keys(q).sort().join('|')!=='answer|question'||
+    typeof q.question!=='string'||!q.question.trim()||
+    typeof q.answer!=='string'||!q.answer.trim()))errors.push('invalid-faq');
   const prose=FIELD_NAMES.map(f=>typeof draft[f]==='string'?draft[f]:'').join(' ')
     +((Array.isArray(draft.faq)?draft.faq:[]).map(q=>q?.answer||'').join(' '));
   if(!prose.toLowerCase().includes(city.name.toLowerCase()))errors.push('city-not-mentioned');
