@@ -5,7 +5,7 @@
 import { candidateIssues } from './runner.mjs';
 import { readOneShot, reserveOneShot, storeOneShot, failOneShot, ONE_SHOT_PILOT_CITIES } from './one-shot-editorial.mjs';
 import { CITY_META } from './city-catalog.mjs';
-import { EDITORIAL_V4_POLICY, CITY_RESEARCH_QUESTIONS, v4QualityIssues } from './editorial-v4.mjs';
+import { EDITORIAL_V4_POLICY, CITY_RESEARCH_QUESTIONS, v4QualityIssues, canonicalSimilarity, readerWordCount } from './editorial-v4.mjs';
 import briefs from '../../engine/editorial/expansion-17-research-briefs.v1.json' with {type:'json'};
 
 const API='https://api.deepseek.com/chat/completions';
@@ -206,9 +206,64 @@ function preview(draft,job,issues,tokenUsage=null){
 
 export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=fetch){
   const url=new URL(request.url);
-  if(!['/ai','/ai/draft','/ai/provider-status','/ai/cache-health'].includes(url.pathname))return null;
+  if(!['/ai','/ai/draft','/ai/provider-status','/ai/cache-health','/ai/quality-report'].includes(url.pathname))return null;
   // Called ONLY after verified Cloudflare Access identity and allowlist.
   if(!actor)return errorPage(403,'Access denied.');
+  if(request.method==='GET'&&url.pathname==='/ai/quality-report'){
+    if(!env.DB||!env.CANDIDATES)return errorPage(503,'Private quality report unavailable.');
+    // Read-only across previously paid/stored city hub drafts. Returns only
+    // similarity metadata; all original R2 drafts remain private and unchanged.
+    try{
+      const rows=(await env.DB.prepare(
+        "SELECT city_id,local_date,job_id,source_hash FROM editorial_one_shot "+
+        "WHERE intent='city-hub' AND language='en' AND status='stored' "+
+        "ORDER BY created_at DESC LIMIT 10"
+      ).all()).results||[];
+      const drafts=[];
+      const warnings=[];
+      for(const row of rows){
+        if(!ONE_SHOT_PILOT_CITIES.includes(row.city_id))continue;
+        try{
+          const checked=await readOneShot(env,{
+            id:row.job_id,city_id:row.city_id,local_date:row.local_date,
+            content_hash:row.source_hash
+          },'city-hub','en');
+          if(checked.state==='cached'){
+            drafts.push({city:row.city_id,record:checked.artifact,
+              words:readerWordCount(checked.artifact.draft)});
+          }
+        }catch{warnings.push(row.city_id+': unable to read stored draft');}
+      }
+      const flags=drafts.map(x=>'<tr><td>'+escapeHtml(x.city)+'</td><td>'+
+        escapeHtml(x.words)+'</td><td>'+
+        escapeHtml((x.record.reviewBlockers||[]).filter(v=>
+          typeof v==='string'&&v.startsWith('v4-')).join(', ')||'—')+
+        '</td></tr>').join('');
+      const comparisons=[];
+      for(let i=0;i<drafts.length;i++)for(let j=i+1;j<drafts.length;j++){
+        const a=drafts[i],b=drafts[j];
+        const ratio=canonicalSimilarity(a.record.draft,b.record.draft);
+        comparisons.push('<tr><td>'+escapeHtml(a.city)+' / '+escapeHtml(b.city)+
+          '</td><td>'+Math.round(ratio*100)+'%</td><td>'+
+          (ratio>=0.75?'HIGH overlap · human rewrite required':
+            ratio>=0.55?'Review overlapping concepts':'No strong lexical overlap detected')+
+          '</td></tr>');
+      }
+      return html(basePage('<h1>Private city-copy quality report</h1>'+
+        '<p class="warning">Heuristic lexical overlap, NOT scientific review, plagiarism proof, SEO approval or a uniqueness certificate. Nothing is published.</p>'+
+        '<section><h2>Stored V4 city guides · English</h2>'+
+        '<table><thead><tr><th>City</th><th>Body words</th><th>Quality flags</th>'+
+        '</tr></thead><tbody>'+flags+'</tbody></table>'+
+        '<p class="muted">Eligible city-hub drafts found: '+drafts.length+
+        '. Report uses cached R2 only: zero new DeepSeek calls.</p></section>'+
+        '<section><h2>Cross-city lexical overlap</h2>'+
+        '<table><thead><tr><th>Pair</th><th>Token overlap</th>'+
+        '<th>Screening result</th></tr></thead><tbody>'+
+        comparisons.join('')+'</tbody></table>'+
+        (warnings.length?'<p class="warning">'+escapeHtml(warnings.join('; '))+'</p>':'')+
+        '</section><p><a href="/ai">← Return to private drafts</a></p>'));
+    }catch{return errorPage(503,'Private quality report could not be assembled. No DeepSeek calls were made.');}
+  }
   if(request.method==='GET'&&url.pathname==='/ai/cache-health'){
     // Read-only, owner-only integrity diagnostic. Never call DeepSeek, expose
     // private R2 keys, candidate payloads, prompts or raw error messages.
@@ -361,7 +416,8 @@ export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=
       +'<label>Language</label><select name="language">'+opt('en','English')+opt('hi','Hindi')+'</select>'
       +'<p class="muted">EDITORIAL V4: new paid attempts are CITY GUIDES only. Daily Panchang, Vrat, Muhurat and Festival copy are paused until verified day-specific evidence is available. Existing daily drafts remain readable without charges. City guides are evergreen, with a one-per-city/language pilot safeguard. Max 3 new drafts per editor per 24h. Never published automatically.</p>'
       +'<button type="submit" '+(!connected||!jobs.length?'disabled':'')+'>Generate PRIVATE research draft</button></form></section>'
-      +oneShotState;
+      +oneShotState
+      +'<section><h2>Originality & quality</h2><p class="muted">Compare saved evergreen city guides without making a new model request. Lexical overlap is only an editorial screening tool; all scientific, ritual and SEO release blockers remain active.</p><p><a href="/ai/quality-report">View private cross-city quality report</a></p></section>';
     return html(basePage(content));
   }
   if(request.method!=='POST'||url.pathname!=='/ai/draft')return errorPage(404,'Not found.');
