@@ -16,6 +16,10 @@
     {
       "binding": "CANDIDATES",
       "bucket_name": "panchavani-research-private"
+    },
+    {
+      "binding": "INGEST_INBOX",
+      "bucket_name": "panchavani-automation-inbox"
     }
   ],
   "triggers": {
