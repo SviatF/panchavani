@@ -34,3 +34,13 @@ The separate private Admin Worker now has one-shot D1/R2 draft caching for the t
 ## Date URLs after the first live review
 
 The final `/panchang/{city}/{YYYY-MM-DD}/` route generator and its canonical/sitemap entries must be introduced only when at least one independently approved city-day record exists. The static export is intentionally not filled with dummy fallback dates.
+
+## Automatic daily page generation (approved-only bridge)
+
+`npm run build` now creates exactly one physical route `/panchang/{city}/{YYYY-MM-DD}/` for each record in the independently approved, SHA-pinned `data/approved-panchang.json` bundle. It **does not** use DeepSeek at build or visit time, and it never invents date or numeric values. Each page renders Tithi, Nakshatra, Yoga, Karana, Vara, Paksha, sunrise/sunset (IST), reviewed local text and a city/date-specific title, canonical and metadata. The city hub automatically links these date pages.
+
+Next.js static export cannot build an empty nested dynamic route, so `scripts/generate-reviewed-pages.mjs` creates physical React routes only after verifying the independently supplied `PANCHAVANI_APPROVED_RELEASE_SHA256`. With the current empty reviewed bundle, it generates **zero** date routes. The script tracks its own previously generated paths and removes stale generated pages; it does not delete or publish research JSON. Generated files are ignored by Git.
+
+The nightly 25-city JPL pipeline remains research-only and does **not** write to `data/approved-panchang.json`. Independent domain evidence and approved dates are still missing. All pages (including approved dates once present) retain `noindex` until a separate per-route SEO release is implemented; a reviewed data release is NOT automatically permission to index. The current sitemap remains empty.
+
+Private operator view: once the updated `panchavani-admin` Worker is deployed, the Access-only `/research/daily` page lists stored D1/R2 city-day research candidates with their SHA-verified numeric solar anchors, Tithi, Karana and transitions, labelled **UNAPPROVED**. This preview makes zero DeepSeek calls and creates no public date URL.
