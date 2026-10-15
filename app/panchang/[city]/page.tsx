@@ -28,7 +28,7 @@ export default async function CityPanchang({params}:Props){
   <section className="verified-release"><div><p className="section-eyebrow">REVIEWED DAILY PANCHANG</p><h2>Available dates</h2></div>
   {releases.length?
    <div className="verified-dates">{releases.map(day=><div key={day.date} className="verified-day-row">
-     <span>{day.date} · {day.panchang.tithi} · {day.panchang.nakshatra}</span>
+     <Link href={`/panchang/${city}/${day.date}/`} className="verified-day-link">{day.date} · {day.panchang.tithi} · {day.panchang.nakshatra}</Link>
      <span>Sunrise {indiaTime(day.sun.sunriseUtc)} IST</span>
     </div>)}</div>:
    <p className="verified-muted">There are no independently approved daily timing records for this city yet. Our research process is running; unpublished results are not presented as calendar facts.</p>}
