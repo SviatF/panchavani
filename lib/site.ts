@@ -1,15 +1,5 @@
 export const PROJECT_NAME = 'PANCHAVANI';
-export const DESIGN_REFERENCE_DATE = 'Tuesday, 13 October 2026';
 export const ASSET = (name: string) => `/imgs/${name}.webp`;
-
-/** Visual reference values ONLY. Not connected to verified ephemerides or location engine. */
-export const preview = {
-  city: 'Delhi', region: 'NCT', date: '13 October 2026', weekDay: 'Tuesday',
-  paksha: 'Shukla Paksha', tithi: 'Tritiya', nakshatra: 'Vishakha',
-  sunrise: '06:21', sunset: '17:54',
-  abhijit: '11:44 – 12:31', rahu: '15:01 – 16:27',
-  gulika: '12:08 – 13:41', yamaganda: '08:14 – 10:41',
-} as const;
 
 export const primaryNav = [
   { title: 'Today', href: '/' }, { title: 'Panchang', href: '/panchang/' },
@@ -25,16 +15,16 @@ export const featureNav = [
   { label: 'Festivals', desc: 'Upcoming & History', icon: 'flame', href: '/festivals/' },
   { label: 'Muhurat Finder', desc: 'Find Auspicious Dates', icon: 'compass', href: '/muhurat/' },
   { label: 'Vrat & Fasting', desc: 'Dates & Parana', icon: 'flower', href: '/vrat/' },
-  { label: 'Horoscope', desc: 'Editorial preview', icon: 'orbit', href: '/learn/' },
+  { label: 'Horoscope', desc: 'Calendar concepts', icon: 'orbit', href: '/learn/' },
   { label: 'Tools', desc: 'Calculators & Charts', icon: 'calculator', href: '/tools/' },
   { label: 'Regional', desc: 'State-wise Traditions', icon: 'sparkle', href: '/regional/' },
 ] as const;
 
 export const highlights = [
-  { key: 'tithi', label: 'Tithi', title: 'Shukla Tritiya', time: 'Until 14:28', body: 'Third lunar day of Shukla Paksha.', img: 'highlight-tithi', tone: 'gold' },
-  { key: 'nakshatra', label: 'Nakshatra', title: 'Vishakha', time: 'Until 01:45 · 14 Oct', body: 'The Moon’s lunar mansion in this sample.', img: 'highlight-nakshatra', tone: 'blue' },
-  { key: 'abhijit', label: 'Abhijit Muhurat', title: '11:44 – 12:31', time: '', body: 'Traditionally considered an auspicious window.', img: 'highlight-abhijit', tone: 'green' },
-  { key: 'rahu', label: 'Rahu Kalam', title: '15:01 – 16:27', time: '', body: 'Traditionally avoided for new beginnings.', img: 'highlight-rahu', tone: 'red' },
+  {key:'tithi',label:'TITHI',title:'The Lunar Day',time:'',body:'How the changing Sun–Moon angle shapes the lunar calendar.',img:'highlight-tithi',tone:'gold'},
+  {key:'nakshatra',label:'NAKSHATRA',title:'Lunar Mansions',time:'',body:'Understand the traditional divisions of the Moon’s path.',img:'highlight-nakshatra',tone:'blue'},
+  {key:'abhijit',label:'SOLAR DAY',title:'Local Sunrise',time:'',body:'Why each city needs its own precisely established sunrise.',img:'highlight-abhijit',tone:'green'},
+  {key:'rahu',label:'TRADITIONS',title:'Daily Periods',time:'',body:'Explore how calendar schools interpret different periods.',img:'highlight-rahu',tone:'red'}
 ] as const;
 
 export const muhuratCards = [
