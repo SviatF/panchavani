@@ -113,7 +113,13 @@ function mockDeepSeek(expect){
   assert.equal(packet.city,'Delhi');
   assert.equal(packet.approvedAstronomicalFacts.length,0);
   assert.equal(packet.approvedDailyActivities.length,0);
-  assert.equal(packet.researchAstronomy_DO_NOT_PUBLISH.sunriseUtc,utc.sunriseUtc);
+  assert.deepEqual(packet.evidenceState.approvedDaySpecificFacts,[]);
+  assert.equal(packet.evidenceState.astronomyVerified,false);
+  assert.equal('researchAstronomy_DO_NOT_PUBLISH' in packet,false);
+  const transmitted=JSON.stringify(packet);
+  assert.equal(transmitted.includes('Shukla Tritiya'),false);
+  assert.equal(transmitted.includes(utc.sunriseUtc),false);
+  assert.equal(transmitted.includes(candidate.panchangAtSunrise.karana),false);
   if(expect)expect(packet);
   return new Response(JSON.stringify({choices:[{finish_reason:'stop',message:{content:JSON.stringify(modelDraft)}}]}),{status:200});
  };
@@ -145,6 +151,50 @@ test('prompt separates unapproved astronomy from approved facts and decision rul
  assert.deepEqual(packet.approvedLocalRitualRules,[]);
  assert.deepEqual(packet.approvedAstronomicalFacts,[]);
  assert.ok(msgs[0].content.includes('Return only a JSON object'));
+});
+test('reader-first prompt keeps unapproved astronomy out of the model and separates audit language',()=>{
+ const msgs=buildEditorialPrompt(candidate,location,'daily-panchang','en',hash);
+ const research=JSON.parse(msgs[1].content.split('\n').at(-1));
+ assert.equal(research.city,'Delhi');
+ assert.equal(research.timezone,'Asia/Kolkata');
+ assert.deepEqual(research.approvedAstronomicalFacts,[]);
+ assert.ok(msgs[0].content.includes('INTERNAL ONLY'));
+ assert.ok(msgs[0].content.includes('reader'));
+ assert.ok(!JSON.stringify(research).includes('Shukla Tritiya'));
+ assert.ok(!JSON.stringify(research).includes(utc.sunsetUtc));
+});
+test('leaky initial Chennai-style research prose is flagged before any public review',()=>{
+ const original={
+  ...modelDraft,
+  headline:'Chennai Panchang Study: Sunrise Anchor and Day Structure',
+  seoTitle:'Chennai Panchang Research: Sunrise Anchor for 16 Oct 2026',
+  metaDescription:'Research note on how Chennai sunrise anchors the day; data are unverified.',
+  introduction:'This is a research-only note for Chennai. No public guidance is offered.',
+  localContext:'This draft uses a sunrise convention but its methodology is unverified.',
+  dailyUnderstanding:'Here the draft lists Shukla Shashthi and Kaulava, none validated.',
+  uncertaintyNote:'No approved facts or regional rules are available.',
+  faq:[]
+ };
+ const flags=draftIssues(original,CITY_META.get('chennai'));
+ assert.ok(flags.includes('internal-research-status-leaked-into-reader-copy'));
+ assert.ok(flags.includes('unapproved-day-specific-panchang-value'));
+ assert.ok(flags.includes('seo-release-disabled'));
+});
+test('reader-friendly educational copy is not incorrectly flagged as fabricated timing or disclaimer',()=>{
+ const safe={...modelDraft,
+  headline:'Understanding local sunrise in Delhi Panchang',
+  seoTitle:'Delhi Panchang Guide: Why the City Matters',
+  metaDescription:'Explore how city location and the sunrise anchor shape the way a Panchang is read.',
+  introduction:'A local Panchang combines lunar cycles and a specific sunrise convention.',
+  localContext:'Readers in Delhi can compare the local date and calculation convention before consulting daily details.',
+  dailyUnderstanding:'Use the city calendar to distinguish a lunar transition from the civil clock. For ceremony planning, consult the appropriate regional tradition.',
+  uncertaintyNote:'Day-specific values still require independent review.',
+  faq:[]
+ };
+ const flags=draftIssues(safe,CITY_META.get('delhi'));
+ assert.equal(flags.includes('internal-research-status-leaked-into-reader-copy'),false);
+ assert.equal(flags.includes('unapproved-day-specific-panchang-value'),false);
+ assert.ok(flags.includes('scientific-verification-required'));
 });
 test('valid same-origin posted draft calls DeepSeek server side, stores unapproved R2 draft only',async()=>{
  const env=fakeEnv();
