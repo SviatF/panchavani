@@ -66,6 +66,26 @@ jobs:
           assert 'sitemap.xml' in Path('out/robots.txt').read_text().lower()
           print('PASS: valid empty sitemap, no draft/day URLs indexed')
           PY
+      - name: Verify three genuinely distinct city hubs and no unapproved daily URLs
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          from html import unescape
+          bundle=json.loads(Path('data/approved-panchang.json').read_text())
+          assert bundle['records']==[], 'Public records must remain empty until external approval'
+          assert bundle['releaseStatus']=='NO_APPROVED_RECORDS'
+          paths=[Path('out/panchang')/city/'index.html' for city in ('delhi','mumbai','chennai')]
+          for city,path in zip(('delhi','mumbai','chennai'),paths):
+              assert path.is_file(), f'Missing city hub {city}'
+              text=unescape(path.read_text()).lower()
+              assert city in text and 'noindex' in text, f'City hub unsafe: {city}'
+          assert len(set(p.read_bytes() for p in paths))==3, 'Duplicate city HTML'
+          for path in Path('out/panchang').rglob('index.html'):
+              rel=path.relative_to('out/panchang').parts
+              assert len(rel)<=2, 'Unapproved daily date HTML: '+str(path)
+          print('PASS: 3 unique research-ready city hubs, zero falsely approved daily routes')
+          PY
       - name: Reject legacy mocked calendar dates and preview labels in public HTML
         run: |
           python - <<'PY'
