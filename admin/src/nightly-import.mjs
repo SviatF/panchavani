@@ -13,6 +13,30 @@ const day=v=>typeof v==='string'&&/^20\d\d-\d\d-\d\d$/.test(v)&&
 const hex=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
 const run=v=>typeof v==='string'&&/^[0-9]{6,20}$/.test(v);
 const MAX_PER_RUN=20;
+// First-run, additive and idempotent D1 bootstrap. Prevent a separate manual
+// migration session from blocking private research ingestion. This only
+// creates the table from migration 0006; it never updates public calendars,
+// grants review approval, deletes an old job or alters existing D1 tables.
+const IMPORT_SCHEMA=`
+CREATE TABLE IF NOT EXISTS automated_research_import_slots (
+ city_id TEXT NOT NULL,
+ local_date TEXT NOT NULL,
+ run_id TEXT NOT NULL,
+ content_hash TEXT NOT NULL CHECK(length(content_hash)=64),
+ job_id TEXT NOT NULL,
+ status TEXT NOT NULL CHECK(status IN ('reserved','stored','failed')),
+ error_code TEXT,
+ created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+ updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+ PRIMARY KEY(city_id, local_date)
+);
+CREATE INDEX IF NOT EXISTS idx_auto_import_created ON automated_research_import_slots(created_at DESC);
+`;
+async function ensureImportSchema(db){
+ if(typeof db.exec!=='function')throw new Error('private-d1-schema-interface-unavailable');
+ await db.exec(IMPORT_SCHEMA);
+}
+
 export function ingestReadiness(env){
  return {enabled:env?.AUTO_RESEARCH_IMPORT_ENABLED==='true',
    inbox:!!env?.INGEST_INBOX,database:!!env?.DB,privateStorage:!!env?.CANDIDATES};
@@ -118,6 +142,7 @@ export async function ingestNightly(env){
  if(!readiness.enabled)return {status:'disabled',stored:0,checked:0};
  if(!readiness.inbox||!readiness.database||!readiness.privateStorage)
   return {status:'missing-private-bindings',stored:0,checked:0};
+ await ensureImportSchema(env.DB);
  // List ONLY completion manifests, never arbitrary objects. Fail closed
  // if backlog outgrows bounded pagination; do not silently skip oldest work.
  let cursor=undefined;
