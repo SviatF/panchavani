@@ -8,9 +8,9 @@ This path never contacts admin.panchavani.com from GitHub. It does not weaken Cl
 ## One-time activation (not yet performed)
 1. Create a private R2 bucket named panchavani-jpl-research-inbox (not the public or original private candidate bucket). Set suitable private retention, at least two weeks during rollout.
 2. Create an R2 API token restricted to THIS inbox bucket, with Object Read & Write for HEAD/PUT. Never use your account-global token. Store it in GitHub Actions secrets PANCHAVANI_R2_ACCOUNT_ID, PANCHAVANI_R2_ACCESS_KEY_ID, PANCHAVANI_R2_SECRET_ACCESS_KEY.
-3. Apply the new migration admin/migrations/0006_automated_research_import.sql ONCE to the existing private D1 panchavani-private. Back up existing D1 first.
+3. No manual SQL step is required. The private Worker automatically applies the additive, idempotent CREATE TABLE/CREATE INDEX logic from migration 0006 on its first enabled Cron invocation. It neither deletes nor changes existing science candidates.
 4. Deploy the private panchavani-admin Worker using admin/wrangler.jsonc, now with INGEST_INBOX binding to the new bucket. Keep existing Cloudflare Access and ALLOWED_ADMIN_EMAILS intact. Do not add an R2 inbox binding to the public site.
-5. GitHub staging is now automatic on the protected main branch after the three bucket-scoped R2 repository Secrets are installed. It never uploads from pull-request or feature-branch workflow runs. There is no extra PANCHAVANI_R2_INGEST_ENABLED switch. Set Admin Worker variable AUTO_RESEARCH_IMPORT_ENABLED=true only after migration and the Worker binding deploy are confirmed.
+5. GitHub staging is automatic on main with the three repository secrets. The Admin Worker config enables AUTO_RESEARCH_IMPORT_ENABLED=true upon deployment and performs the additive D1 schema bootstrap itself; there is no manual settings variable or D1 SQL step. Keep AUTO_EDITORIAL_ENABLED disabled.
 6. Check /api/status automation.nightlyIngestion and review imported data in Access-only /research/daily. The 50 city-days arrive over approximately three hourly Cron runs, if no conflicts occur.
 7. Keep AUTO_EDITORIAL_ENABLED, public publishing and public indexing disabled until separately requested and verified.
 
@@ -18,4 +18,4 @@ This path never contacts admin.panchavani.com from GitHub. It does not weaken Cl
 - JPL checksum and per-object SHA are checked before ingestion. Separate bucket credentials reduce blast radius. The completion manifest is uploaded after all objects.
 - Existing divergent research records are not overwritten. Failed or reserved partial imports stay locked for operator review, not silently retried.
 - Current Nakshatra, Yoga, geographic stations and regional ritual rule packs are not independently approved. New 0006 only imports RESEARCH candidates.
-- No claims are made that the bucket, secrets, Worker deploy or D1 migration were created here. They require one-time setup and an actual production smoke test.
+- The bucket and GitHub secrets have been provisioned, and GitHub Actions successfully uploaded 50 source records. The private Admin Worker still needs a production deployment of this commit, followed by a live R2-to-D1 smoke test; neither the runtime schema initialization nor importing D1 rows is claimed before that deployment.
