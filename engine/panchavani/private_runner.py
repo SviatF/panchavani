@@ -81,7 +81,7 @@ def post(base: str, path: str, data: dict, *, hmac_key: str, access_id: str, acc
                 'lease_conflict_after_store', 'private_storage_unavailable',
             }
             candidate = payload.get('error') if isinstance(payload, dict) else None
-            reason = candidate if candidate in allowed_codes else 'unknown_private_api_error'
+            reason = candidate if isinstance(candidate, str) and candidate in allowed_codes else 'unknown_private_api_error'
         raise RunnerError(f'Private admin rejected request: HTTP {exc.code}; diagnostic={reason}') from None
     except URLError as exc:
         raise RunnerError('Private admin unavailable') from exc
