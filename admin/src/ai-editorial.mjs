@@ -182,9 +182,39 @@ function preview(draft,job,issues,tokenUsage=null){
 
 export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=fetch){
   const url=new URL(request.url);
-  if(url.pathname!=='/ai'&&url.pathname!=='/ai/draft')return null;
+  if(!['/ai','/ai/draft','/ai/provider-status'].includes(url.pathname))return null;
   // Called ONLY after verified Cloudflare Access identity and allowlist.
   if(!actor)return errorPage(403,'Access denied.');
+  if(request.method==='GET'&&url.pathname==='/ai/provider-status'){
+    if(typeof env.DEEPSEEK_API_KEY!=='string'||env.DEEPSEEK_API_KEY.trim().length<12)
+      return errorPage(503,'DeepSeek server-side secret is not configured.');
+    // Official provider read-only balance endpoint: NO completion and NO tokens.
+    // Only show readiness; never reveal balance, secret, API body or headers.
+    let state='provider-connection-unavailable';
+    try{
+      const check=await transport('https://api.deepseek.com/user/balance',{
+        method:'GET',headers:{Authorization:'Bearer '+env.DEEPSEEK_API_KEY},
+        signal:AbortSignal.timeout(15000)
+      });
+      if(!check.ok){
+        state='provider-http-'+(
+          Number.isInteger(check.status)&&check.status>=400&&check.status<=599
+            ? check.status:'unknown');
+      }else{
+        const result=await check.json();
+        state=result?.is_available===true?'provider-ready':
+          result?.is_available===false?'provider-insufficient-balance':
+          'provider-balance-response-invalid';
+      }
+    }catch{
+      state='provider-connection-unavailable';
+    }
+    return html(basePage('<h1>DeepSeek · connection check</h1>'+
+      '<section><h2>'+escapeHtml(state)+'</h2>'+
+      '<p>Read-only API balance check; no language-model generation or token usage.'+
+      ' No API key, balance figure, or private data is displayed.</p></section>'+
+      '<p><a href="/ai">← Return to private drafts</a></p>'));
+  }
   if(request.method==='GET'&&url.pathname==='/ai'){
     if(!env.DB)return errorPage(503,'Private D1 research queue is not configured.');
     let jobs;
@@ -200,9 +230,31 @@ export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=
       const d=await env.DB.prepare("SELECT COUNT(*) AS n FROM autonomous_ai_slots WHERE status='stored'").first();
       counts.queued=Number(q?.n||0); counts.drafts=Number(d?.n||0);
     } catch { counts={queued:'N/A',candidates:jobs.length,drafts:'N/A'}; }
+    let attempts=[];
+    try {
+      attempts=(await env.DB.prepare(
+        "SELECT city_id,local_date,intent,language,status,policy_version,error_code "+
+        "FROM editorial_one_shot ORDER BY created_at DESC LIMIT 12"
+      ).all()).results||[];
+    } catch {
+      // Private D1 schema may not be available on older deployments.
+    }
+    const attemptRows=attempts.map(a=>'<tr><td>'+escapeHtml(a.city_id)+
+      '</td><td>'+escapeHtml(a.local_date)+'</td><td>'+escapeHtml(a.intent)+
+      '</td><td>'+escapeHtml(a.language)+'</td><td>'+escapeHtml(a.status)+
+      '</td><td><code>'+escapeHtml(a.error_code||'—')+
+      '</code></td><td>'+escapeHtml(a.policy_version||'—')+'</td></tr>').join('');
+    const oneShotState='<section><h2>One-shot request diagnostics</h2>'+
+      '<p class="muted">Stored = reusable at zero new API calls. Failed/reserved = '+
+      'locked pending a manual billing and storage audit. Error codes are sanitized; '+
+      'existing older attempts may only say provider-or-storage-error.</p>'+
+      '<div style="overflow-x:auto"><table><thead><tr><th>City</th><th>Date</th>'+
+      '<th>Type</th><th>Lang</th><th>State</th><th>Error code</th>'+
+      '<th>Prompt</th></tr></thead><tbody>'+attemptRows+
+      '</tbody></table></div></section>';
     const choice=jobs.map(j=>opt(j.id,j.city_id+' · '+j.local_date)).join('');
     const content='<h1>AI Editorial Drafts</h1><p class="warning">Private drafts only. No direct SEO publication, human-approved cultural advice or verified astrology.</p>'
-      +'<section><h2>DeepSeek server-side secret</h2><p>'+ (connected?'Configured for private draft generation.':'Not configured or missing private R2.')+'</p></section>'
+      +'<section><h2>DeepSeek server-side secret</h2><p>'+ (connected?'Configured for private draft generation.':'Not configured or missing private R2.')+'</p><p><a href="/ai/provider-status">Check DeepSeek API connection and balance availability (no model call)</a></p></section>'
       +'<section><h2>Automatic research and editorial scheduler</h2><p>'+(
          automationConfigured?'Configured for research/drafts (requires active Cloudflare Cron and a connected scheduled GitHub Runner).'
          :'NOT ACTIVE. An encrypted DeepSeek key alone does not start automatic astronomy jobs. Configure D1 migration 0003, Runner credentials, scheduled GitHub workflow and explicit AUTO_RESEARCH_ENABLED/AUTO_EDITORIAL_ENABLED flags.'
@@ -216,7 +268,8 @@ export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=
       +'<label>Content type</label><select name="intent">'+[...INTENTS].map(v=>opt(v,v)).join('')+'</select>'
       +'<label>Language</label><select name="language">'+opt('en','English')+opt('hi','Hindi')+'</select>'
       +'<p class="muted">ONE SHOT: at most one paid attempt per city + date + content type + language. Cached text is returned for free. Pilot: Delhi, Mumbai, Chennai. Max 3 new drafts per editor per 24h. Never published automatically.</p>'
-      +'<button type="submit" '+(!connected||!jobs.length?'disabled':'')+'>Generate PRIVATE research draft</button></form></section>';
+      +'<button type="submit" '+(!connected||!jobs.length?'disabled':'')+'>Generate PRIVATE research draft</button></form></section>'
+      +oneShotState;
     return html(basePage(content));
   }
   if(request.method!=='POST'||url.pathname!=='/ai/draft')return errorPage(404,'Not found.');
@@ -261,19 +314,38 @@ export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=
       messages:buildEditorialPrompt(candidate,city,intent,language,record.content_hash),
       response_format:{type:'json_object'},stream:false,max_tokens:850,temperature:0.3
     };
+    // Diagnostics are fixed, non-sensitive codes, never raw API responses,
+    // token values, prompt text, header values, private R2 keys or stack traces.
+    // A timeout or parse failure MAY already have incurred provider charges.
+    let failureCode='provider-transport-uncertain';
     try{
       const reply=await transport(API,{
         method:'POST',headers:{Authorization:'Bearer '+env.DEEPSEEK_API_KEY,
           'Content-Type':'application/json'},
         body:JSON.stringify(payload),signal:AbortSignal.timeout(45000)
       });
-      if(!reply.ok)throw new Error('DeepSeek response unsuccessful');
+      if(!reply.ok){
+        failureCode='provider-http-'+(
+          Number.isInteger(reply.status)&&reply.status>=400&&reply.status<=599
+            ? reply.status : 'unknown'
+        );
+        throw new Error('Provider returned an unsuccessful response');
+      }
+      failureCode='provider-body-unreadable';
       const responseText=await reply.text();
-      if(responseText.length>MAX_MODEL_REPLY_BYTES)
-        throw new Error('Model response too large');
+      if(responseText.length>MAX_MODEL_REPLY_BYTES){
+        failureCode='provider-response-oversize';
+        throw new Error('Provider response too large');
+      }
+      failureCode='provider-envelope-invalid';
       const parsed=JSON.parse(responseText);
-      if(parsed?.choices?.[0]?.finish_reason!=='stop')
-        throw new Error('Model incomplete');
+      const finish=parsed?.choices?.[0]?.finish_reason;
+      if(finish!=='stop'){
+        failureCode=finish==='length'
+          ?'provider-output-truncated':'provider-finish-unexpected';
+        throw new Error('Provider completion did not finish normally');
+      }
+      failureCode='provider-draft-json-invalid';
       const draft=JSON.parse(parsed.choices[0].message.content);
       const issues=draftIssues(draft,city);
       const id2=crypto.randomUUID();
@@ -289,14 +361,26 @@ export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=
           output:Number.isInteger(parsed.usage?.completion_tokens)?parsed.usage.completion_tokens:null
         }
       };
+      failureCode='private-r2-or-d1-store-failed';
       await storeOneShot(env,record,intent,language,artifact,key);
-      await env.DB.prepare("INSERT INTO audit_log(id,actor,action,subject_id) VALUES (?,?,'ai_research_draft_created',?)")
-        .bind(crypto.randomUUID(),actor,id2).run();
+      // The draft is now stored and billed exactly once. A later audit-write
+      // failure must NOT move a stored slot back to failed or trigger a retry.
+      try{
+        await env.DB.prepare("INSERT INTO audit_log(id,actor,action,subject_id) VALUES (?,?,'ai_research_draft_created',?)")
+          .bind(crypto.randomUUID(),actor,id2).run();
+      }catch{
+        return errorPage(503,'Draft stored successfully, but the private audit log write failed. The saved text can be retrieved again without a model call.');
+      }
       return html(preview(draft,record,issues,artifact.tokenUsage));
     }catch{
-      // Do not automatically retry: provider might have billed even on failure.
-      await failOneShot(env,record,intent,language);
-      return errorPage(502,'One-shot generation failed or could not be stored. Retry is LOCKED to prevent duplicate charges.');
+      // A failed request is never automatically retried. All codes are
+      // whitelisted by this code path, with no provider-controlled strings.
+      try{
+        await failOneShot(env,record,intent,language,failureCode);
+      }catch{
+        return errorPage(503,'One-shot processing stopped. Private failure status could not be written. Do not retry or clear any slot before reviewing provider billing and D1/R2.');
+      }
+      return errorPage(502,'One-shot stopped ('+failureCode+'). This attempt is LOCKED until provider billing and private storage are checked.');
     }
   }catch{
     // No stacktrace, secret, model request or private metadata reaches client.
