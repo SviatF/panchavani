@@ -5,7 +5,7 @@ The source of uniqueness is the *real search intent and available source facts*,
 not prompting DeepSeek to invent city geography. A single, paid DeepSeek
 completion drafts concise educational prose, while `seo-automation.mjs`
 deterministically composes the title, meta description, grounded locality,
-canonical path and one helpful FAQ. The original response is preserved as
+canonical path and one helpful FAQ. The authenticated `/api/status` reports `editorialPolicyVersion: deepseek-private-automated-seo-v1` and `seoPipelineVersion: city-evergreen-grounded-v1` after production rollout. The original response is preserved as
 `rawModelDraft`; the final normalized `draft` and automated repairs are
 saved in the *same* private R2 one-shot artifact (no second completion).
 City-specific plans come from the active catalogue plus versioned research
