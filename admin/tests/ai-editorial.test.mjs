@@ -39,9 +39,9 @@ const modelDraft={
  referencedFactIds:[]
 };
 function fakeDb({count=0,hasCandidate=true}={}){
- const calls=[];
+ const calls=[],slots=new Map();
  return {
-  calls,
+  calls,slots,
   prepare(sql){
    return {
     bind(...args){
@@ -49,10 +49,28 @@ function fakeDb({count=0,hasCandidate=true}={}){
       async first(){
        calls.push({sql,args});
        if(sql.includes('FROM job_requests'))return hasCandidate?record:null;
+       if(sql.includes('SELECT job_id,source_hash,status,r2_key'))return slots.get(args.slice(0,4).join('|'))||null;
        if(sql.includes('COUNT(*)'))return {n:count};
        return null;
       },
-      async run(){calls.push({sql,args});return {success:true}}
+      async run(){
+       calls.push({sql,args});
+       if(sql.includes('INSERT OR IGNORE INTO editorial_one_shot')){
+         const key=args.slice(0,4).join('|');
+         if(slots.has(key))return {meta:{changes:0}};
+         slots.set(key,{job_id:args[4],source_hash:args[5],status:'reserved'});
+       }
+       if(sql.includes("UPDATE editorial_one_shot SET status='stored'")){
+         const key=args.slice(2,6).join('|'),row=slots.get(key);
+         if(!row)return {meta:{changes:0}};
+         row.status='stored';row.r2_key=args[0];row.content_hash=args[1];
+       }
+       if(sql.includes("UPDATE editorial_one_shot SET status='failed'")){
+         const key=args.slice(1,5).join('|'),row=slots.get(key);
+         if(row)row.status='failed';
+       }
+       return {success:true,meta:{changes:1}};
+      }
      };
     },
     async all(){return {results:hasCandidate?[{id:jobId,city_id:'delhi',local_date:'2026-10-13'}]:[]}}
@@ -64,7 +82,11 @@ function fakeEnv(opts={}){
  const writes=[];
  const store={
   writes,
-  async get(key){assert.equal(key,r2Key);return {text:async()=>raw}},
+  async get(key){
+   if(key===r2Key)return {text:async()=>raw};
+   const draft=writes.find(x=>x.key===key);
+   return draft?{text:async()=>draft.data}:null;
+  },
   async put(key,data,options){writes.push({key,data,options});}
  };
  return {DB:fakeDb(opts),CANDIDATES:store,DEEPSEEK_API_KEY:'test-server-side-secret-only',writes};
@@ -141,6 +163,29 @@ test('valid same-origin posted draft calls DeepSeek server side, stores unapprov
  assert.match(text,/UNAPPROVED AI RESEARCH/);
  assert.ok(!text.includes(env.DEEPSEEK_API_KEY));
  assert.equal(response.headers.get('X-Robots-Tag'),'noindex, nofollow, noarchive');
+});
+test('same city/date/content/language returns cached copy without a second paid request',async()=>{
+ const env=fakeEnv();
+ let charged=0;
+ const once=async(...args)=>{charged++;return mockDeepSeek()(...args);};
+ const first=await handleAi(form(),env,actor,isTrustedBrowserPost,once);
+ assert.equal(first.status,200);
+ const repeat=await handleAi(form(),env,actor,isTrustedBrowserPost,
+   ()=>{throw Error('CACHED CONTENT SHOULD NEVER CALL THE PROVIDER')});
+ assert.equal(repeat.status,200);
+ assert.equal(charged,1);
+ assert.equal(env.writes.length,1);
+ assert.equal(env.DB.slots.size,1);
+ assert.match(await repeat.text(),/UNAPPROVED AI RESEARCH/);
+});
+test('failed one-shot locks repeated attempts instead of charging again',async()=>{
+ const env=fakeEnv();
+ let calls=0;
+ const first=await handleAi(form(),env,actor,isTrustedBrowserPost,async()=>{calls++;throw Error('provider connection lost')});
+ assert.equal(first.status,502);
+ const repeat=await handleAi(form(),env,actor,isTrustedBrowserPost,async()=>{calls++;throw Error('should not call')});
+ assert.equal(repeat.status,409);
+ assert.equal(calls,1);
 });
 test('cross-origin form and missing native admin actor never trigger a model call',async()=>{
  const env=fakeEnv();

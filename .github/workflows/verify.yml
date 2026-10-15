@@ -52,5 +52,19 @@ jobs:
           assert not missing, 'UNREVIEWED PUBLIC INDEXING: '+str(missing)
           print('PASS:', len(routes), 'static routes remain noindex until scientific/editorial release gate')
           PY
+      - name: Verify public sitemap contains ZERO unapproved/noindex URLs
+        run: |
+          test -f out/sitemap.xml
+          test -f out/robots.txt
+          python - <<'PY'
+          from pathlib import Path
+          from xml.etree import ElementTree
+          page=Path('out/sitemap.xml')
+          root=ElementTree.parse(page).getroot()
+          locs=[n.text for n in root.iter() if n.tag.endswith('}loc') or n.tag=='loc']
+          assert not locs, f'UNAPPROVED sitemap entries: {locs}'
+          assert 'sitemap.xml' in Path('out/robots.txt').read_text().lower()
+          print('PASS: valid empty sitemap, no draft/day URLs indexed')
+          PY
       - name: Validate Wrangler assets-only deployment configuration (dry run)
         run: npx wrangler deploy --dry-run
