@@ -10,7 +10,7 @@ export async function generateMetadata({params}:Props):Promise<Metadata>{
  if(!(city in CITY_GUIDES))return {robots:{index:false,follow:false}};
  const guide=CITY_GUIDES[city as keyof typeof CITY_GUIDES];
  return {title:guide.label+' Panchang — Local Calendar Guide',
-  description:guide.introduction,robots:{index:false,follow:false},
+  description:guide.metaDescription,robots:{index:false,follow:false},
   alternates:{canonical:`https://panchavani.com/panchang/${city}/`}};
 }
 export default async function CityPanchang({params}:Props){
