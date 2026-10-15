@@ -162,3 +162,17 @@
 .verified-daily-grid article strong{color:#f4d09b;font:normal 25px var(--font-serif)}
 @media(max-width:950px){.verified-city-grid,.verified-explain{grid-template-columns:1fr}.verified-city-card,.verified-explain article{min-height:0}.verified-daily-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:680px){.verified-hub{padding-block:38px 70px}.verified-hub h1{font-size:52px}.verified-intro{font-size:14px}.verified-city-card{padding:22px}.verified-method{padding:17px}.verified-release{padding:19px}.verified-dates .verified-day-row{flex-direction:column;gap:5px}}
+
+/* Approved-only daily calendar pages: responsive, data-first, no AI runtime. */
+.approved-day .verified-intro{display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.approved-day .verified-release h2{display:flex;align-items:center;gap:12px}
+.approved-day .verified-release h2 svg{color:#e9bb79;flex-shrink:0}
+.approved-day .verified-release p strong{color:#f3d19f}
+.approved-day .verified-release p{max-width:960px}
+.approved-day .verified-method code{font-size:12px;color:#e0d3bd}
+.verified-day-link{display:block;color:#f6d39b;line-height:1.5}
+.verified-day-link:hover{color:#fff0c8;text-decoration:underline}
+.verified-date-nav{margin-top:26px;display:flex;align-items:center;justify-content:space-between;gap:15px;font-size:12px;color:#ecc788}
+.verified-date-nav>a{padding:10px 14px;border:1px solid #86654170;border-radius:7px}
+.verified-date-nav>a:hover{background:#241c13}
+@media(max-width:680px){.approved-day .verified-daily-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.approved-day .verified-daily-grid article{padding:13px;min-height:83px}.approved-day .verified-daily-grid article strong{font-size:20px;overflow-wrap:anywhere}.verified-date-nav{flex-wrap:wrap}}
