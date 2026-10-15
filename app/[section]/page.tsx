@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import { ASSET, sectionData, type SectionSlug, muhuratCards, regionalCards } from '@/lib/site';
 
-export function generateStaticParams(){return Object.keys(sectionData).map(section=>({section}));}
+export function generateStaticParams(){return Object.keys(sectionData).filter(section=>section!=='panchang').map(section=>({section}));}
 type Props={params:Promise<{section:string}>};
 export default async function SectionPage({params}:Props){
  const {section}=await params;

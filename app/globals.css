@@ -126,3 +126,39 @@
 .city-tooltip .city-picker-disclaimer{margin:12px 0 0;font-size:10px;line-height:1.5;color:#9b9fa6}
 .research-note{display:inline-block;font-size:11px;color:#d1b387;margin-top:14px;line-height:1.5}
 .planet-row .anga-detail{letter-spacing:0;font-size:9px;color:#c0b5a5;white-space:nowrap}
+
+/* Reviewed Panchang directory and individual pilot-city hubs */
+.verified-hub{min-height:65vh;padding-block:70px 100px}
+.verified-hub .back-link{margin-bottom:34px}
+.verified-hub h1{font:normal clamp(50px,6vw,84px)/1.05 var(--font-serif);letter-spacing:-1.5px;color:#ffebb9;margin:20px 0 16px}
+.verified-intro{max-width:780px;font-size:17px;line-height:1.85;color:#c4c5c8;margin:0 0 40px}
+.verified-city-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.verified-city-card,.verified-explain article,.verified-release,.verified-method{
+ background:linear-gradient(155deg,#18140e,#0b1118 65%,#080a0e);
+ border:1px solid rgba(217,165,89,.30);border-radius:13px;
+ box-shadow:0 10px 30px #0003}
+.verified-city-card{padding:30px;min-height:245px;display:flex;flex-direction:column;gap:12px;transition:transform .25s,border-color .25s}
+.verified-city-card:hover{transform:translateY(-3px);border-color:#eec37e}
+.verified-city-card>svg,.verified-explain svg,.verified-method svg{color:#efbf74}
+.verified-city-card .section-eyebrow{font-size:9px;letter-spacing:1.5px}
+.verified-city-card h2{font:normal 41px/1 var(--font-serif);margin:4px 0;color:#f9e9c8}
+.verified-city-card p{color:#b3b6bd;line-height:1.6;font-size:13px;flex:1}
+.verified-link{display:flex;align-items:center;gap:9px;color:#edc17e;font-weight:600;font-size:12px}
+.verified-method{margin-top:22px;padding:22px 26px;display:flex;gap:17px;align-items:start}
+.verified-method p{color:#c3bdad;max-width:890px;line-height:1.7;margin:0}
+.verified-explain{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:24px}
+.verified-explain article{padding:26px;min-height:240px}
+.verified-explain h2,.verified-release h2{font:normal 27px/1.2 var(--font-serif);color:#f6cf91;margin:18px 0 13px}
+.verified-explain p,.verified-release p{color:#bdc2c9;font-size:13px;line-height:1.85}
+.verified-release{padding:29px 31px;margin-top:20px}
+.verified-muted{padding:15px 18px;border-left:2px solid #c4934c;background:#12140f;color:#c1b9a8!important}
+.verified-dates{display:flex;flex-direction:column;gap:9px}
+.verified-dates a{display:flex;justify-content:space-between;gap:20px;padding:14px 16px;background:#110f0d;border:1px solid #6c543654;border-radius:8px;color:#f6d39b}
+.verified-dates a:hover{border-color:#eabb77}
+.verified-dates a span:last-child{display:flex;align-items:center;gap:9px;font-size:12px;color:#c6b9a6}
+.verified-daily-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.verified-daily-grid article{min-height:95px;background:#12100f;border:1px solid #7e634555;padding:20px;border-radius:10px}
+.verified-daily-grid article span{display:block;color:#c2b7a7;font-size:11px;text-transform:capitalize;margin-bottom:13px}
+.verified-daily-grid article strong{color:#f4d09b;font:normal 25px var(--font-serif)}
+@media(max-width:950px){.verified-city-grid,.verified-explain{grid-template-columns:1fr}.verified-city-card,.verified-explain article{min-height:0}.verified-daily-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:680px){.verified-hub{padding-block:38px 70px}.verified-hub h1{font-size:52px}.verified-intro{font-size:14px}.verified-city-card{padding:22px}.verified-method{padding:17px}.verified-release{padding:19px}.verified-dates a{flex-direction:column;gap:5px}}
