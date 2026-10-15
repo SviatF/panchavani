@@ -67,13 +67,21 @@ function fakeDb({count=0,hasCandidate=true}={}){
        }
        if(sql.includes("UPDATE editorial_one_shot SET status='failed'")){
          const key=args.slice(1,5).join('|'),row=slots.get(key);
-         if(row)row.status='failed';
+         if(row){row.status='failed';row.error_code=args[0];}
        }
        return {success:true,meta:{changes:1}};
       }
      };
     },
-    async all(){return {results:hasCandidate?[{id:jobId,city_id:'delhi',local_date:'2026-10-13'}]:[]}}
+    async all(){
+     if(sql.includes('FROM editorial_one_shot'))
+       return {results:[...slots.entries()].map(([key,row])=>{
+        const [city_id,local_date,intent,language]=key.split('|');
+        return {city_id,local_date,intent,language,status:row.status,
+          error_code:row.error_code||null,policy_version:'v3'};
+       })};
+     return {results:hasCandidate?[{id:jobId,city_id:'delhi',local_date:'2026-10-13'}]:[]};
+    }
    };
   }
  };
@@ -241,6 +249,46 @@ test('failed one-shot locks repeated attempts instead of charging again',async()
  const repeat=await handleAi(form(),env,actor,isTrustedBrowserPost,async()=>{calls++;throw Error('should not call')});
  assert.equal(repeat.status,409);
  assert.equal(calls,1);
+});
+test('DeepSeek HTTP errors are classified without leaking provider text or creating repeat charges',async()=>{
+ const env=fakeEnv();
+ let billedRequests=0;
+ const result=await handleAi(form(),env,actor,isTrustedBrowserPost,async()=>{
+  billedRequests++;
+  return new Response('provider account private error must not leak',{status:402});
+ });
+ assert.equal(result.status,502);
+ const displayed=await result.text();
+ assert.match(displayed,/provider-http-402/);
+ assert.equal(displayed.includes('provider account private'),false);
+ const slot=[...env.DB.slots.values()][0];
+ assert.equal(slot.status,'failed');
+ assert.equal(slot.error_code,'provider-http-402');
+ const next=await handleAi(form(),env,actor,isTrustedBrowserPost,async()=>{
+  billedRequests++;throw Error('Should not retry');
+ });
+ assert.equal(next.status,409);
+ assert.equal(billedRequests,1);
+ const admin=await handleAi(new Request('https://admin.panchavani.com/ai'),env,actor,isTrustedBrowserPost);
+ const dashboard=await admin.text();
+ assert.match(dashboard,/provider-http-402/);
+ assert.equal(dashboard.includes('provider account private'),false);
+});
+test('truncated model JSON and partial R2 failure get separate, safe locked codes',async()=>{
+ const truncated=fakeEnv();
+ const reply=await handleAi(form(),truncated,actor,isTrustedBrowserPost,async()=>new Response(
+  JSON.stringify({choices:[{finish_reason:'length',message:{content:'{}'}}]}),{status:200}));
+ assert.equal(reply.status,502);
+ assert.match(await reply.text(),/provider-output-truncated/);
+ assert.equal([...truncated.DB.slots.values()][0].error_code,'provider-output-truncated');
+ const storage=fakeEnv();
+ storage.CANDIDATES.put=async()=>{throw Error('private R2 binding secret must not leak')};
+ const storageReply=await handleAi(form(),storage,actor,isTrustedBrowserPost,mockDeepSeek());
+ assert.equal(storageReply.status,502);
+ const body=await storageReply.text();
+ assert.match(body,/private-r2-or-d1-store-failed/);
+ assert.equal(body.includes('private R2 binding secret'),false);
+ assert.equal([...storage.DB.slots.values()][0].error_code,'private-r2-or-d1-store-failed');
 });
 test('cross-origin form and missing native admin actor never trigger a model call',async()=>{
  const env=fakeEnv();
