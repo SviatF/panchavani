@@ -85,6 +85,20 @@ jobs:
           testdb.executescript(combined) # must be idempotent
           rows=testdb.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('job_requests','research_candidates','editorial_one_shot','private_research_handoff_slots')").fetchall()
           assert len(rows)==4, 'Consolidated migration failed to install required tables'
+          # Atomic cross-date evergreen reservation: one city/language guide
+          # can never trigger another billable attempt on a different date.
+          testdb.execute("INSERT INTO job_requests(id,city_id,local_date,status,requested_by) VALUES('seo-a','mumbai','2026-10-16','candidate','owner')")
+          testdb.execute("INSERT INTO job_requests(id,city_id,local_date,status,requested_by) VALUES('seo-b','mumbai','2026-10-17','candidate','owner')")
+          sql="""INSERT OR IGNORE INTO editorial_one_shot
+            (city_id,local_date,intent,language,job_id,source_hash,policy_version,requested_by,status)
+            SELECT ?,?,?,?,?,?,?,?,'reserved'
+            WHERE NOT EXISTS (SELECT 1 FROM editorial_one_shot
+              WHERE city_id=? AND intent='city-hub' AND language=?)"""
+          a=('mumbai','2026-10-16','city-hub','en','seo-a','a'*64,'v4','owner','mumbai','en')
+          b=('mumbai','2026-10-17','city-hub','en','seo-b','b'*64,'v4','owner','mumbai','en')
+          assert testdb.execute(sql,a).rowcount==1
+          assert testdb.execute(sql,b).rowcount==0
+          assert testdb.execute("SELECT COUNT(*) FROM editorial_one_shot WHERE city_id='mumbai' AND intent='city-hub'").fetchone()[0]==1
           print('PASS: migrations, autonomous and one-shot idempotency, locked handoff, zero release status')
 
           PY
