@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { Search, MapPin, Menu, X, Settings2, ChevronDown, ArrowUpRight } from 'lucide-react';
 import { primaryNav, muhuratCards } from '@/lib/site';
+import {PILOT_CITIES,useResearchCity} from '@/components/city-selection';
 const targets = [
   ...primaryNav.map(n=>({label:n.title,href:n.href,detail:'Explore section'})),
   ...muhuratCards.map(n=>({label:n.title,href:`/muhurat/${n.slug}/`,detail:'Muhurat planning'})),
@@ -11,6 +12,8 @@ const targets = [
 ];
 export function SiteHeader() {
  const pathname = usePathname();const router = useRouter();
+ const {cityId,setCityId}=useResearchCity();
+ const city=PILOT_CITIES.find(item=>item.id===cityId)??PILOT_CITIES[0];
  const [menu,setMenu]=useState(false);const [query,setQuery]=useState('');const [focused,setFocused]=useState(false);const [cityHelp,setCityHelp]=useState(false);const [scrolled,setScrolled]=useState(false);
  const searchRef=useRef<HTMLDivElement>(null);
  useEffect(()=>{setMenu(false);setCityHelp(false)},[pathname]);
@@ -21,9 +24,9 @@ export function SiteHeader() {
  return <header className={`site-header ${pathname==='/'?'site-header--home':'site-header--interior'} ${scrolled?'is-scrolled':''}`}><div className="header-inner">
  <Link href="/" className="brand" aria-label="Panchavani home"><span className="brand-mark"><img src="/imgs/logo.webp" width="48" height="48" alt="" decoding="async"/></span><span className="brand-lines"><span className="brand-name">PANCHAVANI</span><span className="brand-tagline">HARMONY WITH COSMIC TIME</span></span></Link>
  <nav className="desktop-nav" aria-label="Main navigation">{primaryNav.map(item=><Link key={item.href} className={pathname===item.href?'active':''} href={item.href}>{item.title}</Link>)}</nav>
- <div className="header-actions"><div className="header-search" ref={searchRef}><Search size={16} aria-hidden="true"/><input aria-label="Search pages" value={query} onChange={e=>{setQuery(e.target.value);setFocused(true)}} onFocus={()=>setFocused(true)} onBlur={()=>setTimeout(()=>setFocused(false),150)} onKeyDown={e=>{if(e.key==='Enter')submit()}} placeholder="Search city, festival, muhurat..."/><button className="search-submit" aria-label="Search" onClick={submit}><ArrowUpRight size={14}/></button>
- {focused&&query.length>0&&<div className="search-results" role="listbox">{found.length?found.map(target=><button key={target.href} onMouseDown={e=>e.preventDefault()} onClick={()=>{router.push(target.href);setFocused(false);setQuery('')}}><span>{target.label}</span><small>{target.detail}</small></button>):<p>No preview pages match this search.</p>}</div>}</div>
- <div className="city-wrap"><button className="city-control" onClick={()=>setCityHelp(!cityHelp)} aria-expanded={cityHelp} aria-label="Preview location: Delhi"><MapPin size={16}/><span>Delhi, NCT</span><ChevronDown size={13}/></button>{cityHelp&&<div className="city-tooltip"><strong>Delhi design preview</strong><p>City-specific astronomical data will be enabled after the calculation engine has passed validation.</p><button onClick={()=>setCityHelp(false)}>Got it</button></div>}</div>
- <button className="icon-control header-settings" aria-label="Preview settings" onClick={()=>setCityHelp(!cityHelp)}><Settings2 size={18}/></button><button className="mobile-menu-toggle" onClick={()=>setMenu(!menu)} aria-label={menu?'Close navigation':'Open navigation'} aria-expanded={menu}>{menu?<X size={24}/>:<Menu size={24}/>}</button></div>
+ <div className="header-actions"><div className="header-search" ref={searchRef}><Search size={16} aria-hidden="true"/><input aria-label="Search pages" value={query} onChange={e=>{setQuery(e.target.value);setFocused(true)}} onFocus={()=>setFocused(true)} onBlur={()=>setTimeout(()=>setFocused(false),150)} onKeyDown={e=>{if(e.key==='Enter')submit()}} placeholder="Search sections and guides..."/><button className="search-submit" aria-label="Search" onClick={submit}><ArrowUpRight size={14}/></button>
+ {focused&&query.length>0&&<div className="search-results" role="listbox">{found.length?found.map(target=><button key={target.href} onMouseDown={e=>e.preventDefault()} onClick={()=>{router.push(target.href);setFocused(false);setQuery('')}}><span>{target.label}</span><small>{target.detail}</small></button>):<p>No matching pages.</p>}</div>}</div>
+ <div className="city-wrap"><button className="city-control" onClick={()=>setCityHelp(!cityHelp)} aria-expanded={cityHelp} aria-label={`Choose research city, currently ${city.label}`}><MapPin size={16}/><span>{city.label}, {city.region}</span><ChevronDown size={13}/></button>{cityHelp&&<div className="city-tooltip" role="group" aria-label="Research city selector"><strong>Select city</strong><p className="city-picker-hint">Explore Panchang concepts for one of our first three research locations.</p>{PILOT_CITIES.map(item=><button className={`city-option ${item.id===cityId?'is-active':''}`} type="button" key={item.id} aria-pressed={item.id===cityId} onClick={()=>{setCityId(item.id);setCityHelp(false)}}><span>{item.label}</span><small>{item.region}</small></button>)}<p className="city-picker-disclaimer">Verified city-specific timings will be shown after independent scientific review.</p></div>}</div>
+ <Link className="icon-control header-settings" aria-label="Explore astronomy tools" href="/tools/"><Settings2 size={18}/></Link><button className="mobile-menu-toggle" onClick={()=>setMenu(!menu)} aria-label={menu?'Close navigation':'Open navigation'} aria-expanded={menu}>{menu?<X size={24}/>:<Menu size={24}/>}</button></div>
  </div>{menu&&<nav className="mobile-nav" aria-label="Mobile navigation">{primaryNav.map(item=><Link key={item.href} className={pathname===item.href?'active':''} href={item.href}>{item.title}<ArrowUpRight size={15}/></Link>)}</nav>}</header>
 }

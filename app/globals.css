@@ -115,3 +115,14 @@
 /* Neutral luxury surfaces and branded wordmark */
 .brand-name{font-family:var(--font-brand);font-weight:500}.site-header--home:not(.is-scrolled) .brand-name{color:#ffebc6}
 @media(min-width:1181px){.feature-ribbon{background:linear-gradient(180deg,rgba(17,14,12,.95),rgba(5,5,5,.98))}.moments-section,.regions-section{background:linear-gradient(180deg,#11100f,#080808)}.main-panels,.lower-panels{background:transparent}.hero-copy h1{font-weight:500}.section-heading h2,.festival-card strong{font-weight:500}}
+
+/* Research-ready UI: compact location picker without obsolete preview overlay. */
+.city-tooltip{z-index:80;width:278px;padding:15px;background:rgba(9,13,19,.98);border-color:rgba(224,176,99,.45);backdrop-filter:blur(18px)}
+.city-tooltip strong{display:block;margin-bottom:6px;color:#f6d195;font:normal 23px/1.15 var(--font-serif)}
+.city-tooltip .city-picker-hint{font-size:11px;line-height:1.5;margin:6px 0 10px;color:#b7b6b6}
+.city-tooltip button.city-option{display:flex;width:100%;justify-content:space-between;align-items:center;padding:10px 11px;margin:3px 0;border:1px solid transparent;border-radius:7px;color:#e9e1d4;background:rgba(255,255,255,.025);text-align:left;font-size:12px;transition:background .2s,border-color .2s}
+.city-tooltip button.city-option:hover,.city-tooltip button.city-option.is-active{border-color:#986e3f;background:rgba(201,155,91,.12);color:#ffd995}
+.city-option small{font-size:10px;color:#afabb0}
+.city-tooltip .city-picker-disclaimer{margin:12px 0 0;font-size:10px;line-height:1.5;color:#9b9fa6}
+.research-note{display:inline-block;font-size:11px;color:#d1b387;margin-top:14px;line-height:1.5}
+.planet-row .anga-detail{letter-spacing:0;font-size:9px;color:#c0b5a5;white-space:nowrap}
