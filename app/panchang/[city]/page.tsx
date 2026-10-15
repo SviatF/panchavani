@@ -22,9 +22,9 @@ export default async function CityPanchang({params}:Props){
   <Link className="back-link" href="/panchang/"><ArrowLeft size={15}/> All locations</Link>
   <p className="section-eyebrow">PANCHAVANI · {guide.region.toUpperCase()}</p>
   <h1>{guide.label} Panchang</h1><p className="verified-intro">{guide.tagline}</p>
-  <div className="verified-explain"><article><BookOpen size={21}/><h2>Why location matters</h2><p>{guide.introduction}</p></article>
-   <article><Clock3 size={21}/><h2>Astronomical methodology</h2><p>{guide.insight}</p></article>
-   <article><CalendarDays size={21}/><h2>Calendar interpretation</h2><p>{guide.method}</p></article></div>
+  <div className="verified-explain"><article><BookOpen size={21}/><h2>Start with local sunrise</h2><p>{guide.introduction}</p></article>
+   <article><Clock3 size={21}/><h2>Why times can differ</h2><p>{guide.insight}</p></article>
+   <article><CalendarDays size={21}/><h2>How to check a calendar date</h2><p>{guide.method}</p></article></div>
   <section className="verified-release"><div><p className="section-eyebrow">REVIEWED DAILY PANCHANG</p><h2>Available dates</h2></div>
   {releases.length?
    <div className="verified-dates">{releases.map(day=><div key={day.date} className="verified-day-row">
