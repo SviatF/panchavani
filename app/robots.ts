@@ -1,5 +1,8 @@
 import type { MetadataRoute } from 'next';
 
+// Required by Next.js output: export for metadata routes.
+export const dynamic = 'force-static';
+
 // Google must be able to crawl a preview to see its existing meta noindex.
 // Indexability is controlled by a separate page-level release gate.
 export default function robots(): MetadataRoute.Robots {
