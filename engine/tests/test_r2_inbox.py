@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from panchavani.r2_inbox import JPL, prepare
+from panchavani.r2_inbox import JPL, BUCKET, prepare
 
 
 class R2InboxTest(unittest.TestCase):
@@ -69,6 +69,20 @@ class R2InboxTest(unittest.TestCase):
             }))
             with self.assertRaises(ValueError):
                 prepare(root, "38787691998")
+
+    def test_github_uploader_and_private_worker_bind_to_same_real_bucket(self):
+        project_root = Path(__file__).resolve().parents[2]
+        worker = json.loads(
+            (project_root / "admin" / "wrangler.jsonc").read_text()
+        )
+        inbox = [
+            binding for binding in worker["r2_buckets"]
+            if binding["binding"] == "INGEST_INBOX"
+        ]
+        self.assertEqual(len(inbox), 1)
+        self.assertEqual(BUCKET, "panchavani-jpl-research-inbox")
+        self.assertEqual(inbox[0]["bucket_name"], BUCKET)
+
 
 
 if __name__ == "__main__":

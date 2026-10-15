@@ -19,7 +19,7 @@
     },
     {
       "binding": "INGEST_INBOX",
-      "bucket_name": "panchavani-automation-inbox"
+      "bucket_name": "panchavani-jpl-research-inbox"
     }
   ],
   "triggers": {

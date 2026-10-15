@@ -13,7 +13,7 @@ import re
 from pathlib import Path
 
 JPL = "c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2"
-BUCKET = "panchavani-automation-inbox"
+BUCKET = "panchavani-jpl-research-inbox"
 
 
 def sha(raw: bytes) -> str:
