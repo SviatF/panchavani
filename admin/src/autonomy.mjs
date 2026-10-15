@@ -9,7 +9,7 @@ import { handleAi } from './ai-editorial.mjs';
 
 export const AUTO_ACTOR='panchavani-cron@internal';
 export const PILOT_CITY_IDS=Object.freeze(['delhi','mumbai','chennai']);
-export const AUTO_PROMPT_VERSION='deepseek-private-research-draft-v1';
+export const AUTO_PROMPT_VERSION='city-evergreen-grounded-v1';
 const NO_CACHE='private, no-store';
 const MAX_PENDING=6;        // bound unfinished JPL work
 const MAX_DRAFTS_PER_DAY=3; // cost bound, server-side actor + D1
@@ -77,46 +77,61 @@ export async function enqueuePilot(env,now){
   return {status:'researched-queue',queued,localDate,pendingBefore:pending};
 }
 
+/** Bounded auto-city SEO generation, opt-in via AUTO_EDITORIAL_ENABLED=true.
+ * One attempt per city+language, not one paid request on every calendar date.
+ */
+export function enabledEditorialCities(env){
+ const raw=env?.AUTO_EDITORIAL_CITY_IDS||PILOT_CITY_IDS.join(',');
+ const names=raw.split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
+ if(!names.length||names.length>10||new Set(names).size!==names.length||
+    names.some(x=>!CITY_IDS.has(x)))throw new Error('Invalid allowed SEO city list');
+ return names;
+}
 function internalPost(jobId){
-  return new Request('https://admin.panchavani.com/ai/draft',{
-    method:'POST',
-    headers:{
-      'Origin':'https://admin.panchavani.com',
-      'Sec-Fetch-Site':'same-origin',
-      'Content-Type':'application/x-www-form-urlencoded'
-    },
-    body:new URLSearchParams({jobId,intent:'daily-panchang',language:'en'}).toString()
-  });
+ return new Request('https://admin.panchavani.com/ai/draft',{
+  method:'POST',
+  headers:{'Origin':'https://admin.panchavani.com','Sec-Fetch-Site':'same-origin',
+    'Content-Type':'application/x-www-form-urlencoded'},
+  body:new URLSearchParams({jobId,intent:'city-hub',language:'en'}).toString()
+ });
 }
 export async function autoDraftOnce(env,transport=fetch){
-  const spent=await count(env.DB,
-    "SELECT COUNT(*) AS n FROM autonomous_ai_slots WHERE created_at >= strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 day')");
-  if(spent>=MAX_DRAFTS_PER_DAY)return {status:'draft-cap',attempted:0};
-  const candidate=await env.DB.prepare(
-    "SELECT j.id FROM job_requests j INNER JOIN research_candidates r ON r.job_id=j.id LEFT JOIN autonomous_ai_slots a ON a.job_id=j.id AND a.intent='daily-panchang' AND a.language='en' AND a.prompt_version=? WHERE j.requested_by=? AND j.status='candidate' AND r.status='unapproved' AND a.job_id IS NULL ORDER BY j.created_at ASC LIMIT 1"
-  ).bind(AUTO_PROMPT_VERSION,AUTO_ACTOR).first();
-  if(!candidate)return {status:'awaiting-research-candidates',attempted:0};
-  // INSERT OR IGNORE is atomic: retries and concurrent scheduled invocations
-  // never spend twice on the same job / prompt version.
-  const reserved=await env.DB.prepare(
-    "INSERT OR IGNORE INTO autonomous_ai_slots(job_id,intent,language,prompt_version,status) VALUES (?,'daily-panchang','en',?,'processing')"
-  ).bind(candidate.id,AUTO_PROMPT_VERSION).run();
-  if(reserved.meta?.changes!==1)return {status:'already-reserved',attempted:0};
-  let state='failed',reason='private-draft-failed';
-  try{
-    const response=await handleAi(internalPost(candidate.id),env,AUTO_ACTOR,
-      ()=>true,transport);
-    // This is an INTERNAL event. No route or form can supply AUTO_ACTOR.
-    if(response?.status===200){state='stored';reason=null;}
-    else reason='private-draft-status-'+(response?.status||'missing');
-  }catch{
-    reason='private-draft-exception';
-  }finally{
-    await env.DB.prepare(
-      "UPDATE autonomous_ai_slots SET status=?,last_error=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE job_id=? AND intent='daily-panchang' AND language='en' AND prompt_version=? AND status='processing'"
-    ).bind(state,reason,candidate.id,AUTO_PROMPT_VERSION).run();
-  }
-  return {status:state,attempted:1,jobId:candidate.id};
+ const allow=enabledEditorialCities(env);
+ // Count attempted *reservations*, including failures and incomplete calls.
+ // Counting only successful audit writes would miscount paid requests.
+ const spent=await count(env.DB,
+   "SELECT COUNT(*) AS n FROM editorial_one_shot WHERE requested_by=? "+
+   "AND created_at >= strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 day')",
+   [AUTO_ACTOR]);
+ if(spent>=MAX_DRAFTS_PER_DAY)return {status:'draft-cap',attempted:0};
+ // Explicit allowlist (at most 10), real private candidates already stored.
+ // No astronomy candidate = no DeepSeek call and no placeholder content.
+ const placeholders=allow.map(()=>'?').join(',');
+ const candidate=await env.DB.prepare(
+   "SELECT j.id,j.city_id FROM job_requests j "+
+   "JOIN research_candidates r ON r.job_id=j.id "+
+   "WHERE j.status='candidate' AND r.status='unapproved' "+
+   "AND j.city_id IN ("+placeholders+") AND NOT EXISTS ("+
+   " SELECT 1 FROM editorial_one_shot e WHERE e.city_id=j.city_id "+
+   " AND e.intent='city-hub' AND e.language='en') "+
+   "ORDER BY j.created_at ASC LIMIT 1"
+ ).bind(...allow).first();
+ if(!candidate)return {status:'awaiting-new-city-guide-candidates',attempted:0};
+ // One-shot processor owns the atomic claim, billable cap and R2 cache.
+ // Never create a second scheduler-specific reservation keyed by prompt
+ // version: that would permit double billing after policy changes.
+ try{
+  const response=await handleAi(internalPost(candidate.id),env,AUTO_ACTOR,
+    ()=>true,transport);
+  if(response?.status===200)
+   return {status:'stored',attempted:1,cityId:candidate.city_id};
+  return {status:'private-draft-blocked',attempted:0,
+   // Sanitized metadata only; never return HTML/private model response.
+   httpStatus:response?.status||503,cityId:candidate.city_id};
+ }catch{
+  return {status:'private-draft-exception',attempted:0,
+    cityId:candidate.city_id};
+ }
 }
 
 export async function runAutonomy(env,now=Date.now(),transport=fetch){
