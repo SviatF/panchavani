@@ -63,7 +63,16 @@ jobs:
               pass
           else:
               raise AssertionError('One-shot row permitted published status')
-          print('PASS: migrations, autonomous and one-shot idempotency, zero release status')
+          con.execute("INSERT INTO private_research_handoff_slots(city_id,local_date,job_id,candidate_sha256,status,imported_by) VALUES('delhi','2026-10-16','auto-job',?,'reserved','owner@example.test')", ('b'*64,))
+          dup=con.execute("INSERT OR IGNORE INTO private_research_handoff_slots(city_id,local_date,job_id,candidate_sha256,status,imported_by) VALUES('delhi','2026-10-16','auto-job',?,'reserved','owner@example.test')", ('b'*64,)).rowcount
+          assert dup==0, 'Import slot must never be paid or stored twice'
+          try:
+              con.execute("UPDATE private_research_handoff_slots SET status='approved' WHERE city_id='delhi'")
+          except sqlite3.IntegrityError:
+              pass
+          else:
+              raise AssertionError('Import cannot directly approve or publish a candidate')
+          print('PASS: migrations, autonomous and one-shot idempotency, locked handoff, zero release status')
 
           PY
   private-admin:

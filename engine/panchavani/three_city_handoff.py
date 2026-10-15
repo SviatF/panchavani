@@ -33,6 +33,9 @@ def build_handoff(records: list[dict], *, source_sha: str, created_at: str) -> d
     dates = {x.get("localDate") for x in records}
     if len(dates) != 1:
         raise ValueError("Mixed local-date bundle is forbidden")
+    solar_pairs = {(x.get('sun') or {}).get('sunriseUtc') for x in records}
+    if len(solar_pairs) != 3:
+        raise ValueError('Three locations must not share an invented sunrise')
     entries = []
     for record in records:
         if inspect_candidate(record):
