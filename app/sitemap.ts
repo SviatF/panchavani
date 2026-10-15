@@ -1,4 +1,7 @@
 import type { MetadataRoute } from 'next';
+
+// Required by Next.js output: export for metadata routes.
+export const dynamic = 'force-static';
 import { approvedSeoRoutes } from '@/lib/seo-release-manifest';
 
 // Intentionally empty until a human-reviewed per-URL release exists.
