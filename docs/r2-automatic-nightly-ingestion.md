@@ -10,7 +10,7 @@ This path never contacts admin.panchavani.com from GitHub. It does not weaken Cl
 2. Create an R2 API token restricted to THIS inbox bucket, with Object Read & Write for HEAD/PUT. Never use your account-global token. Store it in GitHub Actions secrets PANCHAVANI_R2_ACCOUNT_ID, PANCHAVANI_R2_ACCESS_KEY_ID, PANCHAVANI_R2_SECRET_ACCESS_KEY.
 3. Apply the new migration admin/migrations/0006_automated_research_import.sql ONCE to the existing private D1 panchavani-private. Back up existing D1 first.
 4. Deploy the private panchavani-admin Worker using admin/wrangler.jsonc, now with INGEST_INBOX binding to the new bucket. Keep existing Cloudflare Access and ALLOWED_ADMIN_EMAILS intact. Do not add an R2 inbox binding to the public site.
-5. Set GitHub Actions variable PANCHAVANI_R2_INGEST_ENABLED=true only when the R2 credentials exist. Set Admin Worker variable AUTO_RESEARCH_IMPORT_ENABLED=true only after migration and the Worker binding deploy are confirmed.
+5. GitHub staging is now automatic on the protected main branch after the three bucket-scoped R2 repository Secrets are installed. It never uploads from pull-request or feature-branch workflow runs. There is no extra PANCHAVANI_R2_INGEST_ENABLED switch. Set Admin Worker variable AUTO_RESEARCH_IMPORT_ENABLED=true only after migration and the Worker binding deploy are confirmed.
 6. Check /api/status automation.nightlyIngestion and review imported data in Access-only /research/daily. The 50 city-days arrive over approximately three hourly Cron runs, if no conflicts occur.
 7. Keep AUTO_EDITORIAL_ENABLED, public publishing and public indexing disabled until separately requested and verified.
 

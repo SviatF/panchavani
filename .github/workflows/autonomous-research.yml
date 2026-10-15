@@ -223,8 +223,10 @@ jobs:
           PYTHONPATH=engine python -m panchavani.r2_inbox \
             --root . --run-id "$GITHUB_RESEARCH_RUN_ID" \
             --out inbox-manifest-UNAPPROVED.json
-      - name: Send 25-city research to isolated private R2 inbox (explicit opt-in)
-        if: ${{ vars.PANCHAVANI_R2_INGEST_ENABLED == 'true' }}
+      - name: Upload verified nightly research into isolated private R2 inbox
+        # User has provisioned three bucket-scoped R2 repository secrets.
+        # Never expose secrets to branch/PR code or upload from feature refs.
+        if: ${{ github.ref == 'refs/heads/main' && github.repository == 'SviatF/panchavani' && github.event_name != 'pull_request' }}
         env:
           PANCHAVANI_R2_ACCOUNT_ID: ${{ secrets.PANCHAVANI_R2_ACCOUNT_ID }}
           PANCHAVANI_R2_ACCESS_KEY_ID: ${{ secrets.PANCHAVANI_R2_ACCESS_KEY_ID }}
