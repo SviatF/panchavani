@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "predev": "node scripts/sync-assets.mjs",
+    "predev": "node scripts/sync-assets.mjs && node scripts/generate-reviewed-pages.mjs",
     "dev": "next dev",
-    "prebuild": "node scripts/sync-assets.mjs",
+    "prebuild": "node scripts/sync-assets.mjs && node scripts/generate-reviewed-pages.mjs",
     "build": "next build",
     "start": "wrangler dev",
     "typecheck": "tsc --noEmit",
