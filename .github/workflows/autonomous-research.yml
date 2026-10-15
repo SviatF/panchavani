@@ -213,6 +213,8 @@ jobs:
           out.write_text(json.dumps(summary,indent=2)+'\n')
           print('PASS: all',len(seen),'active cities, each in exactly one shard; 0 SEO releases')
           PY
+      - name: Test GitHub-to-R2 research manifest packaging without credentials
+        run: PYTHONPATH=engine python -m unittest discover -s engine/tests -p 'test_r2_inbox.py' -v
       - name: Build private R2 ingestion manifest (research only)
         if: ${{ github.event_name != 'pull_request' }}
         env:
@@ -239,6 +241,8 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: panchavani-nightly-aggregate-coverage-UNAPPROVED
-          path: coverage-UNAPPROVED.json
+          path: |
+            coverage-UNAPPROVED.json
+            inbox-manifest-UNAPPROVED.json
           retention-days: 7
           if-no-files-found: error
