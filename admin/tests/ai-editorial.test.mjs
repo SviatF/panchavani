@@ -150,7 +150,7 @@ test('prompt separates unapproved astronomy from approved facts and decision rul
  assert.equal(packet.evidenceState.astronomyVerified,false);
  assert.deepEqual(packet.approvedLocalRitualRules,[]);
  assert.deepEqual(packet.approvedAstronomicalFacts,[]);
- assert.ok(msgs[0].content.includes('Return only a JSON object'));
+ assert.ok(msgs[0].content.toLowerCase().includes('return only a json object'));
 });
 test('reader-first prompt keeps unapproved astronomy out of the model and separates audit language',()=>{
  const msgs=buildEditorialPrompt(candidate,location,'daily-panchang','en',hash);
