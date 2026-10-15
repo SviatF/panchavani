@@ -62,7 +62,27 @@ def post(base: str, path: str, data: dict, *, hmac_key: str, access_id: str, acc
                 raise RunnerError('Invalid API response')
             return result
     except HTTPError as exc:
-        raise RunnerError(f'Private admin rejected request: HTTP {exc.code}') from exc
+        # Do not log response bodies or headers: they may contain private data.
+        # The Worker returns an application/json error with a small fixed code;
+        # Cloudflare Access (or another edge rule) generally returns non-JSON.
+        media_type = (exc.headers.get('Content-Type', '') or '').split(';', 1)[0].strip().lower()
+        if media_type != 'application/json':
+            reason = 'non_json_rejection_check_Cloudflare_Access_or_edge'
+        else:
+            try:
+                payload = json.loads(exc.read(4096))
+            except (ValueError, UnicodeError):
+                payload = None
+            allowed_codes = {
+                'access_denied', 'runner_not_configured', 'not_found',
+                'payload_too_large', 'invalid_json', 'unexpected_claim_body',
+                'invalid_lease', 'lease_conflict', 'invalid_failure_code',
+                'candidate_rejected', 'candidate_too_large',
+                'lease_conflict_after_store', 'private_storage_unavailable',
+            }
+            candidate = payload.get('error') if isinstance(payload, dict) else None
+            reason = candidate if candidate in allowed_codes else 'unknown_private_api_error'
+        raise RunnerError(f'Private admin rejected request: HTTP {exc.code}; diagnostic={reason}') from None
     except URLError as exc:
         raise RunnerError('Private admin unavailable') from exc
 
