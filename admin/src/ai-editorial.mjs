@@ -452,7 +452,7 @@ export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=
     if(!candidate)return errorPage(409,'A completed, verified-by-runner research candidate is required.');
     // Pilot is deliberately limited to three cities; expanding to ten
     // requires a reviewed rollout, not an automatic 25-city cost explosion.
-    if(!ONE_SHOT_PILOT_CITIES.includes(record.city_id))
+    if(intent==='city-hub'?!CITY_META.has(record.city_id):!ONE_SHOT_PILOT_CITIES.includes(record.city_id))
       return errorPage(409,'City not included in the three-city one-shot pilot.');
     const city=CITY_META.get(record.city_id);
     if(!city)return errorPage(409,'Research city not in current catalogue.');
