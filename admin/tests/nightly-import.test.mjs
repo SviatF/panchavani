@@ -70,7 +70,7 @@ function fakeEnv(){
    return [{meta:{changes:1}}];
   }}
  };
- return {env,writes,events};
+ return {env,writes,events,setExisting(value){existing=value}};
 }
 test('opt-in ingestion consumes private SHA-verified research once, caches R2, zero AI',async()=>{
  const f=fakeEnv();
@@ -85,6 +85,17 @@ test('opt-in ingestion consumes private SHA-verified research once, caches R2, z
  assert.equal(again.stored,0);
  assert.equal(again.existing,1);
  assert.equal(f.writes.length,1);
+});
+test('preexisting manual city/date hash conflict never overwrites R2 or blocks private status reporting',async()=>{
+ const f=fakeEnv();
+ f.setExisting({content_hash:'0'.repeat(64)});
+ const result=await ingestNightly(f.env);
+ assert.equal(result.status,'conflicts-needing-review');
+ assert.equal(result.conflicts,1);
+ assert.deepEqual(result.conflictExamples,['delhi/2026-10-16']);
+ assert.equal(result.stored,0);
+ assert.equal(f.writes.length,0);
+ assert.equal(f.events.length,0);
 });
 test('without explicit opt-in, not even D1 or R2 is touched',async()=>{
  const result=await ingestNightly({DB:{list(){throw Error('unexpected')}},INGEST_INBOX:{},CANDIDATES:{}});
