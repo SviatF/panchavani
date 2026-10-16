@@ -122,6 +122,7 @@ export async function handleIngestConsole(request,env,actor,isTrustedBrowserPost
   cell('All research candidates',state.candidateTotal)+
   cell('D1 import ledger',state.ledger)+
   '</div></section>'+info+
+  '<section><h2>Resolve source variants safely</h2><p>Inspect the original D1 candidate and SHA-checked nightly R2 variants for Delhi, Mumbai and Chennai on 16 October. This does not replace or approve either record.</p><p><a href="/research/conflicts">Open read-only source conflict forensics →</a></p></section>'+ 
   '<section><h2>Run the import now</h2><p>Run the existing verified importer immediately. At most 20 NEW city/date records per execution. Original SHA-256 values and science rules are checked before writing. Already stored or conflicting records are never overwritten. This makes zero DeepSeek calls.</p>'+
   '<form action="/research/ingest-status" method="post"><input type="hidden" name="run" value="1">'+
   '<button type="submit"'+(readiness&&!terminalConflict?'':' disabled')+'>Import next batch now →</button></form>'+
