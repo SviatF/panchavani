@@ -109,6 +109,57 @@ test('preexisting manual city/date hash conflict never overwrites R2 or blocks p
  assert.equal(f.writes.length,0);
  assert.equal(f.events.length,0);
 });
+test('two identical 50-day manifests count a conflicting city-date only once',async()=>{
+ const f=fakeEnv();
+ f.setExisting({content_hash:'0'.repeat(64)});
+ const anotherRun='38813000892';
+ const secondKey=`inbox/manifests/${anotherRun}.json`;
+ const second={...manifest,runId:anotherRun,
+  entries:[{...manifest.entries[0],
+   key:`inbox/records/${anotherRun}/${date}/${city}.json`}]};
+ const originalGet=f.env.INGEST_INBOX.get.bind(f.env.INGEST_INBOX);
+ f.env.INGEST_INBOX.list=async()=>({truncated:false,
+  objects:[{key:mfkey},{key:secondKey}]});
+ f.env.INGEST_INBOX.get=async key=>
+  key===secondKey?
+    {size:JSON.stringify(second).length,text:async()=>JSON.stringify(second)}:
+    originalGet(key);
+ const result=await ingestNightly(f.env);
+ assert.equal(result.status,'conflicts-needing-review');
+ assert.equal(result.manifests,2);
+ assert.equal(result.uniqueCityDays,1);
+ assert.equal(result.checked,1);
+ assert.equal(result.conflicts,1);
+ assert.equal(result.repeatedManifestEntries,1);
+ assert.equal(result.sourceVariantConflicts,0);
+ assert.deepEqual(result.conflictExamples,['delhi/2026-10-16']);
+ assert.equal(f.writes.length,0);
+});
+test('same city/date but different nightly source checksum is flagged, not silently deduplicated',async()=>{
+ const f=fakeEnv();
+ f.setExisting({content_hash:hash(raw)});
+ const anotherRun='38813000892';
+ const secondKey=`inbox/manifests/${anotherRun}.json`;
+ const second={...manifest,runId:anotherRun,
+  entries:[{...manifest.entries[0],sha256:'f'.repeat(64),
+   key:`inbox/records/${anotherRun}/${date}/${city}.json`}]};
+ const originalGet=f.env.INGEST_INBOX.get.bind(f.env.INGEST_INBOX);
+ f.env.INGEST_INBOX.list=async()=>({truncated:false,
+  objects:[{key:mfkey},{key:secondKey}]});
+ f.env.INGEST_INBOX.get=async key=>
+  key===secondKey?
+    {size:JSON.stringify(second).length,text:async()=>JSON.stringify(second)}:
+    originalGet(key);
+ const result=await ingestNightly(f.env);
+ assert.equal(result.status,'conflicts-needing-review');
+ assert.equal(result.checked,1);
+ assert.equal(result.existing,1);
+ assert.equal(result.conflicts,1);
+ assert.equal(result.sourceVariantConflicts,1);
+ assert.equal(result.repeatedManifestEntries,0);
+ assert.deepEqual(result.conflictExamples,['delhi/2026-10-16']);
+ assert.equal(f.writes.length,0);
+});
 test('D1 bootstrap executes separate fixed DDL statements, not multiline exec',async()=>{
  const f=fakeEnv();
  const output=await ingestNightly(f.env);
