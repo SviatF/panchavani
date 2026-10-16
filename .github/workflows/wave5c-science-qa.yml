@@ -1,0 +1,95 @@
+name: Wave 5C official PAC and three-city Lahiri research (NO RELEASE)
+on:
+  push:
+    paths:
+      - '.github/workflows/wave5c-science-qa.yml'
+      - 'engine/panchavani/pac_limb_reference.py'
+      - 'engine/panchavani/sidereal_calibration_matrix.py'
+      - 'engine/tests/test_sidereal_calibration_matrix.py'
+      - 'engine/fixtures/pac-2026-10-16-central-limbs-UNREVIEWED.json'
+  pull_request:
+    paths:
+      - '.github/workflows/wave5c-science-qa.yml'
+      - 'engine/panchavani/pac_limb_reference.py'
+      - 'engine/panchavani/sidereal_calibration_matrix.py'
+      - 'engine/tests/test_sidereal_calibration_matrix.py'
+      - 'engine/fixtures/pac-2026-10-16-central-limbs-UNREVIEWED.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  official-central-pac-and-metro-cohort:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Offline historical/October PAC contract and cross-day regression
+        run: |
+          cd engine
+          python -m unittest discover -s tests -p 'test_pac_limb_reference.py' -v
+          python -m unittest discover -s tests -p 'test_sidereal_calibration_matrix.py' -v
+      - name: Install version-pinned Skyfield
+        run: pip install -r engine/requirements.txt
+      - name: Download immutable official JPL DE440s kernel
+        run: |
+          curl --fail --location --retry 3 --max-time 240 --silent --show-error \
+            https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp \
+            --output /tmp/de440s.bsp
+          echo 'c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2  /tmp/de440s.bsp' | sha256sum --check
+      - name: Compare official PAC central station four limbs and two Karanas on 16 Oct
+        run: |
+          PYTHONPATH=engine python -m panchavani.pac_limb_reference \
+            --ephemeris /tmp/de440s.bsp \
+            --fixture engine/fixtures/pac-2026-10-16-central-limbs-UNREVIEWED.json \
+            --out engine/artifacts/pac-2026-10-16-central-limbs-UNAPPROVED.json
+      - name: Compute two days for Delhi Mumbai Chennai with one JPL/Lahiri model
+        run: |
+          PYTHONPATH=engine python -m panchavani.sidereal_calibration_matrix \
+            --ephemeris /tmp/de440s.bsp --start 2026-10-16 \
+            --out engine/artifacts/sidereal-three-city-2026-10-16-UNAPPROVED.json
+      - name: Record all real deltas and check hard science/SEO denial gates
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          p=Path('engine/artifacts/pac-2026-10-16-central-limbs-UNAPPROVED.json')
+          r=json.loads(p.read_text())
+          m=json.loads(Path('engine/artifacts/sidereal-three-city-2026-10-16-UNAPPROVED.json').read_text())
+          assert r['status']=='PAC_LIMBS_RESEARCH_ONLY' and r['observationCount']==5
+          assert r['date']=='2026-10-16' and r['citySpecificClaims']==0
+          assert r['tithiKaranaCrossingAgreeWithinSecond']
+          assert r['methodologicallyIndependentValidation'] is False
+          assert r['publicationAuthorized'] is False and r['indexingAuthorized'] is False
+          assert m['checks']['checkedCityDays']==6
+          assert m['checks']['checkedSolarDayBoundaries']==3
+          assert m['checks']['geocentricUtcConsistent'] and m['checks']['crossDawnContinuityPassed']
+          assert not m['scientificApproval'] and not m['methodologyIndependentlyCalibrated']
+          assert m['approvedClaimsForDeepSeek']==[]
+          assert not m['publicationAuthorized'] and not m['indexingAuthorized']
+          assert all(x['status']=='UNAPPROVED' and not x['publicReleaseAllowed'] for x in m['records'])
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+            f.write('## PANCHAVANI Wave 5C — OFFICIAL PAC / RESEARCH ONLY\n\n')
+            f.write('PAC station scope: adopted central station, **NOT** Delhi/Mumbai/Chennai.\n\n')
+            f.write('| Official PAC element | JPL minus reported time (seconds) | Exploratory 30-minute alert |\n')
+            f.write('|---|---:|---|\n')
+            for x in r['comparisons']:
+              f.write(f"| {x['type']} #{x['number']} | {x['deltaSeconds']} | {x['withinResearchAlertThreshold']} |\n")
+            f.write('\nThree-city/two-day crossing checks: '+str(m['checks'])+'\n\n')
+            f.write('**Scientific approval = NO · Lahiri independently calibrated = NO · Publication = NO.**\n')
+          print('PAC max absolute delta',r['maxAbsoluteDeltaSeconds'],'seconds')
+          print('Within exploratory ceiling:',r['allWithinExploratoryAlert'])
+          print('Metro matrix:',m['checks'])
+          print('NO PUBLICATION / NO DEEPSEEK FACT PROMOTION')
+          PY
+      - name: Archive private-review-only date-pinned provenance reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: panchavani-wave5c-official-pac-three-city-UNAPPROVED
+          path: |
+            engine/artifacts/pac-2026-10-16-central-limbs-UNAPPROVED.json
+            engine/artifacts/sidereal-three-city-2026-10-16-UNAPPROVED.json
+          retention-days: 7
+          if-no-files-found: error

@@ -76,6 +76,13 @@ def validate_fixture(source: dict) -> None:
         seen.add(key)
     if set(x["type"] for x in observations)!=set(KINDS):
         raise ValueError("Missing a required astronomical limb")
+    # Every completed Tithi #n ends on Karana half #2n; no fixed
+    # September Ekadashi ordinal may be applied to an October Shashthi.
+    tithi=next(x for x in observations if x["type"]=="tithi")
+    final_karana=next((x for x in observations if x["type"]=="karana"
+                      and x["number"]==2*tithi["number"]),None)
+    if final_karana is None or final_karana["endClock"]!=tithi["endClock"]:
+        raise ValueError("PAC Tithi and final Karana must share the identical printed end clock")
 
 
 def compare_limb_endings(source: dict, computed: dict[tuple[str,int],list[datetime]]) -> dict:
@@ -145,11 +152,12 @@ def calculate_reference_comparison(ephemeris: Path, fixture: Path, output: Path)
         for seg in segs[:-1]:
             computed.setdefault((kind,seg.number),[]).append(seg.end)
     report=compare_limb_endings(source,computed)
-    # Every full Tithi boundary must be a Karana boundary. The PAC fixture
-    # explicitly reports Shukla Ekadashi/Vishti ending at the same minute.
+    # Generalized across Tithi ordinals and calendar dates: ending Tithi
+    # #n always shares its true angular crossing with Karana half #2n.
     tithi=next(r for r in report["comparisons"] if r["type"]=="tithi")
+    tithi_number=next(x["number"] for x in source["observations"] if x["type"]=="tithi")
     karana=next(r for r in report["comparisons"]
-                if r["type"]=="karana" and r["number"]==22)
+                if r["type"]=="karana" and r["number"]==2*tithi_number)
     report["tithiKaranaCrossingAgreeWithinSecond"]=abs(tithi["deltaSeconds"]-karana["deltaSeconds"])<=1
     if not report["tithiKaranaCrossingAgreeWithinSecond"]:
         raise ValueError("Mathematically identical Tithi and Karana crossings disagree")

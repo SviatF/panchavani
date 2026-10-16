@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "datasetId": "pac-2026-10-16-daily-central-limbs-UNREVIEWED-v1",
+  "publisher": "India Meteorological Department / Positional Astronomy Centre",
+  "publication": "Rashtriya Panchang, Saka Era 1948 / 2026 AD",
+  "sourceUrl": "https://packolkata.imd.gov.in/panchang/en",
+  "timeConventionDocument": "https://packolkata.imd.gov.in/panchang/en/explanation",
+  "sourceSection": "Dated official PAC daily Panchanga, 16 October 2026 (also indexed at https://packolkata.imd.gov.in/page.php?q=65)",
+  "gregorianDate": "2026-10-16",
+  "dayStartConvention": "central-station-sunrise",
+  "timeZone": "Asia/Kolkata",
+  "stationScope": "adopted-central-station-of-india-not-any-candidate-city",
+  "clockFormat": "h. HH-MM; 24-30 hours denote next Gregorian day",
+  "webSnapshotArchived": false,
+  "transcribedIndependentlyReviewed": false,
+  "methodologyIndependentlyValidated": false,
+  "candidatesNeverPublic": true,
+  "observations": [
+    {
+      "type": "tithi",
+      "number": 6,
+      "printedName": "(Asvina Sukla) Shashthi",
+      "endClock": "29-55",
+      "resolutionSeconds": 60
+    },
+    {
+      "type": "nakshatra",
+      "number": 18,
+      "printedName": "Jyestha",
+      "endClock": "06-48",
+      "resolutionSeconds": 60
+    },
+    {
+      "type": "yoga",
+      "number": 5,
+      "printedName": "Sobhana",
+      "endClock": "22-06",
+      "resolutionSeconds": 60
+    },
+    {
+      "type": "karana",
+      "number": 11,
+      "printedName": "Kaulava",
+      "endClock": "16-39",
+      "resolutionSeconds": 60
+    },
+    {
+      "type": "karana",
+      "number": 12,
+      "printedName": "Taitila",
+      "endClock": "29-55",
+      "resolutionSeconds": 60
+    }
+  ]
+}
