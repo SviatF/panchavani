@@ -121,7 +121,10 @@ export async function handleResearchDay(request,env,actor){
    if(res.state!=='research')
     return page('<h1>Record not available</h1><p>Research status: '+esc(res.state)+
       '. Nothing was published or regenerated.</p>',res.state==='missing'?404:503);
-   detail=renderPrivateResearchDay(res.record,res.sha256);
+   detail=renderPrivateResearchDay(res.record,res.sha256)+
+    '<p><a href="/research/daily-brief?city='+
+    encodeURIComponent(cityId)+'&date='+encodeURIComponent(date)+
+    '">View day-specific SEO content brief (research-only) →</a></p>';
   }
   return page('<h1>Private city-day research explorer</h1>'+
    '<p class="warning">Research candidates only · authenticated access · zero AI calls · not indexed.</p>'+
