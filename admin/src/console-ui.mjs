@@ -24,6 +24,7 @@ const NAV=[
 const PAGE=[
  ['/','Command Center','System overview'],
  ['/science/overview','Science gates','Astronomical evidence'],
+ ['/science/day','Daily science audit','Tithi · Karana · Solar consistency'],
  ['/research/daily','Daily explorer','Research candidates'],
  ['/research/ingest-status','Import telemetry','GitHub · R2 · D1'],
  ['/research/daily-brief','SEO fact briefs','Daily reader intent'],
