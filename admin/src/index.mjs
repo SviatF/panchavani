@@ -16,6 +16,7 @@ import { pilotReadiness } from './pilot-readiness.mjs';
 import { skinAdminResponse, ADMIN_UI_VERSION } from './console-ui.mjs';
 import { renderCommandCenter, readDashboardMetrics } from './console-dashboard.mjs';
 import { handleScienceConsole } from './science-console.mjs';
+import { handleDailyScienceAudit } from './science-day.mjs';
 
 
 const HEADERS = {
@@ -80,6 +81,8 @@ const baseWorker = {
     // The dashboard refuses access without Cloudflare-verified identity and explicit email allowlist.
     const actor = await authenticate(ctx, env);
     if (!actor) return deny();
+    const dailyScience=await handleDailyScienceAudit(request,env,actor);
+    if(dailyScience)return dailyScience;
     const science=await handleScienceConsole(request,env,actor);
     if(science)return science;
     const imported = await handleResearchImport(request, env, actor, isTrustedBrowserPost);
