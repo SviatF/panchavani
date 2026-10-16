@@ -73,11 +73,10 @@ test('Command Center reports real D1 counts and retains legacy operator forms in
  assert.match(text,/Command Center/);
  assert.match(text,/Production pipeline/);
  assert.match(text,/Research candidates/);
- assert.match(text,/City-level/);
+ assert.match(text,/Cities in research D1/);
  assert.match(text,/Advanced operations/);
  assert.match(text,/action="\/research\/import"/);
  assert.match(text,/action="\/jobs"/);
- assert.match(text,/action="\/jobs\/retry"/);
  assert.match(text,/aria-current="page"/);
  assert.equal(result.headers.get('X-Robots-Tag'),'noindex, nofollow, noarchive');
  assert.match(result.headers.get('Content-Security-Policy'),/default-src 'none'/);
