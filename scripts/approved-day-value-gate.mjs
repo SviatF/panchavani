@@ -32,8 +32,10 @@ export function similarity(a,b){
  return inter/(x.size+y.size-inter);
 }
 function localDate(value) {
- return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',
-  year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(value));
+ const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Kolkata',
+  year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(value));
+ const dict=Object.fromEntries(parts.map(x=>[x.type,x.value]));
+ return dict.year+'-'+dict.month+'-'+dict.day;
 }
 function segmentCheck(record, issues) {
  const start=Date.parse(record.sun?.sunriseUtc),stop=Date.parse(record.sun?.nextSunriseUtc);
@@ -94,13 +96,13 @@ export function inspectCityDay(record) {
     e.cityEvidence.some(x=>!obj(x)||x.cityId!==record.cityId||
      typeof x.factId!=='string'||x.factId.length<6||
      !substantial(x.localRelevance)||!sourceUrl(x.sourceUrl))||
-    new Set((e.cityEvidence||[]).map(x=>x.factId)).size<2)
+    new Set((e.cityEvidence||[]).map(x=>x?.factId)).size<2)
   issues.push('missing-two-grounded-local-facts');
  const approval=record.releaseEvidence||{};
  if(approval.reviewStatus!=='domain-reviewed'||approval.blockerCount!==0||
-   !substantial(approval.geoSource)||
-   !instant(approval.approvedAt)||!substantial(approval.reviewer)||
-   !substantial(approval.scientificReviewer)||
+   typeof approval.geoSource!=='string'||approval.geoSource.length<10||
+   !instant(approval.approvedAt)||typeof approval.reviewer!=='string'||approval.reviewer.length<3||
+   typeof approval.scientificReviewer!=='string'||approval.scientificReviewer.length<3||
    !Array.isArray(approval.comparisons)||approval.comparisons.length<2||
    !Array.isArray(approval.sourceIds)||approval.sourceIds.length<2||
    e.reviewedBy!==approval.reviewer)
@@ -130,8 +132,10 @@ export function assessFirstRelease(records) {
    rows[i].issues.push('identical-reader-question-across-cities');
    rows[j].issues.push('identical-reader-question-across-cities');
   }
-  const common=new Set((x.editorial.cityEvidence||[]).map(z=>z.factId));
-  if((y.editorial.cityEvidence||[]).every(z=>common.has(z.factId))){
+  const left=Array.isArray(x.editorial.cityEvidence)?x.editorial.cityEvidence:[];
+  const right=Array.isArray(y.editorial.cityEvidence)?y.editorial.cityEvidence:[];
+  const common=new Set(left.map(z=>z?.factId));
+  if(left.length&&right.length&&right.every(z=>common.has(z?.factId))){
    rows[i].issues.push('identical-local-evidence-across-cities');
    rows[j].issues.push('identical-local-evidence-across-cities');
   }
