@@ -13,6 +13,7 @@ const NAV=[
  {group:'JPL RESEARCH',items:[
   {href:'/research/daily',label:'Daily explorer',symbol:'◷'},
   {href:'/research/ingest-status',label:'Import telemetry',symbol:'⇅'},
+  {href:'/research/conflicts',label:'Source conflicts',symbol:'≠'},
   {href:'/research/daily-brief',label:'SEO fact briefs',symbol:'⌁'}
  ]},
  {group:'EDITORIAL',items:[
@@ -27,6 +28,7 @@ const PAGE=[
  ['/science/day','Daily science audit','Tithi · Karana · Solar consistency'],
  ['/research/daily','Daily explorer','Research candidates'],
  ['/research/ingest-status','Import telemetry','GitHub · R2 · D1'],
+ ['/research/conflicts','Source conflicts','D1 vs R2 · SHA forensics'],
  ['/research/daily-brief','SEO fact briefs','Daily reader intent'],
  ['/ai','DeepSeek studio','Private editorial'],
  ['/ai/draft','Private draft','Editorial · Research'],
