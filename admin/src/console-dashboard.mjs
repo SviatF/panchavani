@@ -4,7 +4,7 @@
 import {ACTIVE_CITIES} from './city-catalog.mjs';
 import {ingestReadiness} from './nightly-import.mjs';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;', '"':'&quot;',"'":'&#39;'}[c]));
-const safe=(v)=>Number.isSafeInteger(Number(v))&&Number(v)>=0?Number(v).toLocaleString('en-US'):'—';
+const safe=(v)=>v===null||v===undefined?'—':(Number.isSafeInteger(Number(v))&&Number(v)>=0?Number(v).toLocaleString('en-US'):'—');
 async function count(db,sql){
  if(!db)return null;
  try{
