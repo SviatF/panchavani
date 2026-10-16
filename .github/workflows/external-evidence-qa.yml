@@ -1,0 +1,74 @@
+name: JPL external evidence reconciliation (research only)
+on:
+  push:
+    paths:
+      - '.github/workflows/external-evidence-qa.yml'
+      - 'engine/panchavani/external_evidence.py'
+      - 'engine/fixtures/delhi-2026-10-16.drik-UNREVIEWED.json'
+  pull_request:
+    paths:
+      - '.github/workflows/external-evidence-qa.yml'
+      - 'engine/panchavani/external_evidence.py'
+      - 'engine/fixtures/delhi-2026-10-16.drik-UNREVIEWED.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compare-delhi-16oct:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test reference provenance and fail-closed approval boundary
+        run: cd engine && python -m unittest tests.test_external_evidence -v
+      - name: Install pinned astronomy runtime
+        run: pip install -r engine/requirements.txt
+      - name: Download checksum-pinned official JPL DE440s kernel
+        run: |
+          curl --fail --location --retry 3 --max-time 240 --silent --show-error \
+            https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp \
+            --output /tmp/de440s.bsp
+          echo 'c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2  /tmp/de440s.bsp' | sha256sum --check
+      - name: Compute actual research candidate for Delhi 16 October (NOT D1)
+        run: |
+          mkdir -p engine/artifacts
+          PYTHONPATH=engine python -m panchavani.compute \
+            --city delhi --date 2026-10-16 \
+            --ephemeris /tmp/de440s.bsp \
+            --expected-sha256 c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2 \
+            --out engine/artifacts/delhi-2026-10-16-candidate-UNAPPROVED.json
+      - name: Measure deltas against dated Drik research observations
+        run: |
+          sha=$(sha256sum engine/artifacts/delhi-2026-10-16-candidate-UNAPPROVED.json | cut -d ' ' -f1)
+          PYTHONPATH=engine python -m panchavani.external_evidence \
+            --candidate engine/artifacts/delhi-2026-10-16-candidate-UNAPPROVED.json \
+            --expected-sha256 "$sha" \
+            --fixture engine/fixtures/delhi-2026-10-16.drik-UNREVIEWED.json \
+            --out engine/artifacts/delhi-2026-10-16-external-evidence-UNAPPROVED.json
+          python - <<'PY'
+          import json
+          r=json.load(open('engine/artifacts/delhi-2026-10-16-external-evidence-UNAPPROVED.json'))
+          assert r['sourceCount']==1 and len(r['observations'])==4
+          assert not r['scientificApproval'] and not r['publicationAuthorized']
+          assert not r['indexingAuthorized'] and not r['paidGenerationAuthorized']
+          assert not r['sourceIndependenceVerified'] and not r['externalMethodologyReconciled']
+          with open(__import__('os').environ['GITHUB_STEP_SUMMARY'],'a') as f:
+              f.write('## PANCHAVANI external research comparison — NOT APPROVED\n\n')
+              f.write('| Observation | Difference (s) | Within exploratory ceiling |\n')
+              f.write('|---|---:|---|\n')
+              for row in r['observations']:
+                  f.write(f"| {row['metric']} | {row['deltaSeconds']} | {row['withinResearchCeiling']} |\n")
+              f.write('\nComparison uses one unreviewed web source and is not independent scientific validation. No facts promoted.\n')
+          print('RESEARCH ONLY: all within exploratory ceiling:',r['allWithinResearchCeiling'])
+          print('NO scientific approval or release. Human review needed.')
+          PY
+      - name: Archive unapproved comparison only (no D1/R2 or public site writes)
+        uses: actions/upload-artifact@v4
+        with:
+          name: panchavani-delhi-16oct-external-evidence-UNAPPROVED
+          path: engine/artifacts/delhi-2026-10-16-external-evidence-UNAPPROVED.json
+          retention-days: 3
+          if-no-files-found: error
