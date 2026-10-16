@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "city": "delhi",
+  "date": "2026-10-16",
+  "timezone": "Asia/Kolkata",
+  "researchOnly": true,
+  "description": "TRANSCRIBED, UNREVIEWED PUBLIC COMPARATOR, NOT AN INDEPENDENT SCIENTIFIC CERTIFICATE. Exact reference coordinates, sunrise conventions, precision/rounding, calculation method, and source independence are not documented here. Times were displayed on Drik Panchang's New Delhi month view for Friday 16 October 2026. Validate the same day/city source before relying on comparison.",
+  "sources": [
+    {
+      "id": "drik-delhi-2026-10-16",
+      "publisher": "Drik Panchang",
+      "url": "https://www.drikpanchang.com/panchang/month-panchang.html?geoname-id=997719",
+      "methodologyComparable": false,
+      "independenceVerified": false,
+      "observations": [
+        {
+          "metric": "sunrise",
+          "localIso": "2026-10-16T06:22:00+05:30",
+          "precisionSeconds": 60
+        },
+        {
+          "metric": "sunset",
+          "localIso": "2026-10-16T17:51:00+05:30",
+          "precisionSeconds": 60
+        },
+        {
+          "metric": "tithiEnd",
+          "label": "Shukla Shashthi",
+          "localIso": "2026-10-17T05:54:00+05:30",
+          "precisionSeconds": 60
+        },
+        {
+          "metric": "karanaEnd",
+          "label": "Kaulava",
+          "localIso": "2026-10-16T16:38:00+05:30",
+          "precisionSeconds": 60
+        }
+      ]
+    }
+  ]
+}
