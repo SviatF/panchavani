@@ -11,7 +11,9 @@
     "typecheck": "tsc --noEmit",
     "audit:content": "node scripts/audit-city-content.mjs",
     "deploy": "npm run build && wrangler deploy",
-    "clean": "node scripts/clean-assets.mjs"
+    "clean": "node scripts/clean-assets.mjs",
+    "audit:preindex": "node scripts/audit-first-indexing-readiness.mjs",
+    "test:preindex": "node --test scripts/test-approved-day-value-gate.mjs scripts/test-reviewed-page-generation.mjs"
   },
   "dependencies": {
     "next": "15.5.6",
@@ -26,5 +28,7 @@
     "typescript": "^5.9.3",
     "wrangler": "^4.43.0"
   },
-  "engines": {"node": ">=20"}
+  "engines": {
+    "node": ">=20"
+  }
 }
