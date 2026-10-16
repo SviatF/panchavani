@@ -179,23 +179,49 @@ export async function ingestNightly(env){
  }
  manifests.sort();
  let stored=0,checked=0,existing=0,conflicts=0;
+ let repeatedManifestEntries=0,sourceVariantConflicts=0;
  const conflictExamples=[];
+ const seen=new Map();
+ const conflicted=new Set();
+ const addConflict=(identity)=>{
+  if(conflicted.has(identity))return;
+  conflicted.add(identity);
+  conflicts++;
+  if(conflictExamples.length<5)conflictExamples.push(identity);
+ };
+ const summary=status=>({
+  status,stored,existing,checked,conflicts,conflictExamples,
+  manifests:manifests.length,uniqueCityDays:seen.size,
+  repeatedManifestEntries,sourceVariantConflicts
+ });
  for(const key of manifests){
   const raw=await fetchRaw(env.INGEST_INBOX,key,100000);
   if(!raw)throw new Error('unreadable-private-manifest');
   const m=checkManifest(JSON.parse(raw),key);
   for(const entry of m.entries){
-   if(stored>=MAX_PER_RUN)return {status:'batch-cap',stored,existing,checked,conflicts,conflictExamples};
+   const identity=entry.cityId+'/'+entry.localDate;
+   const priorHash=seen.get(identity);
+   // A day may be re-packaged by later GitHub runs. Rechecking the same
+   // city/date/hash inflates the apparent counts (94 existing, 6 conflicts)
+   // without representing 100 distinct records. Skip exact repeats only.
+   if(priorHash!==undefined){
+    if(priorHash===entry.sha256)repeatedManifestEntries++;
+    else{
+     // Two nightly runs disagree on research for the *same* city/day:
+     // flag the issue instead of silently treating either as equivalent.
+     sourceVariantConflicts++;
+     addConflict(identity);
+    }
+    continue;
+   }
+   if(stored>=MAX_PER_RUN)return summary('batch-cap');
+   seen.set(identity,entry.sha256);
    let state;
    try{state=await importOne(env,m,entry)}
    catch(error){
-    // A preexisting *different* city/day must NEVER overwrite the original.
-    // Report and move to other legitimate cities, rather than starving the
-    // remaining 24 cities behind one conflicting manual-imported Delhi.
     if(['existing-candidate-hash-conflict','reserved-or-conflicting-import']
        .includes(error?.message)){
-      conflicts++;
-      if(conflictExamples.length<5)conflictExamples.push(entry.cityId+'/'+entry.localDate);
+      addConflict(identity);
       checked++;
       continue;
     }
@@ -206,6 +232,5 @@ export async function ingestNightly(env){
    if(state==='existing')existing++;
   }
  }
- return {status:conflicts?'conflicts-needing-review':'complete',
-   stored,existing,checked,conflicts,conflictExamples};
+ return summary(conflicts?'conflicts-needing-review':'complete');
 }
