@@ -122,6 +122,9 @@ export async function handleResearchDay(request,env,actor){
     return page('<h1>Record not available</h1><p>Research status: '+esc(res.state)+
       '. Nothing was published or regenerated.</p>',res.state==='missing'?404:503);
    detail=renderPrivateResearchDay(res.record,res.sha256)+
+    '<p><a href="/science/day?city='+
+    encodeURIComponent(cityId)+'&date='+encodeURIComponent(date)+
+    '">Audit Tithi, Karana and local calendar consistency →</a></p>'+
     '<p><a href="/research/daily-brief?city='+
     encodeURIComponent(cityId)+'&date='+encodeURIComponent(date)+
     '">View day-specific SEO content brief (research-only) →</a></p>';
