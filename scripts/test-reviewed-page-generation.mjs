@@ -23,6 +23,39 @@ const run=(cwd,sha)=>spawnSync(process.execPath,[generator],{
 });
 const pathFor=(dir,city,date)=>path.join(dir,'app','panchang',city,date,'page.tsx');
 
+function syntheticFullRecord(city='delhi'){
+ const start='2026-10-16T00:50:00Z',end='2026-10-17T00:50:00Z';
+ const labels={tithi:'Shukla Shashthi',karana:'Kaulava',nakshatra:'Jyestha',yoga:'Shobhana'};
+ return {
+  cityId:city,date:'2026-10-16',timezone:'Asia/Kolkata',status:'approved',
+  releaseId:'synthetic-test-release',sourceRecordHash:'a'.repeat(64),
+  releaseEvidence:{
+    reviewer:'Test Reviewer',scientificReviewer:'Test Astronomer',
+    reviewStatus:'domain-reviewed',blockerCount:0,
+    geoSource:'Reviewed city point used only by synthetic fixture',
+    approvedAt:'2026-10-16T13:00:00Z',
+    comparisons:['test-compare-1','test-compare-2'],sourceIds:['source-1','source-2']
+  },
+  sun:{sunriseUtc:start,sunsetUtc:'2026-10-16T12:20:00Z',nextSunriseUtc:end},
+  panchang:{...labels,vara:'Friday',paksha:'Shukla'},
+  transitions:Object.fromEntries(Object.entries(labels).map(([kind,name])=>
+   [kind,[{name,startUtc:start,endUtc:end}]])),
+  editorial:{
+   reviewedBy:'Test Reviewer',
+   body:('An example review explains how local sunrise and the dawn-to-dawn window '
+    +'change interpretation, while avoiding unsupported religious claims. ').repeat(8),
+   localMeaning:'Delhi local sunrise and the defined observation point have to be checked before using time values.',
+   readerQuestion:'How is the city-specific dawn time used to interpret this astronomical date?',
+   readerAnswer:'Check the chosen coordinates, sunrise calculation, civil timezone and applicable calendar rule before trusting a day label.',
+   cityEvidence:[
+    {cityId:city,factId:city+'-geodata',localRelevance:'The selected astronomical reference point and its location must be independently verified for this city.',sourceUrl:'https://www.geonames.org/'},
+    {cityId:city,factId:city+'-conventions',localRelevance:'The sunrise and lunar event methodology must be referenced to original and separately reviewed sources.',sourceUrl:'https://packolkata.imd.gov.in/panchang/en'}
+   ]
+  }
+ };
+}
+
+
 test('empty evidence emits absolutely zero calendar routes',async()=>{
  const dir=await temporary();
  try{
@@ -37,7 +70,7 @@ test('empty evidence emits absolutely zero calendar routes',async()=>{
 test('digest-pinned reviewed routes build once, then stale physical pages are removed',async()=>{
  const dir=await temporary();
  try{
-  const record={cityId:'delhi',date:'2026-10-16',status:'approved'};
+  const record=syntheticFullRecord();
   const approved={schemaVersion:1,releaseStatus:'HUMAN_REVIEWED_WITH_EVIDENCE',records:[record]};
   await put(dir,approved);
   assert.equal(run(dir,'').status,1,'Missing review SHA must block approved route generation');
@@ -54,7 +87,7 @@ test('digest-pinned reviewed routes build once, then stale physical pages are re
 test('duplicate city/dates and wrong hashes cannot generate public routes',async()=>{
  const dir=await temporary();
  try{
-  const record={cityId:'delhi',date:'2026-10-16',status:'approved'};
+  const record=syntheticFullRecord();
   const duplicate={schemaVersion:1,releaseStatus:'HUMAN_REVIEWED_WITH_EVIDENCE',records:[record,record]};
   await put(dir,duplicate);
   assert.equal(run(dir,digest(duplicate)).status,1);

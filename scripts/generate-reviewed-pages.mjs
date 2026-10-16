@@ -5,6 +5,7 @@
 import {readFile,writeFile,rm,mkdir} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import path from 'node:path';
+import {assessFirstRelease} from './approved-day-value-gate.mjs';
 
 const root=process.cwd();
 const file=path.join(root,'data','approved-panchang.json');
@@ -24,6 +25,13 @@ if(payload.records.length&&(!/^[a-f0-9]{64}$/.test(digest||'')||
  throw Error('Approved records require exact independently reviewed build-time SHA-256');
 if(payload.records.length&&payload.releaseStatus!=='HUMAN_REVIEWED_WITH_EVIDENCE')
  throw Error('Approved records must have reviewed release status');
+// A signed SHA is a provenance lock, never proof of valuable or correct content.
+if(payload.records.length){
+ const quality=assessFirstRelease(payload.records);
+ if(!quality.readyForHumanReleaseReview)
+  throw Error('City/day evidence and uniqueness gate failed: '+
+   JSON.stringify(quality.rows.filter(x=>x.issues.length)));
+}
 const next=new Set();
 for(const record of payload.records){
  if(!safePair(record?.cityId,record?.date)||record?.status!=='approved')

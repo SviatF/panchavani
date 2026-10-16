@@ -23,8 +23,10 @@ jobs:
           PYTHONPATH=engine python -m panchavani.editorial_quality
           cd engine && python -m unittest discover -s tests -p 'test_editorial_quality.py' -v
           python -m unittest discover -s tests -p 'test_ai_editorial.py' -v
-      - name: Verify zero-placeholder reviewed date route generation
-        run: node --test scripts/test-reviewed-page-generation.mjs
+      - name: Verify hard city-day evidence, near-duplicate and four-limb page gates
+        run: npm run test:preindex
+      - name: Display truthful release readiness without opening indexing
+        run: npm run audit:preindex
       - name: Audit real public city texts for naturalness, useful reading tasks and distinct SEO snippets
         run: npm run audit:content
       - name: Build static site

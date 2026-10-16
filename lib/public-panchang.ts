@@ -22,9 +22,16 @@ export type ApprovedCityDay={
   sourceIds:[string,string,...string[]];geoSource:string;
   approvedAt:string;blockerCount:0;
  };
- sun:{sunriseUtc:string;sunsetUtc:string};
+ sun:{sunriseUtc:string;sunsetUtc:string;nextSunriseUtc:string};
+ transitions:{[key in 'tithi'|'karana'|'nakshatra'|'yoga']:{
+   name:string;startUtc:string;endUtc:string
+ }[]};
  panchang:{tithi:string;nakshatra:string;yoga:string;karana:string;vara:string;paksha:string};
- editorial:{reviewedBy:string;localMeaning:string;body:string};
+ editorial:{
+  reviewedBy:string;localMeaning:string;body:string;
+  readerQuestion:string;readerAnswer:string;
+  cityEvidence:{factId:string;cityId:PilotCityId;localRelevance:string;sourceUrl:string}[];
+ };
 };
 type Bundle={schemaVersion:1;releaseStatus:string;records:unknown[]};
 const allowedCity=new Set<string>(PILOT_CITY_IDS);
@@ -49,13 +56,38 @@ function check(record:unknown):record is ApprovedCityDay{
    !e.sourceIds.every(x=>typeof x==='string'&&x.length>6))return false;
  const s=record.sun,p=record.panchang,t=record.editorial;
  if(!obj(s)||!isoInstant(s.sunriseUtc)||!isoInstant(s.sunsetUtc)||
-   Date.parse(s.sunriseUtc as string)>=Date.parse(s.sunsetUtc as string))return false;
+   !isoInstant(s.nextSunriseUtc)||
+   !(Date.parse(s.sunriseUtc as string)<Date.parse(s.sunsetUtc as string)&&
+     Date.parse(s.sunsetUtc as string)<Date.parse(s.nextSunriseUtc as string)))return false;
  if(!obj(p)||!['tithi','nakshatra','yoga','karana','vara','paksha'].every(k=>
      typeof p[k]==='string'&&(p[k] as string).trim().length>1))return false;
  if(!obj(t)||typeof t.reviewedBy!=='string'||t.reviewedBy.length<3||
    typeof t.localMeaning!=='string'||t.localMeaning.length<40||
-   typeof t.body!=='string'||t.body.length<250||
+   typeof t.body!=='string'||t.body.length<350||
+   typeof t.readerQuestion!=='string'||t.readerQuestion.length<40||
+   typeof t.readerAnswer!=='string'||t.readerAnswer.length<40||
+   !Array.isArray(t.cityEvidence)||t.cityEvidence.length<2||
+   t.cityEvidence.some(x=>!obj(x)||x.cityId!==record.cityId||
+      typeof x.factId!=='string'||x.factId.length<6||
+      typeof x.localRelevance!=='string'||x.localRelevance.length<40||
+      typeof x.sourceUrl!=='string'||!x.sourceUrl.startsWith('https://'))||
    t.reviewedBy!==e.reviewer)return false;
+ const layers=record.transitions;
+ if(!obj(layers))return false;
+ const start=Date.parse(s.sunriseUtc as string),end=Date.parse(s.nextSunriseUtc as string);
+ for(const kind of ['tithi','karana','nakshatra','yoga'] as const){
+   const segments=layers[kind];
+   if(!Array.isArray(segments)||!segments.length)return false;
+   let cursor=start;
+   for(const item of segments){
+      if(!obj(item)||!isoInstant(item.startUtc)||!isoInstant(item.endUtc)||
+        Date.parse(item.startUtc as string)!==cursor||
+        Date.parse(item.endUtc as string)<=cursor)return false;
+      cursor=Date.parse(item.endUtc as string);
+   }
+   if(cursor!==end||segments[0].name!==p[kind])return false;
+ }
+ return true;
  return true;
 }
 export function loadApprovedDays(bundle:unknown, expectedDigest:string|undefined):ApprovedCityDay[]{
