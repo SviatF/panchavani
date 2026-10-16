@@ -53,6 +53,23 @@ test('POST requires Access identity and same-origin form before touching R2/D1',
  assert.match(text,/New stored: 20/);
  assert.equal(calls,1);
 });
+test('last replay is shown as one unique conflict and disables redundant form submit',async()=>{
+ const e=env();
+ const result=await handleIngestConsole(post(),e,'owner',()=>true,async()=>({
+  status:'conflicts-needing-review',stored:0,existing:47,
+  conflicts:3,checked:50,manifests:2,
+  repeatedManifestEntries:50,sourceVariantConflicts:0,
+  conflictExamples:['chennai/2026-10-16','delhi/2026-10-16','mumbai/2026-10-16']
+ }));
+ assert.equal(result.status,200);
+ const html=await result.text();
+ assert.match(html,/Existing unique records: 47/);
+ assert.match(html,/Unique conflicts: 3/);
+ assert.match(html,/Repeated entries skipped: 50/);
+ assert.match(html,/All available unique dates were checked/);
+ assert.match(html,/type="submit" disabled/);
+ assert.doesNotMatch(html,/chennai\/2026-10-16.*chennai\/2026-10-16/);
+});
 test('reports a sanitized error code without exposing internal details',async()=>{
  const e=env();
  let result=await handleIngestConsole(post(),e,'owner',()=>true,async()=>{

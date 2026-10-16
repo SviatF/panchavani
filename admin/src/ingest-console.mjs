@@ -95,14 +95,20 @@ export async function handleIngestConsole(request,env,actor,isTrustedBrowserPost
  }
  const state=await counts(env);
  const readiness=ready.enabled&&ready.inbox&&ready.database&&ready.privateStorage;
+ const terminalConflict=result?.status==='conflicts-needing-review'&&result.stored===0;
  const info=result?
   '<div class="notice"><strong>Import run result: '+ESC(result.status)+
   '</strong><p>New stored: '+ESC(result.stored??0)+
-  ' · Existing: '+ESC(result.existing??0)+
-  ' · Conflicts: '+ESC(result.conflicts??0)+
-  ' · Checked: '+ESC(result.checked??0)+'</p>'+
+  ' · Existing unique records: '+ESC(result.existing??0)+
+  ' · Unique conflicts: '+ESC(result.conflicts??0)+
+  ' · Distinct checked: '+ESC(result.checked??0)+'</p>'+
+  '<p>Completed manifests: '+ESC(result.manifests??'—')+
+  ' · Repeated entries skipped: '+ESC(result.repeatedManifestEntries??0)+
+  ' · Different source hashes: '+ESC(result.sourceVariantConflicts??0)+'</p>'+
   (result.conflictExamples?.length?
-  '<p>Requires manual source reconciliation: '+ESC(result.conflictExamples.join(', '))+'</p>':'')+'</div>':
+  '<p>Requires source reconciliation (no overwrites): '+ESC(result.conflictExamples.join(', '))+'</p>':'')+
+  (result.stored===0&&result.status==='conflicts-needing-review'?
+   '<p>All available unique dates were checked; repeating Import Now will not resolve these conflicts. No action required until source reconciliation.</p>':'')+'</div>':
   error?'<div class="notice"><strong>Import failed:</strong> '+ESC(error)+
    '<p>No retry or existing candidate deletion is performed here.</p></div>':'';
  const body='<section><h2>Private pipeline readiness</h2><div class="grid">'+
@@ -118,7 +124,7 @@ export async function handleIngestConsole(request,env,actor,isTrustedBrowserPost
   '</div></section>'+info+
   '<section><h2>Run the import now</h2><p>Run the existing verified importer immediately. At most 20 NEW city/date records per execution. Original SHA-256 values and science rules are checked before writing. Already stored or conflicting records are never overwritten. This makes zero DeepSeek calls.</p>'+
   '<form action="/research/ingest-status" method="post"><input type="hidden" name="run" value="1">'+
-  '<button type="submit"'+(readiness?'':' disabled')+'>Import next batch now →</button></form>'+
-  '<p class="sub">For the 50 research records, repeat only if the result says batch-cap. Do not retry error/failed slots without investigation.</p></section>';
+  '<button type="submit"'+(readiness&&!terminalConflict?'':' disabled')+'>Import next batch now →</button></form>'+
+  '<p class="sub">Press again only when the result says batch-cap. Repeated nightly manifests are counted once per unique city/date, and conflicting source hashes are never overwritten.</p></section>';
  return render(body,error?503:200);
 }
