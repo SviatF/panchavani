@@ -10,6 +10,7 @@ import { SEO_PIPELINE_VERSION } from './seo-automation.mjs';
 import { runAutonomy, readiness } from './autonomy.mjs';
 import { handleResearchImport } from './research-handoff.mjs';
 import { handleResearchDay } from './research-daily.mjs';
+import { handleDailyBrief } from './daily-brief-route.mjs';
 import { handleIngestConsole } from './ingest-console.mjs';
 import { pilotReadiness } from './pilot-readiness.mjs';
 
@@ -85,6 +86,8 @@ export default {
     if (imported) return imported;
     const ingestPage=await handleIngestConsole(request,env,actor,isTrustedBrowserPost);
     if(ingestPage)return ingestPage;
+    const dailyBrief=await handleDailyBrief(request,env,actor);
+    if(dailyBrief)return dailyBrief;
     const researched = await handleResearchDay(request, env, actor);
     if (researched) return researched;
     const ai = await handleAi(request, env, actor, isTrustedBrowserPost);
