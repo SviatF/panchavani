@@ -13,6 +13,10 @@ import { handleResearchDay } from './research-daily.mjs';
 import { handleDailyBrief } from './daily-brief-route.mjs';
 import { handleIngestConsole } from './ingest-console.mjs';
 import { pilotReadiness } from './pilot-readiness.mjs';
+import { skinAdminResponse, ADMIN_UI_VERSION } from './console-ui.mjs';
+import { renderCommandCenter, readDashboardMetrics } from './console-dashboard.mjs';
+import { handleScienceConsole } from './science-console.mjs';
+
 
 const HEADERS = {
   'X-Robots-Tag': 'noindex, nofollow, noarchive',
@@ -66,15 +70,9 @@ export async function authenticate(ctx, env) {
     return null;
   }
 }
-function html(email, jobs, configured, pipelineReady, pilot) {
-  const rows = jobs.map(j => `<tr><td>${escapeHtml(j.city_id)}</td><td>${escapeHtml(j.local_date)}</td><td>${escapeHtml(j.status)}</td><td><code>${escapeHtml(j.candidate_hash ? j.candidate_hash.slice(0,12) + '…' : (j.error_code || '—'))}</code></td><td>${escapeHtml(j.created_at)}</td><td>${escapeHtml(j.requested_by)}</td><td>${j.status==='failed'?`<form action="/jobs/retry" method="post"><input type="hidden" name="id" value="${escapeHtml(j.id)}"><button type="submit">Retry</button></form>`:'—'}</td></tr>`).join('');
-  const cityOptions = ACTIVE_CITIES.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join('');
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow,noarchive"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PANCHAVANI — Private Calculation Console</title><style>
-:root{color-scheme:dark;font-family:Arial,Helvetica,sans-serif;background:#070707;color:#f9f0df}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 75% 0%,#39221366,transparent 42%),#070707;min-height:100vh}header{border-bottom:1px solid #63492b79;padding:20px max(24px,5vw);display:flex;justify-content:space-between;gap:20px;align-items:center;background:#080707bf}header strong{font:500 24px Georgia,serif;letter-spacing:2px}header small{color:#aa9879}main{max-width:1130px;margin:auto;padding:40px 24px 80px}h1{font:normal clamp(29px,4vw,47px) Georgia,serif;margin:4px 0 10px}.muted{color:#b9afa1;line-height:1.6;font-size:14px}.eyebrow{font-size:10px;letter-spacing:2px;color:#e8bc70;text-transform:uppercase}section{border:1px solid #58432b76;background:linear-gradient(140deg,#17120e,#0b0a09);padding:24px;border-radius:13px;margin-top:22px;box-shadow:0 12px 30px #0005}.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:30px}.cards section{margin:0}.cards strong{font:normal 22px Georgia,serif;color:#edc98c}.cards p{font-size:12px;color:#bfb7a8;line-height:1.5}form{display:flex;gap:10px;flex-wrap:wrap;align-items:end}label{display:flex;flex-direction:column;gap:7px;font-size:12px;color:#e9c58c}input,select,button{font:inherit;padding:12px;border-radius:6px;border:1px solid #766044;background:#111;color:#f8ead4;min-height:42px}button{border:1px solid #e7bd77;background:linear-gradient(100deg,#c99242,#edca8b);color:#1f1308;font-weight:700;cursor:pointer}button:disabled{opacity:.4;cursor:not-allowed}table{width:100%;border-collapse:collapse;font-size:12px;overflow:auto}th,td{text-align:left;padding:13px 9px;border-bottom:1px solid #54433277}th{color:#ebc58e}a{color:#efc988}code{color:#efca8c}footer{margin-top:36px;font-size:11px;color:#938778}@media(max-width:730px){.cards{grid-template-columns:1fr}header{align-items:start;flex-direction:column}main{padding:24px 16px}} 
-</style></head><body><header><strong>PANCHAVANI <small>· PRIVATE OPS</small></strong><small>Authenticated: ${escapeHtml(email)}</small></header><main><div class="eyebrow">Restricted research environment</div><h1>Calculation Control Center</h1><p class="muted">Draft calculations are never published automatically. No ritual or Muhurat recommendation can pass this interface without separately validated astronomy, traditional rules and an audited approval workflow.</p><div class="cards"><section><div class="eyebrow">Ephemeris pipeline</div><strong>${pipelineReady ? 'Runner gateway ready' : 'Runner not configured'}</strong><p>${pipelineReady ? 'Research requests can be claimed by an authenticated external Skyfield runner. Candidates remain UNAPPROVED and cannot publish.' : 'Configure private R2 and a signed research runner before executing queued jobs.'}</p></section><section><div class="eyebrow">Quality gate</div><strong>Publication locked</strong><p>Incomplete Ayanamsa, regional calendar rules and source verification are hard blockers.</p></section><section><div class="eyebrow">Database</div><strong>${configured ? 'Connected' : 'Unconfigured'}</strong><p>${configured ? 'Job requests can be queued for a future trusted runner.' : 'Configure a private D1 DB binding; no job requests can be accepted until then.'}</p></section></div><section><div class="eyebrow">Queue research calculation</div><h2>City / date</h2><p class="muted">This requests a calculation; it does NOT compute, verify, approve or publish results. All research city coordinates remain provisional; the admin reads the same versioned catalogue as the astronomy engine.</p><form action="/jobs" method="post"><label>City<select name="city" required>${cityOptions}</select></label><label>Local date<input type="date" name="date" min="2000-01-01" max="2099-12-31" required></label><button ${configured ? '' : 'disabled'} type="submit">Queue research only</button></form></section><section><div class="eyebrow">REAL JPL CITY-DAY DATA</div><h2>Private calculated day explorer</h2><p class="muted">Browse all stored city and day research candidates directly from D1/R2. Shows real computed Tithi, Karana, solar anchors and transitions. Not scientific approval, no DeepSeek, no SEO release.</p><a href="/research/daily">View stored daily research →</a><p><a href="/research/ingest-status">JPL Import Status · Run now →</a></p></section><section><div class="eyebrow">Private AI Editorial</div><h2>DeepSeek draft workshop</h2><p class="muted">Create natural, city-specific RESEARCH drafts using a completed private astronomical candidate. The Worker uses an encrypted server-side API secret; no AI draft is verified or published automatically.</p><a href="/ai">Open private AI Editorial Drafts →</a></section><section><div class="eyebrow">ONE-TIME SCIENCE IMPORT · THREE CITIES</div><h2>Import JPL research handoff</h2><p class="muted">When GitHub-to-Cloudflare Service Auth is blocked, import one downloaded three-city GitHub Actions research bundle here. Existing Cloudflare Access identity is required. NASA/JPL candidates remain UNAPPROVED, stored only in private D1/R2. This performs ZERO DeepSeek calls and cannot publish.</p><form action="/research/import" method="post" enctype="multipart/form-data"><label>GitHub Actions research JSON<input type="file" name="bundle" accept=".json,application/json" required></label><button type="submit" ${pilot.importReady?'':'disabled'}>Import three research candidates</button></form><p class="muted">Only use the JSON file from the GitHub Actions workflow: PANCHAVANI three-city JPL private handoff.</p><p class="muted">${pilot.importReady?'Private import schema ready. You may upload the research JSON.':'Import is disabled until the private D1 migration is installed. Missing: '+escapeHtml(pilot.missing.join(', '))+'.'} No AI call is made during upload.</p></section><section><div class="eyebrow">Audit trail</div><h2>Recent requests</h2><div style="overflow-x:auto"><table><thead><tr><th>City</th><th>Date</th><th>Status</th><th>Artifact SHA / failure</th><th>Requested UTC</th><th>Requested by</th><th>Recovery</th></tr></thead><tbody>${rows || '<tr><td colspan="7">No calculation requests.</td></tr>'}</tbody></table></div></section><footer>Private operation — protected by Cloudflare-verified Access identity and an email allowlist. X-Robots-Tag: noindex. Not connected to the public PANCHAVANI SSG site.</footer></main></body></html>`;
-}
 
-export default {
+
+const baseWorker = {
   async fetch(request, env, ctx) {
     // Internal runners need an independent signed identity; neither path approves or publishes.
     const runner = await handleRunner(request, env);
@@ -82,6 +80,8 @@ export default {
     // The dashboard refuses access without Cloudflare-verified identity and explicit email allowlist.
     const actor = await authenticate(ctx, env);
     if (!actor) return deny();
+    const science=await handleScienceConsole(request,env,actor);
+    if(science)return science;
     const imported = await handleResearchImport(request, env, actor, isTrustedBrowserPost);
     if (imported) return imported;
     const ingestPage=await handleIngestConsole(request,env,actor,isTrustedBrowserPost);
@@ -96,7 +96,7 @@ export default {
     if (request.method === 'GET' && url.pathname === '/robots.txt') return response('User-agent: *\nDisallow: /\n', 200, 'text/plain; charset=utf-8');
     if (request.method === 'GET' && url.pathname === '/api/status') {
       const pilot=await pilotReadiness(env);
-      return response(JSON.stringify({ privacy: 'authenticated', engine: 'research-only', publishing: 'disabled', database: Boolean(env.DB), runnerReady: Boolean(env.DB && env.CANDIDATES && env.RUNNER_HMAC_SECRET), deepseekConfigured: Boolean(env.DEEPSEEK_API_KEY && env.CANDIDATES && env.DB), editorialPolicyVersion: EDITORIAL_POLICY_VERSION, seoPipelineVersion: SEO_PIPELINE_VERSION, automation: readiness(env), pilot }), 200, 'application/json; charset=utf-8');
+      return response(JSON.stringify({ privacy: 'authenticated', engine: 'research-only', publishing: 'disabled', database: Boolean(env.DB), runnerReady: Boolean(env.DB && env.CANDIDATES && env.RUNNER_HMAC_SECRET), deepseekConfigured: Boolean(env.DEEPSEEK_API_KEY && env.CANDIDATES && env.DB), editorialPolicyVersion: EDITORIAL_POLICY_VERSION, seoPipelineVersion: SEO_PIPELINE_VERSION, adminUiVersion: ADMIN_UI_VERSION, automation: readiness(env), pilot }), 200, 'application/json; charset=utf-8');
     }
     if (request.method === 'GET' && url.pathname === '/api/jobs') {
       if (!env.DB) return response(JSON.stringify({jobs:[],configured:false}),200,'application/json; charset=utf-8');
@@ -109,7 +109,11 @@ export default {
         try { jobs = (await env.DB.prepare('SELECT id, city_id, local_date, status, candidate_hash, error_code, created_at, requested_by FROM job_requests ORDER BY created_at DESC LIMIT 30').all()).results || []; }
         catch { return response('Database unavailable — access locked', 503); }
       }
-      return response(html(actor, jobs, Boolean(env.DB), Boolean(env.DB && env.CANDIDATES && env.RUNNER_HMAC_SECRET), await pilotReadiness(env)), 200, 'text/html; charset=utf-8');
+      const [pilot,metrics]=await Promise.all([pilotReadiness(env),readDashboardMetrics(env)]);
+      return response(renderCommandCenter({
+        actor,jobs,pilot,metrics,configured:Boolean(env.DB),
+        pipelineReady:Boolean(env.DB && env.CANDIDATES && env.RUNNER_HMAC_SECRET)
+      }),200,'text/html; charset=utf-8');
     }
     if (request.method === 'POST' && url.pathname === '/jobs/retry') {
       if (!isTrustedBrowserPost(request)) return blockUnsafeForm();
@@ -157,4 +161,10 @@ export default {
       publishingAuthorized:false
     }));
   },
+};
+// Apply design only after all original private Access and signed runner
+// authorization checks have completed. Scheduled Cron remains unchanged.
+export default {
+  fetch:async(request,env,ctx)=>skinAdminResponse(await baseWorker.fetch(request,env,ctx),request),
+  scheduled:(controller,env,ctx)=>baseWorker.scheduled(controller,env,ctx)
 };
