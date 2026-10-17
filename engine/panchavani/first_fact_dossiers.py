@@ -147,6 +147,13 @@ def build_dossier(science:dict,geo:dict,swiss:dict,sha:dict,
         or swiss.get("sampleCount")!=15
         or swiss.get("independentBoundaryEventCount",0)<1):
         raise ValueError("Independent software calibration report missing/forged")
+    if (geo.get("cityCount")!=3 or geo.get("cityDayComparisonCount")!=12
+        or geo.get("officialPACClockComparisons")!=12):
+        raise ValueError("Geography or official PAC date coverage incomplete")
+    if set(sha)!={"science","geo","swiss"} or any(
+        not isinstance(value,str) or len(value)!=64 or
+        any(c not in "0123456789abcdef" for c in value) for value in sha.values()):
+        raise ValueError("Missing immutable research-file SHA-256 ledger")
     geos={x["cityId"]:x for x in geo.get("records",[])}
     if set(geos)!=set(PILOT) or len(geo["records"])!=3:
         raise ValueError("Wrong geo-city scope")
@@ -160,6 +167,9 @@ def build_dossier(science:dict,geo:dict,swiss:dict,sha:dict,
     for r in science["records"]:
         city,day=r["cityId"],r["localDate"]
         geo_row=geos[city]
+        geo_days={v["localDate"] for v in geo_row["dates"]}
+        if geo_days!={"2026-04-21","2026-10-16","2026-10-17","2026-10-23"}:
+            raise ValueError("Incomplete seasonal source crosscheck: "+city)
         adopted=geo_row["researchCityPoint"]
         stored=r["cityReference"]
         for a,b in (("latitude","latitude"),("longitude","longitude"),
@@ -173,6 +183,11 @@ def build_dossier(science:dict,geo:dict,swiss:dict,sha:dict,
             raise ValueError("Independent sunrise evidence belongs to another JPL candidate")
         if geo_row.get("stationPointScientificallyApproved") is not False:
             raise ValueError("Geo source falsely signed")
+        if (compared.get("nakshatraLabelAgrees") is not True or
+            compared.get("yogaLabelAgrees") is not True or
+            compared.get("nakshatraNumberPanchavani")!=r["transitions"]["nakshatra"][0]["number"] or
+            compared.get("yogaNumberPanchavani")!=r["transitions"]["yoga"][0]["number"]):
+            raise ValueError("Independent sidereal sunrise classification disagrees: "+city+"/"+day)
         facts=_facts_for(r,geo_row)
         packet={
             "recordType":"CITY_DAY_EDITORIAL_RESEARCH_DOSSIER",
