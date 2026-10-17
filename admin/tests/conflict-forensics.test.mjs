@@ -98,3 +98,32 @@ test('unavailable private bindings do not fetch manifests or leak source',async(
  const r=await handleConflictForensics(new Request(url),{DB:{}},'owner');
  assert.equal(r.status,503);
 });
+
+test('authenticated forensic JSON export has real SHA differences but never approves/writes',async()=>{
+ const e=env(),r=await handleConflictForensics(
+  new Request(url+'&format=json'),e,'scientific-reviewer');
+ assert.equal(r.status,200);
+ assert.match(r.headers.get('Content-Type'),/application\/json/);
+ assert.match(r.headers.get('Cache-Control'),/no-store/);
+ assert.match(r.headers.get('X-Robots-Tag'),/noindex/);
+ const report=await r.json();
+ assert.equal(report.artifactType,'PANCHAVANI_PRIVATE_SHA_CONFLICT_TRIAGE');
+ assert.equal(report.livePrivateD1WasActuallyRead,true);
+ assert.equal(report.variantCount,1);
+ assert.equal(report.variants[0].disposition,'RESEARCH_FIELDS_DIFFER');
+ assert.deepEqual(report.variants[0].changedResearchFields,['sun.sunsetUtc']);
+ assert.equal(report.variants[0].incomingSha256,checksum(incomingRaw));
+ assert.equal(report.storedSha256,checksum(storedRaw));
+ assert.equal(report.shaConflictResolved,false);
+ assert.equal(report.reviewedScienceApproved,false);
+ assert.equal(report.publicReleaseAllowed,false);
+ assert.equal(report.indexingAuthorized,false);
+ assert.equal(e.writes(),0);
+});
+test('JSON SHA triage requires Access, refuses unsafe selectors and tampered inputs',async()=>{
+ assert.equal((await handleConflictForensics(new Request(url+'&format=json'),env(),null)).status,403);
+ assert.equal((await handleConflictForensics(new Request(url+'&format=csv'),env(),'reviewer')).status,400);
+ const e=env({tamper:true});
+ assert.equal((await handleConflictForensics(new Request(url+'&format=json'),e,'reviewer')).status,503);
+ assert.equal(e.writes(),0);
+});
