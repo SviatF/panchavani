@@ -1,0 +1,113 @@
+name: PANCHAVANI rolling six-limb city research previews (DAILY / UNAPPROVED)
+on:
+  schedule:
+    - cron: '41 04 * * *'
+  workflow_dispatch:
+    inputs:
+      start:
+        description: India-local first date YYYY-MM-DD (empty = tomorrow IST)
+        required: false
+        default: ''
+        type: string
+  push:
+    paths:
+      - '.github/workflows/rolling-six-limb-research.yml'
+      - 'engine/panchavani/first_six_limb_pilot.py'
+      - 'engine/panchavani/rolling_day_previews.py'
+      - 'engine/tests/test_rolling_day_previews.py'
+  pull_request:
+    paths:
+      - '.github/workflows/rolling-six-limb-research.yml'
+      - 'engine/panchavani/first_six_limb_pilot.py'
+      - 'engine/panchavani/rolling_day_previews.py'
+      - 'engine/tests/test_rolling_day_previews.py'
+permissions:
+  contents: read
+concurrency:
+  group: panchavani-rolling-six-limb-research
+  cancel-in-progress: false
+jobs:
+  six-limb-city-research-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Prove future-date rolling invariants and non-indexability
+        run: |
+          cd engine
+          python -m unittest discover -s tests -p 'test_rolling_day_previews.py' -v
+          python -m unittest discover -s tests -p 'test_first_six_limb_pilot.py' -v
+      - name: Determine tomorrow in India (or explicit date)
+        id: day
+        env:
+          REQUESTED_START: ${{ inputs.start }}
+        run: |
+          python - <<'PY'
+          import os
+          from datetime import date,datetime,timedelta
+          from zoneinfo import ZoneInfo
+          value=os.environ.get('REQUESTED_START','').strip()
+          day=date.fromisoformat(value) if value else datetime.now(ZoneInfo('Asia/Kolkata')).date()+timedelta(days=1)
+          assert 2020<=day.year<=2099
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+            f.write('day='+day.isoformat()+'\n')
+          print('Research pilot begins India-local',day.isoformat())
+          PY
+      - name: Install pinned astronomical dependencies
+        run: pip install -r engine/requirements.txt
+      - name: Verify exact NASA/JPL DE440s kernel SHA-256
+        run: |
+          curl --fail --location --retry 3 --max-time 240 --silent --show-error \
+            https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp \
+            --output /tmp/de440s.bsp
+          echo 'c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2  /tmp/de440s.bsp' | sha256sum --check
+      - name: Compute real JPL six-limb sunrise-based 3-city x 2-day pilot
+        run: |
+          PYTHONPATH=engine python -m panchavani.first_six_limb_pilot \
+            --start '${{ steps.day.outputs.day }}' --ephemeris /tmp/de440s.bsp \
+            --out engine/artifacts/rolling-six-limb-UNAPPROVED.json
+      - name: Six human-review astronomy briefs only, no AI or public pages
+        run: |
+          PYTHONPATH=engine python -m panchavani.rolling_day_previews \
+            --batch engine/artifacts/rolling-six-limb-UNAPPROVED.json \
+            --out engine/artifacts/rolling-six-city-preview-index-UNAPPROVED.json \
+            --previews engine/artifacts/rolling-city-briefs
+      - name: Check six unique city facts, science safety, and report daily status
+        run: |
+          python - <<'PY'
+          import json,os,hashlib,pathlib
+          root=pathlib.Path('engine/artifacts')
+          report=json.loads((root/'rolling-six-city-preview-index-UNAPPROVED.json').read_text())
+          src=(root/'rolling-six-limb-UNAPPROVED.json').read_bytes()
+          assert report['jplResearchBatchSha256']==hashlib.sha256(src).hexdigest()
+          assert report['cityDays']==6 and report['fourLimbDawnChecks']==12
+          assert report['status']=='UNAPPROVED_RESEARCH'
+          assert not report['scientificApproval'] and not report['publicationAuthorized']
+          assert not report['indexingAuthorized'] and not report['modelInvocationAuthorized']
+          assert report['approvedClaimsForDeepSeek']==[]
+          assert len({p['previewSha256'] for p in report['records']})==6
+          assert len({p['modeledSunriseIST'] for p in report['records']})==6
+          assert len(list((root/'rolling-city-briefs').glob('*-UNAPPROVED.md')))==6
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:
+            out.write('## PANCHAVANI nightly: 6-limb / 3-city / 2-day research preview\n\n')
+            out.write('**Still blocked from public release, paid generation and automatic scientific approval.**\n\n')
+            out.write('| City | Local date | JPL sunrise IST | Astronomical changes | Reviewed? |\n')
+            out.write('|---|---|---|---:|---|\n')
+            for p in report['records']:
+              out.write(f"| {p['cityId']} | {p['localDate']} | {p['modeledSunriseIST']} | {p['changeCount']} | NO |\n")
+            out.write('\nCity observers, Lahiri and private D1 source hashes still require scientific review.\n')
+          print('PASS: six location-unique JPL research previews, zero public pages')
+          PY
+      - name: Archive private-only research; do not deploy
+        uses: actions/upload-artifact@v4
+        with:
+          name: panchavani-rolling-three-city-six-limb-UNAPPROVED
+          path: |
+            engine/artifacts/rolling-six-limb-UNAPPROVED.json
+            engine/artifacts/rolling-six-city-preview-index-UNAPPROVED.json
+            engine/artifacts/rolling-city-briefs/*.md
+          retention-days: 14
+          if-no-files-found: error
