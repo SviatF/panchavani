@@ -55,6 +55,7 @@ def fixture():
             swiss["comparisons"].append({
               "sampleCategory":c+"/"+r["localDate"]+"/SUNRISE",
               "instantUtc":r["sun"]["sunriseUtc"],
+              "nakshatraNumberPanchavani":18,"yogaNumberPanchavani":5,
               "nakshatraLabelAgrees":True,"yogaLabelAgrees":True
             })
         dates=[]
@@ -75,6 +76,13 @@ def fixture():
                   "sunriseSeconds":0.0,"sunsetSeconds":0.0
                 }
             })
+        for extra in ("2026-04-21","2026-10-23"):
+            dates.append({"localDate":extra,
+              "catalogClockIST":{"sunrise":extra+"T06:00:00+05:30",
+                                 "sunset":extra+"T18:00:00+05:30"},
+              "gazetteerClockIST":{"sunrise":extra+"T06:00:00+05:30",
+                                   "sunset":extra+"T18:00:00+05:30"},
+              "gazetteerMinusCatalogSeconds":{"sunriseSeconds":0,"sunsetSeconds":0}})
         geo["records"].append({
             "cityId":c,"researchCityPoint":site,
             "stationPointScientificallyApproved":False,
@@ -122,6 +130,8 @@ class DossiersTest(unittest.TestCase):
             lambda s,g,w: g.update(catalogSha256="f"*64),
             lambda s,g,w: w["comparisons"][0].update(instantUtc="2026-10-18T00:00:00Z"),
             lambda s,g,w: w.update(methodEquivalenceConfirmed=True),
+            lambda s,g,w: w["comparisons"][0].update(nakshatraNumberPanchavani=19),
+            lambda s,g,w: g["records"][0]["dates"].pop(),
             lambda s,g,w: s["records"][0]["sun"].update(
                      sunsetUtc="2026-10-16T18:00:00+00:00"),
         ):
