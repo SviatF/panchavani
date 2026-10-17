@@ -66,8 +66,8 @@ jobs:
           assert all(x["scienceInvariants"]["checkedLayers"]==4 for x in b["records"])
           assert all(len(x["transitions"][kind])>=1 for x in b["records"] for kind in
                      ("tithi","karana","nakshatra","yoga"))
-          assert all(x["originalJplCandidate"]["panchangAtSunrise"]["nakshatra"] is None for x in b["records"])
-          assert all(x["originalJplCandidate"]["methodology"]["ayanamsa"]=="NOT_VALIDATED" for x in b["records"])
+          assert all(x["recomputedJplCandidate"]["panchangAtSunrise"]["nakshatra"] is None for x in b["records"])
+          assert all(x["recomputedJplCandidate"]["methodology"]["ayanamsa"]=="NOT_VALIDATED" for x in b["records"])
           assert all(not x["publicReleaseAllowed"] and not x["indexingAuthorized"] for x in b["records"])
           assert all(not x["scientificApproval"] and not x["independentMethodologicalAccuracyProven"] for x in b["records"])
           assert b["approvedClaimsForDeepSeek"]==[] and not b["publicationAuthorized"]
