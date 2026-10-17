@@ -1,0 +1,95 @@
+name: Wave 7B independent Swiss Lahiri comparison (ISOLATED RESEARCH)
+on:
+  push:
+    paths:
+      - '.github/workflows/wave7b-independent-lahiri-qa.yml'
+      - 'engine/research_external/**'
+      - 'engine/panchavani/sidereal.py'
+      - 'engine/panchavani/first_six_limb_pilot.py'
+  pull_request:
+    paths:
+      - '.github/workflows/wave7b-independent-lahiri-qa.yml'
+      - 'engine/research_external/**'
+      - 'engine/panchavani/sidereal.py'
+      - 'engine/panchavani/first_six_limb_pilot.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  third-party-comparator-isolated:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install PANCHAVANI permissively licensed runtime astronomy packages
+        run: pip install -r engine/requirements.txt
+      - name: Install isolated AGPL test-only Swiss wheel with exact published file SHA
+        run: |
+          echo 'pyswisseph==2.10.3.2 --hash=sha256:e00d7e08aeafe00938603bc118874b6ca7871c5aaa55aafca8fa2c6d76aff812' > /tmp/swiss-qa-only.txt
+          python -m pip install --require-hashes --only-binary=:all: --no-deps -r /tmp/swiss-qa-only.txt
+          python -c "import swisseph as swe; assert swe.version=='2.10.03'; print('Swiss research-only runtime',swe.version)"
+      - name: Check external QA denial contracts (not used by production)
+        run: |
+          PYTHONPATH=engine python -m unittest discover -s engine/research_external -p 'test_swiss_lahiri_probe.py' -v
+      - name: Download NASA JPL kernel verified by independent SHA
+        run: |
+          curl --fail --location --retry 3 --max-time 240 --silent --show-error \
+            https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp \
+            --output /tmp/de440s.bsp
+          echo 'c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2  /tmp/de440s.bsp' | sha256sum --check
+      - name: Recompute original six city-days with JPL and provisional Lahiri
+        run: |
+          PYTHONPATH=engine python -m panchavani.first_six_limb_pilot \
+            --ephemeris /tmp/de440s.bsp \
+            --out engine/artifacts/wave7b-six-limb-recalculated-UNAPPROVED.json
+      - name: Compare to INDEPENDENT analytic Moshier Swiss Lahiri on 1956–2050 and six pilot dawns
+        run: |
+          PYTHONPATH=engine python engine/research_external/swiss_lahiri_probe.py \
+            --ephemeris /tmp/de440s.bsp \
+            --batch engine/artifacts/wave7b-six-limb-recalculated-UNAPPROVED.json \
+            --out engine/artifacts/wave7b-independent-lahiri-UNAPPROVED.json
+      - name: Emit measured differences and never self-certify astronomy
+        run: |
+          python - <<'PY'
+          import json,os
+          r=json.load(open('engine/artifacts/wave7b-independent-lahiri-UNAPPROVED.json'))
+          assert r['sampleCount']==15
+          assert r['independentBoundaryEventCount']>0
+          assert r['maxAbsoluteIndependentBoundaryDeltaSeconds']>=0
+          assert r['comparator']=='pyswisseph 2.10.3.2'
+          assert r['swissBackend']=='MOSEPH_ANALYTIC'
+          assert r['comparatorNotShippedInPanchavaniRuntime'] is True
+          assert r['independentProgramAndEphemerisFamilyCompared'] is True
+          assert r['methodEquivalenceConfirmed'] is False
+          assert r['scientificApproval'] is False
+          assert r['approvedClaimsForDeepSeek']==[]
+          assert not r['releaseAuthorized'] and not r['indexingAuthorized']
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+            f.write('## Wave 7B · independent-program Swiss Lahiri vs NASA/JPL DE440s\n\n')
+            f.write('**Diagnostic comparison only — NOT independent method-matched certification.** Swiss Moshier analytic vs JPL DE440s, with true/reference frame differences possible.\n\n')
+            f.write('| UTC sample | Ayanamsa delta (arcsec) | Moon sidereal delta (arcsec) | Yoga delta (arcsec) | Nakshatra match | Yoga match |\n')
+            f.write('|---|---:|---:|---:|---|---|\n')
+            for x in r['comparisons']:
+              d=x['differences']
+              f.write(f"| {x['instantUtc']} | {d['ayanamsaArcsec']} | {d['moonSiderealArcsec']} | {d['yogaPhaseArcsec']} | {x['nakshatraLabelAgrees']} | {x['yogaLabelAgrees']} |\n")
+            f.write('\n**Maximum absolute ayanamsa drift:** '+str(r['maxAbsoluteAyanamsaDeltaArcsec'])+' arcsec.\n\n')
+            f.write('**Unresolved Nakshatra/Yoga index differences:** '+str(len(r['sunriseNakshatraOrYogaDisagreements']))+'.\n\n')
+            f.write('### Actual independent Tithi/Karana/Nakshatra/Yoga transition times\n\n')
+            f.write('| Limb | Boundary # | Independent Swiss minus JPL, seconds |\n')
+            f.write('|---|---:|---:|\n')
+            for e in r['independentBoundaryComparisons']:
+              f.write(f"| {e['kind']} | {e['endingNumber']} | {e['swissMinusJplSeconds']} |\n")
+            f.write('\n**Maximum absolute solved transition difference:** '+str(r['maxAbsoluteIndependentBoundaryDeltaSeconds'])+' seconds. This is NOT a release tolerance.\n\n')
+            f.write('**Scientific approval: NO · Publication: NO · D1 SHA conflicts: OPEN · License: AGPL test-only**.\n')
+          print("FAIL-CLOSED RESEARCH, NOT A PAGE RELEASE")
+          PY
+      - name: Archive reproducible research JSON (not used by any production service)
+        uses: actions/upload-artifact@v4
+        with:
+          name: panchavani-wave7b-independent-lahiri-swiss-UNAPPROVED
+          path: engine/artifacts/wave7b-independent-lahiri-UNAPPROVED.json
+          retention-days: 14
+          if-no-files-found: error
