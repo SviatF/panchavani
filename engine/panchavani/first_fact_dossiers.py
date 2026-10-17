@@ -268,8 +268,8 @@ def validate_dossier(report:dict):
             or record.get("publicReleaseAuthorized") is not False
             or record.get("approvedFactIdsForDeepSeek")!=[]
             or record.get("humanReview",{}).get("canApprove") is not False
-            or len(record.get("facts",[]))!=7
-            or len({f["factId"] for f in record["facts"]})!=7
+            or len(record.get("facts",[]))!=8
+            or len({f["factId"] for f in record["facts"]})!=8
             or any(f["claimStatus"]!="RESEARCH_ONLY" for f in record["facts"])):
             raise ValueError("Fact provenance or page release denial violated")
 
