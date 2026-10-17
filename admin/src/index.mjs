@@ -18,6 +18,7 @@ import { renderCommandCenter, readDashboardMetrics } from './console-dashboard.m
 import { handleScienceConsole } from './science-console.mjs';
 import { handleDailyScienceAudit } from './science-day.mjs';
 import { handleConflictForensics } from './conflict-forensics.mjs';
+import { handlePilotConflictAudit } from './pilot-conflict-audit.mjs';
 
 
 const HEADERS = {
@@ -82,6 +83,8 @@ const baseWorker = {
     // The dashboard refuses access without Cloudflare-verified identity and explicit email allowlist.
     const actor = await authenticate(ctx, env);
     if (!actor) return deny();
+    const pilotConflicts=await handlePilotConflictAudit(request,env,actor);
+    if(pilotConflicts)return pilotConflicts;
     const forensic=await handleConflictForensics(request,env,actor);
     if(forensic)return forensic;
     const dailyScience=await handleDailyScienceAudit(request,env,actor);
