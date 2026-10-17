@@ -72,6 +72,41 @@ const page=(markup,status=200)=>new Response('<!doctype html><html lang="en"><he
  '<p class="warning">Private research only. Read-only SHA and field comparisons; no auto overwrite, scientific approval, AI billing or public release.</p>'+
  markup+'</body></html>',{status,headers:H});
 const printed=v=>esc(typeof v==='object'&&v!==null?JSON.stringify(v):v);
+/** Downloadable forensic metadata for one authenticated city/date. No database writes. */
+export function conflictTriage(city,date,stored,variants,scanned){
+ const first=stored.state==='research'?stored.record:null;
+ const seen=new Set();
+ const results=variants.map(variant=>{
+  const changes=first?compareResearchVersions(first,variant.record):[];
+  const repeated=seen.has(variant.sha256);
+  seen.add(variant.sha256);
+  const shaMatches=first&&variant.sha256===stored.sha256;
+  return {
+   runId:variant.runId,sourceObjectKey:variant.key,
+   incomingSha256:variant.sha256,
+   disposition:!first?'D1_CANDIDATE_MISSING':
+    shaMatches?'IDENTICAL_SHA':
+    repeated?'DUPLICATE_INCOMING_SHA':
+    changes.length?'RESEARCH_FIELDS_DIFFER':
+                   'DIFFERENT_BYTES_FIELDS_NOT_YET_EXPLAINED',
+   changedResearchFields:changes.map(x=>x.field),
+   differences:changes,independentlyValidated:false
+  };
+ });
+ return {
+  artifactType:'PANCHAVANI_PRIVATE_SHA_CONFLICT_TRIAGE',
+  schemaVersion:1,cityId:city,localDate:date,
+  storedState:stored.state,storedSha256:stored.sha256??null,
+  scannedManifests:scanned,variantCount:results.length,
+  variants:results,
+  livePrivateD1WasActuallyRead:stored.state==='research',
+  reviewedScienceApproved:false,shaConflictResolved:false,
+  approvedClaimsForDeepSeek:[],publicReleaseAllowed:false,
+  indexingAuthorized:false,
+  nextAction:'An authorized scientific reviewer must inspect full source provenance and independently decide the disposition; do not auto-overwrite D1.'
+ };
+}
+
 function renderCase(city,date,stored,variants,scanned){
  const origin=stored.state==='research'?stored.record:null;
  const base='<section><h2>Existing D1 candidate</h2><p>Status: '+esc(stored.state)+
@@ -113,6 +148,8 @@ export async function handleConflictForensics(request,env,actor){
   ['delhi','mumbai','chennai'].map(x=>'<li><a href="/research/conflicts?city='+
    x+'&date=2026-10-16">'+x+'</a></li>').join('')+'</ul>');
  if(!CITY_IDS.has(city)||!isoDay(date))return page('<p>Invalid city/date</p>',400);
+ const format=url.searchParams.get('format');
+ if(format!==null&&format!=='json')return page('<p>Invalid forensic format</p>',400);
  if(!env?.DB||!env?.CANDIDATES||!env?.INGEST_INBOX)
   return page('<p>Private D1 / candidate R2 / incoming R2 not available</p>',503);
  try{
@@ -140,7 +177,15 @@ export async function handleConflictForensics(request,env,actor){
    cursor=list.cursor;
   }
   if(!complete)throw Error('manifest-backlog-incomplete');
-  return page(renderCase(city,date,stored,matches,scanned));
+  if(format==='json'){
+   const report=conflictTriage(city,date,stored,matches,scanned);
+   return new Response(JSON.stringify(report,null,2)+'\n',{
+    status:200,headers:{...H,'Content-Type':'application/json; charset=utf-8'}
+   });
+  }
+  return page(renderCase(city,date,stored,matches,scanned)+
+   '<p><a href="/research/conflicts?city='+esc(city)+'&date='+esc(date)+
+   '&format=json">Download private machine-readable SHA triage (read-only)</a></p>');
  }catch{
   return page('<p>Source inspection incomplete or integrity check failed. Nothing modified; review private Worker logs and source provenance.</p>',503);
  }
