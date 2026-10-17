@@ -28,6 +28,7 @@
     ]
   },
   "vars": {
-    "AUTO_RESEARCH_IMPORT_ENABLED": "true"
+    "AUTO_RESEARCH_IMPORT_ENABLED": "true",
+    "AUTO_PRIVATE_FORENSICS_ENABLED": "true"
   }
 }
