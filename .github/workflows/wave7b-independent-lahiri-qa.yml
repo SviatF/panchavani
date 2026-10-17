@@ -57,6 +57,8 @@ jobs:
           import json,os
           r=json.load(open('engine/artifacts/wave7b-independent-lahiri-UNAPPROVED.json'))
           assert r['sampleCount']==15
+          assert r['independentBoundaryEventCount']>0
+          assert r['maxAbsoluteIndependentBoundaryDeltaSeconds']>=0
           assert r['comparator']=='pyswisseph 2.10.3.2'
           assert r['swissBackend']=='MOSEPH_ANALYTIC'
           assert r['comparatorNotShippedInPanchavaniRuntime'] is True
@@ -75,6 +77,12 @@ jobs:
               f.write(f"| {x['instantUtc']} | {d['ayanamsaArcsec']} | {d['moonSiderealArcsec']} | {d['yogaPhaseArcsec']} | {x['nakshatraLabelAgrees']} | {x['yogaLabelAgrees']} |\n")
             f.write('\n**Maximum absolute ayanamsa drift:** '+str(r['maxAbsoluteAyanamsaDeltaArcsec'])+' arcsec.\n\n')
             f.write('**Unresolved Nakshatra/Yoga index differences:** '+str(len(r['sunriseNakshatraOrYogaDisagreements']))+'.\n\n')
+            f.write('### Actual independent Tithi/Karana/Nakshatra/Yoga transition times\n\n')
+            f.write('| Limb | Boundary # | Independent Swiss minus JPL, seconds |\n')
+            f.write('|---|---:|---:|\n')
+            for e in r['independentBoundaryComparisons']:
+              f.write(f"| {e['kind']} | {e['endingNumber']} | {e['swissMinusJplSeconds']} |\n")
+            f.write('\n**Maximum absolute solved transition difference:** '+str(r['maxAbsoluteIndependentBoundaryDeltaSeconds'])+' seconds. This is NOT a release tolerance.\n\n')
             f.write('**Scientific approval: NO · Publication: NO · D1 SHA conflicts: OPEN · License: AGPL test-only**.\n')
           print("FAIL-CLOSED RESEARCH, NOT A PAGE RELEASE")
           PY
