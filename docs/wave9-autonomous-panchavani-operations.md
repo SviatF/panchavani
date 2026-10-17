@@ -22,7 +22,7 @@ A complete report or a BLOCKED missing/tampered-source marker is stored in an is
 
 ## Remaining essential human steps
 
-1. Deploy the updated private Admin Worker with valid D1/R2 bindings, Cloudflare Access and env variable; GitHub merge alone cannot establish a live Cron run. Confirm a real saved daily private forensic JSON.
+1. The additional main-branch GitHub Actions workflow `.github/workflows/deploy-private-admin.yml` runs private Admin tests and attempts Wrangler deployment **only when GitHub repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID actually exist**. Missing credentials explicitly produce **NOT DEPLOYED** in its workflow summary; neither the merge nor a green skipped action proves deployment. Confirm a real D1/R2 Access-authenticated private forensic snapshot after deployment.
 2. Independently reconcile source method, Lahiri, city observatory coordinates/elevations and refraction/official PAC assumptions. Resolve original D1 conflict cases through documented reviewer decisions rather than automatic hash winner-selection.
 3. Promote only independently approved fact IDs into future DeepSeek drafts. Human-edit local reader value and city-specific differences. Implement a separately signed per-URL publication whitelist, then only reviewed pages may leave global noindex.
 4. Verify the live Cloudflare HTML, sitemap, canonical and GSC indexing. Scheduled research passing does not authorize any public release.
