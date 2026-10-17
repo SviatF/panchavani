@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -100,6 +100,79 @@ def compare_instant(adapter, model, instant: datetime, category: str) -> dict:
     }
 
 
+def swiss_phase(kind: str, instant: datetime) -> float:
+    """Independent analytic Swiss body phases; no NASA/JPL helper is called."""
+    jd=utc_julday(instant)
+    if kind in ("tithi","karana"):
+        moon=_swiss(jd,swe.MOON,False)
+        sun=_swiss(jd,swe.SUN,False)
+        return wrap(moon-sun)
+    if kind=="nakshatra":
+        return wrap(_swiss(jd,swe.MOON,True))
+    if kind=="yoga":
+        return wrap(_swiss(jd,swe.MOON,True)+_swiss(jd,swe.SUN,True))
+    raise ValueError("Unsupported astronomical phase")
+
+
+def find_swiss_boundary(kind: str, guess: datetime, ending_number: int,
+                        *, bracket_minutes: int = 180) -> datetime:
+    """Solve same NUMBERED boundary independently of JPL, near JPL's timestamp.
+
+    Fixed external +/-180 minute bracket is an investigation WINDOW, not a
+    claim of method-matched physical accuracy or permitted publication error.
+    """
+    width={"tithi":12.0,"karana":6.0,
+           "nakshatra":360.0/27,"yoga":360.0/27}[kind]
+    part_count={"tithi":30,"karana":60,"nakshatra":27,"yoga":27}[kind]
+    if type(ending_number) is not int or not 1<=ending_number<=part_count:
+        raise ValueError("Invalid boundary ordinal")
+    if guess.utcoffset() is None:
+        raise ValueError("Unzoned crossing")
+    target=wrap(ending_number*width)
+    lo=guess-timedelta(minutes=bracket_minutes)
+    hi=guess+timedelta(minutes=bracket_minutes)
+    left=signed_circular_delta_deg(swiss_phase(kind,lo),target)
+    right=signed_circular_delta_deg(swiss_phase(kind,hi),target)
+    if not (left<0<right):
+        raise ValueError("Swiss phase boundary not bracketed near JPL crossing: "+kind)
+    for _ in range(55):
+        mid=lo+(hi-lo)/2
+        if signed_circular_delta_deg(swiss_phase(kind,mid),target)>=0:
+            hi=mid
+        else:
+            lo=mid
+        if (hi-lo).total_seconds()<=.05:
+            break
+    return lo+(hi-lo)/2
+
+
+def compare_event_boundaries(records: list[dict]) -> list[dict]:
+    """Use unique real JPL crossings, not only sunrise labels far from edges."""
+    found={}
+    swe.set_sid_mode(swe.SIDM_LAHIRI)
+    for record in records:
+        for kind, events in record["geocentricBoundariesUtc"].items():
+            for event in events:
+                instant=datetime.fromisoformat(event["endUtc"].replace("Z","+00:00"))
+                # One physical crossing can be visible in more than one city.
+                # Never compare duplicated copies as independent evidence.
+                key=(kind,event["endingNumber"],int(instant.timestamp()//60))
+                if key not in found:
+                    found[key]=(kind,event["endingNumber"],instant)
+    output=[]
+    for (kind,ending_number,_),(_,__,jpl) in sorted(found.items()):
+        other=find_swiss_boundary(kind,jpl,ending_number)
+        output.append({
+            "kind":kind,"endingNumber":ending_number,
+            "jplEndUtc":jpl.isoformat(),
+            "swissMoshierEndUtc":other.isoformat(),
+            "swissMinusJplSeconds":round((other-jpl).total_seconds(),6),
+            "sameMoonSunEphemerisFamily":False,
+            "publicationApproved":False
+        })
+    return output
+
+
 def validate_report(report: dict) -> None:
     if (report.get("artifactType")!="PANCHAVANI_EXTERNAL_LAHIRI_PROBE"
             or report.get("status")!="UNAPPROVED_RESEARCH"
@@ -119,6 +192,13 @@ def validate_report(report: dict) -> None:
            not isinstance(r["nakshatraLabelAgrees"],bool) or
            not isinstance(r["yogaLabelAgrees"],bool) for r in rows):
         raise ValueError("Incomplete Swiss comparison facts")
+    events=report.get("independentBoundaryComparisons")
+    if not isinstance(events,list) or not events:
+        raise ValueError("No physically solved independent Swiss boundaries")
+    if any(not isinstance(e.get("swissMinusJplSeconds"),(float,int))
+           or e.get("publicationApproved") is not False
+           or e.get("sameMoonSunEphemerisFamily") is not False for e in events):
+        raise ValueError("Invalid independent boundary event comparison")
 
 
 def run(ephemeris: Path, batch: Path, out: Path) -> dict:
@@ -146,6 +226,8 @@ def run(ephemeris: Path, batch: Path, out: Path) -> dict:
     drift=max(abs(x["differences"]["ayanamsaArcsec"]) for x in rows)
     moon=max(abs(x["differences"]["moonSiderealArcsec"]) for x in rows)
     yoga=max(abs(x["differences"]["yogaPhaseArcsec"]) for x in rows)
+    event_rows=compare_event_boundaries(six["records"])
+    event_max=max(abs(x["swissMinusJplSeconds"]) for x in event_rows)
     mismatches=[{"instantUtc":x["instantUtc"],
                  "kind":kind,"sampleCategory":x["sampleCategory"]}
                 for x in rows for kind,good in
@@ -166,6 +248,9 @@ def run(ephemeris: Path, batch: Path, out: Path) -> dict:
         "comparatorNotShippedInPanchavaniRuntime":True,
         "utcUt1AndTtHandlingStillRequiresMethodReview":True,
         "sampleCount":len(rows),
+        "independentBoundaryEventCount":len(event_rows),
+        "maxAbsoluteIndependentBoundaryDeltaSeconds":round(event_max,6),
+        "independentBoundaryComparisons":event_rows,
         "maxAbsoluteAyanamsaDeltaArcsec":round(drift,6),
         "maxAbsoluteMoonSiderealDeltaArcsec":round(moon,6),
         "maxAbsoluteYogaPhaseDeltaArcsec":round(yoga,6),
@@ -205,6 +290,8 @@ def main():
     print("Max moon sidereal (arcsec)",r["maxAbsoluteMoonSiderealDeltaArcsec"])
     print("Max yoga (arcsec)",r["maxAbsoluteYogaPhaseDeltaArcsec"])
     print("Nakshatra/Yoga label mismatches",len(r["sunriseNakshatraOrYogaDisagreements"]))
+    print("Independent actual transit events",r["independentBoundaryEventCount"])
+    print("Max Swiss-JPL phase transition difference in seconds",r["maxAbsoluteIndependentBoundaryDeltaSeconds"])
     print("Scientific approval",r["scientificApproval"])
 if __name__=="__main__":
     main()
