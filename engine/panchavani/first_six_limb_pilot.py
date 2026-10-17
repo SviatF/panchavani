@@ -145,8 +145,9 @@ def build_day(adapter, sidereal, city_id: str, day: date) -> dict:
             {"endingNumber":x.number,"endUtc":_iso(x.end)}
             for x in items[:-1]]
         qa[kind]=numeric
-    # Preserve immutable raw bytes to tie this richer candidate back to
-    # research-only D1/R2 shape without falsely changing the D1 record.
+    # Canonicalized local serialization of this new *research* candidate.
+    # This is NOT the original stored D1/R2 byte SHA and NEVER resolves its
+    # historical conflicts; original first-wins hashes require live forensics.
     raw_bytes=(json.dumps(raw,ensure_ascii=False,
                          sort_keys=True,separators=(",",":"))+"\n").encode()
     packet={
@@ -169,8 +170,8 @@ def build_day(adapter, sidereal, city_id: str, day: date) -> dict:
             "tzdbVersion":"system-not-yet-pinned",
             "sourceCityCatalogSha256":CATALOG_SHA256
         },
-        "originalJplCandidateSha256":hashlib.sha256(raw_bytes).hexdigest(),
-        "originalJplCandidate":raw,
+        "recomputedJplCandidateCanonicalSha256":hashlib.sha256(raw_bytes).hexdigest(),
+        "recomputedJplCandidate":raw,
         "sun":{"sunriseUtc":_iso(sunrise),"sunsetUtc":_iso(sunset),
                "nextSunriseUtc":_iso(next_sunrise)},
         "panchangAtSunrise":{
