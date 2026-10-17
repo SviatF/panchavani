@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "datasetId": "wave7c-geonames-3-city-gazetteer-provisional-v1",
+  "publisher": "GeoNames",
+  "country": "IN",
+  "sourceAccessDate": "2026-10-17",
+  "purpose": "Alternative populated-place gazetteer reference points for independent proximity and solar sensitivity research, NOT adopted station locations",
+  "sourceSnapshotArchived": false,
+  "sourceReviewedBy": null,
+  "officialObservatoryStationForAllCities": false,
+  "altitudeIsSurveyedStationElevation": false,
+  "transcriptionIndependentlyReviewed": false,
+  "scienceApproval": false,
+  "publicReleaseAuthorized": false,
+  "records": [
+    {
+      "cityId": "delhi",
+      "cityLabel": "Delhi",
+      "geonameId": 1273294,
+      "sourceUrl": "https://www.geonames.org/1273294/delhi.html",
+      "latitude": 28.65195,
+      "longitude": 77.23149,
+      "digitalElevationModelMeters": 227,
+      "featureCode": "PPLA",
+      "timezone": "Asia/Kolkata"
+    },
+    {
+      "cityId": "mumbai",
+      "cityLabel": "Mumbai",
+      "geonameId": 1275339,
+      "sourceUrl": "https://www.geonames.org/1275339/mumbai.html",
+      "latitude": 19.07283,
+      "longitude": 72.88261,
+      "digitalElevationModelMeters": 8,
+      "featureCode": "PPLA",
+      "timezone": "Asia/Kolkata"
+    },
+    {
+      "cityId": "chennai",
+      "cityLabel": "Chennai",
+      "geonameId": 1264527,
+      "sourceUrl": "https://www.geonames.org/1264527/chennai.html",
+      "latitude": 13.08784,
+      "longitude": 80.27847,
+      "digitalElevationModelMeters": 14,
+      "featureCode": "PPLA",
+      "timezone": "Asia/Kolkata"
+    }
+  ]
+}
