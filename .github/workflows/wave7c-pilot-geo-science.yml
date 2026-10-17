@@ -1,0 +1,81 @@
+name: Wave 7C 3-city GeoNames/PAC observing-site sensitivity (UNAPPROVED)
+on:
+  push:
+    paths:
+      - '.github/workflows/wave7c-pilot-geo-science.yml'
+      - 'engine/panchavani/pilot_geo_solar_reconciliation.py'
+      - 'engine/fixtures/wave7c-geonames-three-metros-UNREVIEWED.json'
+      - 'engine/tests/test_pilot_geo_solar_reconciliation.py'
+  pull_request:
+    paths:
+      - '.github/workflows/wave7c-pilot-geo-science.yml'
+      - 'engine/panchavani/pilot_geo_solar_reconciliation.py'
+      - 'engine/fixtures/wave7c-geonames-three-metros-UNREVIEWED.json'
+      - 'engine/tests/test_pilot_geo_solar_reconciliation.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  three-city-geo-model-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate GeoNames source identity and research-only source-status gates
+        run: |
+          cd engine
+          python -m unittest discover -s tests -p 'test_pilot_geo_solar_reconciliation.py' -v
+      - name: Install stable science model
+        run: pip install -r engine/requirements.txt
+      - name: Fetch pinned NASA/JPL DE440s (no fallback)
+        run: |
+          curl --fail --location --retry 3 --max-time 240 --silent --show-error \
+            https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp \
+            --output /tmp/de440s.bsp
+          echo 'c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2  /tmp/de440s.bsp' | sha256sum --check
+      - name: Compare 3 research-city locations with 3 georeferenced populated-place points over 4 dates
+        run: |
+          PYTHONPATH=engine python -m panchavani.pilot_geo_solar_reconciliation \
+            --ephemeris /tmp/de440s.bsp \
+            --geo engine/fixtures/wave7c-geonames-three-metros-UNREVIEWED.json \
+            --pac engine/fixtures/pac-rashtriya-2026-four-metros-solar-UNREVIEWED.json \
+            --out engine/artifacts/wave7c-city-geo-pac-solar-UNAPPROVED.json
+      - name: Report measured physical sensitivity without approving city station
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          r=json.loads(Path('engine/artifacts/wave7c-city-geo-pac-solar-UNAPPROVED.json').read_text())
+          assert r['cityCount']==3
+          assert r['cityDayComparisonCount']==12
+          assert r['officialPACClockComparisons']==12
+          assert r['gazetteerIsNotAnObservatory'] is True
+          assert not r['sourcePublishedStationCoordinatesMatched']
+          assert not r['geoSourceIndependentHumanReview']
+          assert not r['methodologicallyIndependentValidation']
+          assert not r['indexingAuthorized'] and not r['publicReleaseAuthorized']
+          assert r['approvedClaimsForDeepSeek']==[]
+          assert all(x['stationPointScientificallyApproved'] is False for x in r['records'])
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+            f.write('## Wave 7C — populated-place coordinates vs PANCHAVANI adopted research points\n\n')
+            f.write('These are **NOT** surveyed PAC observatories. Model horizon -50 arcmin is only an assumption.\n\n')
+            f.write('| City | distance (km) | estimated elevation difference (m) | Date | Sunrise shift (s) | Sunset shift (s) |\n')
+            f.write('|---|---:|---:|---|---:|---:|\n')
+            for city in r['records']:
+              for day in city['dates']:
+                x=day['gazetteerMinusCatalogSeconds']
+                f.write(f"| {city['cityId']} | {city['distanceBetweenResearchPointsKm']} | {city['elevationModelVsCatalogMeters']} | {day['localDate']} | {x['sunriseSeconds']} | {x['sunsetSeconds']} |\n")
+            f.write('\nMaximum absolute PAC clock difference (both point assumptions): '+str(r['maxAbsoluteCatalogOrGazetteerPACDeltaSeconds'])+' sec. **This is not an approved location or model.**\n')
+            f.write('\n**Scientific sign-off NO · D1 source conflicts remain pending live review · noindex.**\n')
+          print('PASS: 12 solar city-days, 12 PAC-clock research observations, 0 approvals')
+          PY
+      - name: Archive private-only provenance and all clock deviations
+        uses: actions/upload-artifact@v4
+        with:
+          name: panchavani-wave7c-gazetteer-solar-pac-UNAPPROVED
+          path: engine/artifacts/wave7c-city-geo-pac-solar-UNAPPROVED.json
+          retention-days: 14
+          if-no-files-found: error
