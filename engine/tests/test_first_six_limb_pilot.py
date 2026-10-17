@@ -10,7 +10,7 @@ from panchavani.first_six_limb_pilot import (
 def specimen(city="delhi",day=date(2026,10,16)):
     # Two adjacent days share the exact *synthetic* sunrise by construction.
     shift={"delhi":0,"mumbai":10,"chennai":20}[city]
-    sunrise=datetime(day.year,day.month,day.day,0,50+shift,tzinfo=timezone.utc)
+    sunrise=datetime(day.year,day.month,day.day,0,50,tzinfo=timezone.utc)+timedelta(minutes=shift)
     next_sunrise=sunrise+timedelta(days=1)
     sunset=sunrise+timedelta(hours=11)
     # Zero crossings per layer is legitimate in a synthetic short-verification
