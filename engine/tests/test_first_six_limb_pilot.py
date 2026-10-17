@@ -30,6 +30,7 @@ def specimen(city="delhi",day=date(2026,10,16)):
                "nextSunriseUtc":next_sunrise.isoformat()},
         "panchangAtSunrise":{**names,"vara":"Friday","paksha":"Shukla"},
         "transitions":transitions,
+        "geocentricBoundariesUtc":{kind:[] for kind in KINDS},
         "publicReleaseAllowed":False,"indexingAuthorized":False,
         "scientificApproval":False,"paidGenerationAuthorized":False,
         "approvedClaimsForDeepSeek":[],
