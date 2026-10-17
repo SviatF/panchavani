@@ -211,9 +211,17 @@ def build_day(adapter, sidereal, city_id: str, day: date) -> dict:
 
 
 def verify_batch(packets: list[dict]) -> dict:
-    if len(packets)!=6 or {(x["cityId"],x["localDate"]) for x in packets}!={
-        (c,d) for c in PILOT for d in ("2026-10-16","2026-10-17")}:
+    if len(packets)!=6:
         raise ValueError("Exactly 3 cities x 2 local days required")
+    try:
+        start=min(date.fromisoformat(x["localDate"]) for x in packets)
+    except (ValueError,KeyError,TypeError):
+        raise ValueError("Invalid city/day in science batch") from None
+    first_date=start.isoformat()
+    following_date=(start+timedelta(days=1)).isoformat()
+    if {(x["cityId"],x["localDate"]) for x in packets}!={ 
+        (c,d) for c in PILOT for d in (first_date,following_date)}:
+        raise ValueError("Exactly 3 cities x 2 CONTIGUOUS local days required")
     for packet in packets:
         verify_six_limb_record(packet)
     same_date={}
@@ -224,8 +232,8 @@ def verify_batch(packets: list[dict]) -> dict:
             raise ValueError("Different city sites share identical sunrise: "+date_str)
     dawn_checked=0
     for city in PILOT:
-        first=next(x for x in packets if x["cityId"]==city and x["localDate"]=="2026-10-16")
-        next_=next(x for x in packets if x["cityId"]==city and x["localDate"]=="2026-10-17")
+        first=next(x for x in packets if x["cityId"]==city and x["localDate"]==first_date)
+        next_=next(x for x in packets if x["cityId"]==city and x["localDate"]==following_date)
         for kind in KINDS:
             last=first["transitions"][kind][-1]
             opening=next_["transitions"][kind][0]
@@ -236,6 +244,7 @@ def verify_batch(packets: list[dict]) -> dict:
     cross_city_duplicates=cross_city_utc_invariance(packets)
     return {
         "checkedCityDays":6,"cities":list(PILOT),
+        "localDateFrom":first_date,"localDateThrough":following_date,
         "checkedFourLimbDawnContinuities":dawn_checked,
         "crossCitySharedGeocentricEventsCompared":cross_city_duplicates,
         "localSunriseDistinctWithinDate":True,
@@ -244,14 +253,14 @@ def verify_batch(packets: list[dict]) -> dict:
     }
 
 
-def build_pilot(ephemeris: Path, out: Path):
+def build_pilot(ephemeris: Path, out: Path, start:date=date(2026,10,16)):
     if out.exists():
         raise ValueError("Refusing to overwrite a prior immutable science packet")
     if digest(ephemeris)!=JPL_DE440S_SHA:
         raise ValueError("Exact NASA/JPL DE440s SHA mismatch")
     adapter=SkyfieldAdapter(ephemeris)
     sidereal=LahiriEpochAnchorResearch(adapter)
-    packets=[build_day(adapter,sidereal,c,date(2026,10,16)+timedelta(days=d))
+    packets=[build_day(adapter,sidereal,c,start+timedelta(days=d))
              for d in (0,1) for c in PILOT]
     checks=verify_batch(packets)
     result={
@@ -275,8 +284,12 @@ def main():
     p=argparse.ArgumentParser(description="6-limb JPL/Lahiri PROVISIONAL evidence, NEVER approve")
     p.add_argument("--ephemeris",type=Path,required=True)
     p.add_argument("--out",type=Path,required=True)
+    p.add_argument("--start",type=date.fromisoformat,default=date(2026,10,16),
+                   help="India local date of first 3-city research day")
     a=p.parse_args()
-    packet=build_pilot(a.ephemeris,a.out)
+    if a.start.year<2000 or a.start.year>2099:
+        p.error("Outside approved historical/future ephemeris pilot interval")
+    packet=build_pilot(a.ephemeris,a.out,a.start)
     print("SIX-LIMB UNAPPROVED research",packet["scienceChecks"])
     print("DeepSeek approved claims:",len(packet["approvedClaimsForDeepSeek"]))
     print("Google indexing allowed:",packet["indexingAuthorized"])
