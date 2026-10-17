@@ -20,6 +20,19 @@ The second program does not use the same JPL kernel. Its default Lahiri realizat
 - Report differences in **arcseconds**, with signed circular angle handling at longitude 0/360.
 - Compare calculated Nakshatra and Nitya Yoga 1–27 classification for each sample.
 
+### Observed JPL-versus-Swiss results (real CI evidence, October 2026)
+
+- 15 distinct sampled UTC instants from 1956–2050 plus the six pilot city dawns. Nakshatra and Yoga labels agreed at all 15.
+- Maximum absolute direct ayanamsa parameter difference: **17.384439 arcsec** (reference-frame realization is not directly equivalent and requires interpretation).
+- Maximum apparent sidereal Moon position difference: **4.721629 arcsec**; maximum sidereal Yoga phase difference: **5.316489 arcsec**.
+- Independent **boundary root calculations for eight unique real transitions** (Swiss analytic root near JPL crossing):
+  - Tithi: one crossing, max **0.844575 seconds**
+  - Karana: three crossings, max **1.297761 seconds**
+  - Nakshatra: two crossings, max **1.668550 seconds**
+  - Yoga: two crossings, max **1.544954 seconds**
+- Biggest absolute real phase-transition delta: **1.668550 seconds**, not an approved tolerance or a bound valid for untested dates.
+- Actual source: PR #30 research CI artifact `panchavani-wave7b-independent-lahiri-swiss-UNAPPROVED`. No D1/R2 conflict was resolved, and no city observer point was validated.
+
 The report **always returns** \`scientificApproval=false\`, \`methodEquivalenceConfirmed=false\`, \`releaseAuthorized=false\`, \`indexingAuthorized=false\` and \`approvedClaimsForDeepSeek=[]\`. Numeric agreement is diagnostic, not a new canonical model.
 
 ### License firewall
