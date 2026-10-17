@@ -27,6 +27,7 @@ def fixture():
       "artifactType":"PANCHAVANI_WAVE7C_PILOT_GEO_SOLAR_SENSITIVITY",
       "status":"UNAPPROVED_RESEARCH","catalogSha256":"a"*64,
       "jplKernelSha256":JPL_DE440S_SHA,
+      "cityCount":3,"cityDayComparisonCount":12,"officialPACClockComparisons":12,
       "geoSourceIndependentHumanReview":False,
       "sourcePublishedStationCoordinatesMatched":False,
       "publicReleaseAuthorized":False,"indexingAuthorized":False,
