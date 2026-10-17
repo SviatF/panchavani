@@ -5,6 +5,10 @@ on:
     paths:
       - 'admin/**'
       - '.github/workflows/deploy-private-admin.yml'
+  pull_request:
+    paths:
+      - 'admin/**'
+      - '.github/workflows/deploy-private-admin.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -39,7 +43,7 @@ jobs:
             echo 'MISSING CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID: live deployment was NOT attempted'
           fi
       - name: Deploy ONLY protected private Admin Worker to existing Cloudflare account
-        if: steps.auth.outputs.ready == 'true'
+        if: github.ref == 'refs/heads/main' && steps.auth.outputs.ready == 'true'
         run: |
           cd admin
           npx wrangler deploy --config wrangler.jsonc
@@ -47,10 +51,13 @@ jobs:
         if: always()
         env:
           HAS_CREDENTIALS: ${{ steps.auth.outputs.ready }}
+          IS_MAIN_BRANCH: ${{ github.ref == 'refs/heads/main' }}
           JOB_RESULT: ${{ job.status }}
         run: |
           echo '## PANCHAVANI PRIVATE Admin automatic deployment' >> "$GITHUB_STEP_SUMMARY"
-          if test "$HAS_CREDENTIALS" = true && test "$JOB_RESULT" = success; then
+          if test "$IS_MAIN_BRANCH" != true; then
+            echo '**NOT DEPLOYED:** Pull request validation cannot modify the production Worker.' >> "$GITHUB_STEP_SUMMARY"
+          elif test "$HAS_CREDENTIALS" = true && test "$JOB_RESULT" = success; then
             echo 'Wrangler completed deployment. Cloudflare Access/D1/R2 and the next private scheduled SHA snapshot still require actual live health checks.' >> "$GITHUB_STEP_SUMMARY"
           elif test "$HAS_CREDENTIALS" != true; then
             echo '**NOT DEPLOYED:** Cloudflare GitHub repository credentials unavailable. The source and unit tests still exist in main.' >> "$GITHUB_STEP_SUMMARY"
