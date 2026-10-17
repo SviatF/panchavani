@@ -1,0 +1,103 @@
+name: Wave 7 full six-limb JPL science evidence (NO INDEXING)
+on:
+  push:
+    paths:
+      - '.github/workflows/wave7-six-limb-science.yml'
+      - 'engine/panchavani/first_six_limb_pilot.py'
+      - 'engine/tests/test_first_six_limb_pilot.py'
+      - 'engine/panchavani/compute.py'
+      - 'engine/panchavani/sidereal.py'
+  pull_request:
+    paths:
+      - '.github/workflows/wave7-six-limb-science.yml'
+      - 'engine/panchavani/first_six_limb_pilot.py'
+      - 'engine/tests/test_first_six_limb_pilot.py'
+      - 'engine/panchavani/compute.py'
+      - 'engine/panchavani/sidereal.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  full-3-city-six-limb-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify immutable research-only science packet safety
+        run: |
+          cd engine
+          python -m unittest discover -s tests -p 'test_first_six_limb_pilot.py' -v
+      - name: Install locked Skyfield/JPL dependencies
+        run: pip install -r engine/requirements.txt
+      - name: Download JPL DE440s and verify exact kernel hash
+        run: |
+          curl --fail --location --retry 3 --max-time 240 --silent --show-error \
+            https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp \
+            --output /tmp/de440s.bsp
+          echo 'c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2  /tmp/de440s.bsp' | sha256sum --check
+      - name: Calculate REAL JPL Tithi Karana Nakshatra Yoga across 3 cities and 2 days
+        run: |
+          PYTHONPATH=engine python -m panchavani.first_six_limb_pilot \
+            --ephemeris /tmp/de440s.bsp \
+            --out engine/artifacts/wave7-six-limb-three-city-UNAPPROVED.json
+      - name: Crosscheck with official PAC dated central-station 16 Oct clocks
+        run: |
+          PYTHONPATH=engine python -m panchavani.pac_limb_reference \
+            --ephemeris /tmp/de440s.bsp \
+            --fixture engine/fixtures/pac-2026-10-16-central-limbs-UNREVIEWED.json \
+            --out engine/artifacts/wave7-pac-central-UNREVIEWED.json
+      - name: Check no fake approval and publish quantitative scientific QA summary
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          root=Path("engine/artifacts")
+          b=json.loads((root/"wave7-six-limb-three-city-UNAPPROVED.json").read_text())
+          p=json.loads((root/"wave7-pac-central-UNREVIEWED.json").read_text())
+          assert b["artifactType"]=="PANCHAVANI_FIRST_SIX_LIMB_SCIENCE_BATCH"
+          assert b["status"]=="UNAPPROVED_RESEARCH"
+          assert len(b["records"])==6
+          assert b["scienceChecks"]["checkedFourLimbDawnContinuities"]==12
+          assert b["scienceChecks"]["localSunriseDistinctWithinDate"]
+          assert b["scienceChecks"]["geocentricEventConsistencyPassed"]
+          assert all(x["scienceInvariants"]["checkedLayers"]==4 for x in b["records"])
+          assert all(len(x["transitions"][kind])>=1 for x in b["records"] for kind in
+                     ("tithi","karana","nakshatra","yoga"))
+          assert all(x["originalJplCandidate"]["panchangAtSunrise"]["nakshatra"] is None for x in b["records"])
+          assert all(x["originalJplCandidate"]["methodology"]["ayanamsa"]=="NOT_VALIDATED" for x in b["records"])
+          assert all(not x["publicReleaseAllowed"] and not x["indexingAuthorized"] for x in b["records"])
+          assert all(not x["scientificApproval"] and not x["independentMethodologicalAccuracyProven"] for x in b["records"])
+          assert b["approvedClaimsForDeepSeek"]==[] and not b["publicationAuthorized"]
+          assert p["observationCount"]==5 and not p["methodologicallyIndependentValidation"]
+          assert p["tithiKaranaCrossingAgreeWithinSecond"]
+          with open(os.environ["GITHUB_STEP_SUMMARY"],"a") as f:
+            f.write("## PANCHAVANI Wave 7: real JPL 6-limb research · NOT APPROVED\n\n")
+            f.write("| City | Date | Sunrise IST | Tithi | Karana | Nakshatra | Yoga | Root residual max (arcsec) |\n")
+            f.write("|---|---|---|---|---|---|---|---:|\n")
+            for r in b["records"]:
+              import datetime,zoneinfo
+              sunrise=datetime.datetime.fromisoformat(r["sun"]["sunriseUtc"].replace("Z","+00:00")).astimezone(zoneinfo.ZoneInfo("Asia/Kolkata"))
+              biggest=max(layer["maxResidualArcsec"] for layer in r["numericalQa"].values())
+              vals=r["panchangAtSunrise"]
+              f.write(f"| {r['cityId']} | {r['localDate']} | {sunrise:%H:%M:%S} | {vals['tithi']} | {vals['karana']} | {vals['nakshatra']} | {vals['yoga']} | {biggest} |\n")
+            f.write(f"\nCross-dawn layer checks: **{b['scienceChecks']['checkedFourLimbDawnContinuities']}**; ")
+            f.write(f"Geocentric shared events matched: **{b['scienceChecks']['crossCitySharedGeocentricEventsCompared']}**.\n")
+            f.write(f"Official PAC 16 Oct central station maximum absolute delta: **{p['maxAbsoluteDeltaSeconds']} seconds** (minute-level reference, NOT station-matched).\n\n")
+            f.write("**UNRESOLVED:** exact IAE Lahiri method, observing station, horizon, tzdb and private D1/R2 SHAs. **NO indexing/DeepSeek facts.**\n")
+          print("Real 6-city-day sunrise-to-sunrise four-layer checks passed.")
+          print("Official PAC exploratory clock delta",p["maxAbsoluteDeltaSeconds"],"seconds")
+          print("Unresolved private D1 conflict:",b["conflictDisposition"])
+          print("Scientific approved:",b["scientificApproval"])
+          PY
+      - name: Archive immutable research data for manual external comparison
+        uses: actions/upload-artifact@v4
+        with:
+          name: panchavani-wave7-complete-six-limb-science-UNAPPROVED
+          path: |
+            engine/artifacts/wave7-six-limb-three-city-UNAPPROVED.json
+            engine/artifacts/wave7-pac-central-UNREVIEWED.json
+          retention-days: 14
+          if-no-files-found: error
