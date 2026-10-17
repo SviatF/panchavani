@@ -137,6 +137,38 @@ function renderCase(city,date,stored,variants,scanned){
  ': investigate source/coordinate/method changes before any separately reviewed replacement. Existing records were not modified.</p>';
  return out;
 }
+/** Reusable authenticated read-only D1/R2 inspection; never choose the winner. */
+export async function inspectConflictCase(env,city,date){
+if(!CITY_IDS.has(city)||!isoDay(date))throw Error('bad-case-scope');
+if(!env?.DB||!env?.CANDIDATES||!env?.INGEST_INBOX)
+ throw Error('private-bindings-missing');
+const stored=await readCityResearchDay(env,city,date);
+if(!['research','missing'].includes(stored.state))
+ throw Error('stored-source-not-verified');
+let cursor=undefined,scanned=0,complete=false;
+const matches=[];
+for(let pg=0;pg<10;pg++){
+ const list=await env.INGEST_INBOX.list({prefix:'inbox/manifests/',limit:1000,cursor});
+ for(const item of list.objects){
+  if(!/^inbox\/manifests\/[0-9]{6,20}\.json$/.test(item.key))continue;
+  const raw=await loadRaw(env.INGEST_INBOX,item.key,100000);
+  let manifest;
+  try{manifest=checkManifest(JSON.parse(raw),item.key);}catch{throw Error('manifest-contract-invalid');}
+  scanned++;
+  for(const entry of manifest.entries){
+   if(entry.cityId!==city||entry.localDate!==date)continue;
+   if(matches.length>=20)throw Error('variant-limit-exceeded');
+   matches.push(await checkedVariant(env,manifest,entry));
+  }
+ }
+ if(!list.truncated){complete=true;break;}
+ if(!list.cursor||list.cursor===cursor)throw Error('manifest-pagination-stalled');
+ cursor=list.cursor;
+}
+if(!complete)throw Error('manifest-backlog-incomplete');
+return {stored,matches,scanned,report:conflictTriage(city,date,stored,matches,scanned)};
+}
+
 export async function handleConflictForensics(request,env,actor){
  const url=new URL(request.url);
  if(url.pathname!=='/research/conflicts')return null;
@@ -153,32 +185,8 @@ export async function handleConflictForensics(request,env,actor){
  if(!env?.DB||!env?.CANDIDATES||!env?.INGEST_INBOX)
   return page('<p>Private D1 / candidate R2 / incoming R2 not available</p>',503);
  try{
-  const stored=await readCityResearchDay(env,city,date);
-  if(!['research','missing'].includes(stored.state))
-   throw Error('stored-source-not-verified');
-  let cursor=undefined,scanned=0,complete=false;
-  const matches=[];
-  for(let pg=0;pg<10;pg++){
-   const list=await env.INGEST_INBOX.list({prefix:'inbox/manifests/',limit:1000,cursor});
-   for(const item of list.objects){
-    if(!/^inbox\/manifests\/[0-9]{6,20}\.json$/.test(item.key))continue;
-    const raw=await loadRaw(env.INGEST_INBOX,item.key,100000);
-    let manifest;
-    try{manifest=checkManifest(JSON.parse(raw),item.key);}catch{throw Error('manifest-contract-invalid');}
-    scanned++;
-    for(const entry of manifest.entries){
-     if(entry.cityId!==city||entry.localDate!==date)continue;
-     if(matches.length>=20)throw Error('variant-limit-exceeded');
-     matches.push(await checkedVariant(env,manifest,entry));
-    }
-   }
-   if(!list.truncated){complete=true;break;}
-   if(!list.cursor||list.cursor===cursor)throw Error('manifest-pagination-stalled');
-   cursor=list.cursor;
-  }
-  if(!complete)throw Error('manifest-backlog-incomplete');
+  const {stored,matches,scanned,report}=await inspectConflictCase(env,city,date);
   if(format==='json'){
-   const report=conflictTriage(city,date,stored,matches,scanned);
    return new Response(JSON.stringify(report,null,2)+'\n',{
     status:200,headers:{...H,'Content-Type':'application/json; charset=utf-8'}
    });
