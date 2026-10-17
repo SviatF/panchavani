@@ -1,0 +1,129 @@
+name: Wave 8 First Six Evidence-Bound Fact Dossiers (NO PUBLIC RELEASE)
+on:
+  push:
+    paths:
+      - '.github/workflows/wave8-first-fact-dossiers.yml'
+      - 'engine/panchavani/first_fact_dossiers.py'
+      - 'engine/tests/test_first_fact_dossiers.py'
+      - 'engine/panchavani/first_six_limb_pilot.py'
+      - 'engine/panchavani/pilot_geo_solar_reconciliation.py'
+      - 'engine/research_external/swiss_lahiri_probe.py'
+  pull_request:
+    paths:
+      - '.github/workflows/wave8-first-fact-dossiers.yml'
+      - 'engine/panchavani/first_fact_dossiers.py'
+      - 'engine/tests/test_first_fact_dossiers.py'
+      - 'engine/panchavani/first_six_limb_pilot.py'
+      - 'engine/panchavani/pilot_geo_solar_reconciliation.py'
+      - 'engine/research_external/swiss_lahiri_probe.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  produce-private-editorial-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Fail closed on forged source and publishing approvals
+        run: |
+          cd engine
+          python -m unittest discover -s tests -p 'test_first_fact_dossiers.py' -v
+      - name: Install runtime Skyfield (not Swiss in production)
+        run: pip install -r engine/requirements.txt
+      - name: Install pinned Swiss AGPL *test-only* comparator in isolated CI
+        run: |
+          echo 'pyswisseph==2.10.3.2 --hash=sha256:e00d7e08aeafe00938603bc118874b6ca7871c5aaa55aafca8fa2c6d76aff812' > /tmp/swiss-qa-only.txt
+          python -m pip install --require-hashes --only-binary=:all: --no-deps -r /tmp/swiss-qa-only.txt
+          python -c "import swisseph as swe; assert swe.version=='2.10.03'"
+      - name: Download exact NASA/JPL DE440s research SPK
+        run: |
+          curl --fail --location --retry 3 --max-time 240 --silent --show-error \
+            https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp \
+            --output /tmp/de440s.bsp
+          echo 'c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2  /tmp/de440s.bsp' | sha256sum --check
+      - name: Recompute six real JPL six-limb city-day candidates (research only)
+        run: |
+          PYTHONPATH=engine python -m panchavani.first_six_limb_pilot \
+            --ephemeris /tmp/de440s.bsp \
+            --out engine/artifacts/wave8-six-limb-UNAPPROVED.json
+      - name: Recompute 3-city alternative-point solar sensitivity with official PAC reference
+        run: |
+          PYTHONPATH=engine python -m panchavani.pilot_geo_solar_reconciliation \
+            --ephemeris /tmp/de440s.bsp \
+            --geo engine/fixtures/wave7c-geonames-three-metros-UNREVIEWED.json \
+            --pac engine/fixtures/pac-rashtriya-2026-four-metros-solar-UNREVIEWED.json \
+            --out engine/artifacts/wave8-geo-UNAPPROVED.json
+      - name: Independently solve Swiss Moshier/Lahiri 15-sample diagnostics + 8 boundary events
+        run: |
+          PYTHONPATH=engine python engine/research_external/swiss_lahiri_probe.py \
+            --ephemeris /tmp/de440s.bsp \
+            --batch engine/artifacts/wave8-six-limb-UNAPPROVED.json \
+            --out engine/artifacts/wave8-swiss-UNAPPROVED.json
+      - name: Bind all 3 science source SHA hashes and generate human-only facts
+        run: |
+          PYTHONPATH=engine python -m panchavani.first_fact_dossiers \
+            --science engine/artifacts/wave8-six-limb-UNAPPROVED.json \
+            --geo engine/artifacts/wave8-geo-UNAPPROVED.json \
+            --swiss engine/artifacts/wave8-swiss-UNAPPROVED.json \
+            --out engine/artifacts/wave8-fact-dossiers-UNAPPROVED.json \
+            --previews engine/artifacts/wave8-private-review-previews
+      - name: Verify six different source-evidenced city pages and ZERO publication access
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          root=Path('engine/artifacts')
+          r=json.loads((root/'wave8-fact-dossiers-UNAPPROVED.json').read_text())
+          assert r['cityDayCount']==6 and r['cityCount']==3
+          assert r['productionForensicsStatus']=='PRODUCTION_FORENSICS_NOT_FETCHED'
+          assert r['status']=='BLOCKED_PENDING_SCIENCE_AND_EDITORIAL_REVIEW'
+          assert r['scientificReviewSigned'] is False and not r['sourceIndependenceScientificallyConfirmed']
+          assert not r['publicReleaseAuthorized'] and not r['indexingAuthorized']
+          assert not r['modelInvocationAuthorized'] and r['approvedClaimsForDeepSeek']==[]
+          assert set(r['evidenceFileSha256'])=={'science','geo','swiss'}
+          assert all(len(x)==64 for x in r['evidenceFileSha256'].values())
+          files=list((root/'wave8-private-review-previews').glob('*.md'))
+          assert len(files)==6
+          assert all(x['humanReview']['canApprove'] is False and
+                     x['approvedFactIdsForDeepSeek']==[] and
+                     len(x['facts'])==8 and
+                     x['indexingAuthorized'] is False for x in r['records'])
+          cities={}
+          for record in r['records']:
+            kind={f['kind']:f['value'] for f in record['facts']}
+            assert all(k in kind for k in
+                 ('citySolarDay','sunrisePanchangSixLimbs','tithiTimeline',
+                  'karanaTimeline','nakshatraTimeline','yogaTimeline',
+                  'citySpecificSolarSensitivity','cityReferenceSiteUnverified'))
+            cities.setdefault(record['localDate'],set()).add(kind['citySolarDay']['sunriseIST'])
+          assert all(len(times)==3 for times in cities.values()), 'Cloned city sunrise!'
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as file:
+            file.write('## PANCHAVANI Wave 8 · six research-only, city-specific fact dossiers\n\n')
+            file.write('**No editorial/astronomical approval, paid AI invocation or Google indexing.**\n\n')
+            file.write('| City | Local date | Modeled sunrise (IST) | Tithi | Nakshatra | 4 event timelines | Fact IDs |\n')
+            file.write('|---|---|---|---|---|---:|---:|\n')
+            for record in r['records']:
+              kinds={f['kind']:f['value'] for f in record['facts']}
+              limbs=kinds['sunrisePanchangSixLimbs']
+              changes=sum(kinds[x+'Timeline']['boundaryCountBetweenTwoSunrises']
+                          for x in ('tithi','karana','nakshatra','yoga'))
+              file.write(f"| {record['cityId']} | {record['localDate']} | {kinds['citySolarDay']['sunriseIST']} | {limbs['tithi']} | {limbs['nakshatra']} | {changes} | {len(record['facts'])} |\n")
+            file.write('\n**First indexing blocked:** city observations / Lahiri equivalence / private D1 conflict resolution / human regional + editorial source review.\n')
+          print('PASS: 6 unique research review dossiers, no release or approved AI facts')
+          PY
+      - name: Archive private editorial reviews and SHA-pinned research sources
+        uses: actions/upload-artifact@v4
+        with:
+          name: panchavani-wave8-first-six-city-day-fact-dossiers-UNAPPROVED
+          path: |
+            engine/artifacts/wave8-fact-dossiers-UNAPPROVED.json
+            engine/artifacts/wave8-private-review-previews/*.md
+            engine/artifacts/wave8-six-limb-UNAPPROVED.json
+            engine/artifacts/wave8-geo-UNAPPROVED.json
+            engine/artifacts/wave8-swiss-UNAPPROVED.json
+          retention-days: 14
+          if-no-files-found: error
