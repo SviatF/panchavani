@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {aggregatePilotConflicts,handlePilotConflictAudit} from '../src/pilot-conflict-audit.mjs';
+import {runDailyForensics,handleDailyForensicStatus,validateSnapshot,snapshotKey,SNAPSHOT_PREFIX} from '../src/daily-forensic-automation.mjs';
 import {CITY_META,CATALOG_VERSION} from '../src/city-catalog.mjs';
 
 const names=['delhi','mumbai','chennai'], date='2026-10-16',run='38973526416';
@@ -127,4 +128,77 @@ test('aggregator rejects forged scope, statuses, and unknown private cases',()=>
  assert.equal(aggregatePilotConflicts(rows).unresolvedCityCount,3);
  rows[1].shaConflictResolved=true;
  assert.throws(()=>aggregatePilotConflicts(rows),/invalid-or-unavailable/);
+});
+
+function cronMock(opts={}){
+ const env=mock(opts),store=new Map();
+ const original=env.CANDIDATES.get.bind(env.CANDIDATES);
+ env.AUTO_PRIVATE_FORENSICS_ENABLED='true';
+ env.CANDIDATES.get=async key=>{
+  if(key.startsWith(SNAPSHOT_PREFIX)){
+   const data=store.get(key);
+   return data===undefined?null:{text:async()=>data};
+  }
+  return original(key);
+ };
+ env.CANDIDATES.put=async (key,payload)=>{
+  assert.ok(key.startsWith(SNAPSHOT_PREFIX));
+  store.set(key,payload);
+ };
+ return {env,store};
+}
+const cronTime=Date.parse('2026-10-17T03:05:00Z');
+test('hourly Cron archives exactly one private 3-city report per day, never approves',async()=>{
+ const {env,store}=cronMock();
+ assert.equal((await runDailyForensics(env,cronTime-3600000)).status,'before-audit-window');
+ assert.equal(store.size,0);
+ const report=await runDailyForensics(env,cronTime);
+ assert.equal(report.status,'RESEARCH_EVIDENCE_CAPTURED');
+ assert.equal(report.unresolvedCityCount,3);
+ assert.equal(store.size,1);
+ const saved=validateSnapshot(JSON.parse(store.get(snapshotKey(cronTime))),'2026-10-17');
+ assert.equal(saved.report.caseCount,3);
+ assert.equal(saved.report.historicalConflictsScientificallyResolved,false);
+ assert.equal(saved.indexingAuthorized,false);
+ assert.equal(saved.scientificApproval,false);
+ assert.equal((await runDailyForensics(env,cronTime+3600000)).status,'already-archived');
+ assert.equal(store.size,1);
+ const request=new Request('https://admin.panchavani.com/research/conflicts/automation?date=2026-10-17');
+ const res=await handleDailyForensicStatus(request,env,'verified-owner');
+ assert.equal(res.status,200);
+ assert.match(res.headers.get('Cache-Control'),/no-store/);
+ assert.equal((await res.json()).report.unresolvedCityCount,3);
+});
+test('tampered production candidate archives BLOCKED, not an automatic resolution',async()=>{
+ const {env,store}=cronMock({tamperCity:'mumbai'});
+ const first=await runDailyForensics(env,cronTime);
+ assert.equal(first.status,'BLOCKED_MISSING_OR_UNTRUSTED_SOURCE');
+ const data=JSON.parse(store.get(snapshotKey(cronTime)));
+ assert.equal(data.report,null);
+ assert.equal(data.indexingAuthorized,false);
+ const url='https://admin.panchavani.com/research/conflicts/automation?date=2026-10-17';
+ assert.equal((await handleDailyForensicStatus(new Request(url),env,'owner')).status,503);
+ assert.equal((await runDailyForensics(env,cronTime+3600000)).status,'already-archived');
+});
+test('private archived report endpoint rejects unauthenticated readers and illegal writes',async()=>{
+ const {env}=cronMock();
+ const url='https://admin.panchavani.com/research/conflicts/automation';
+ assert.equal((await handleDailyForensicStatus(new Request(url),env,null)).status,403);
+ assert.equal((await handleDailyForensicStatus(new Request(url,{method:'POST'}),env,'actor')).status,405);
+ assert.equal((await handleDailyForensicStatus(new Request(url+'?date=2026-02-30'),env,'actor')).status,400);
+ assert.equal((await handleDailyForensicStatus(new Request(url+'?publish=1'),env,'actor')).status,400);
+ env.AUTO_PRIVATE_FORENSICS_ENABLED='false';
+ assert.equal((await runDailyForensics(env,cronTime)).status,'disabled');
+});
+test('daily archive rejects forged grant and corrupted archive source',()=>{
+ const sample={
+  artifactType:'PANCHAVANI_DAILY_PRIVATE_SOURCE_TRIAGE',schemaVersion:1,
+  utcDate:'2026-10-17',status:'BLOCKED_MISSING_OR_UNTRUSTED_SOURCE',
+  scientificApproval:false,releaseAuthorized:false,indexingAuthorized:false,
+  sourceConflictResolved:false,approvedClaimsForDeepSeek:[],report:null,
+  errorCode:'PRIVATE_SOURCE_VALIDATION_INCOMPLETE'
+ };
+ validateSnapshot(sample,'2026-10-17');
+ assert.throws(()=>validateSnapshot({...sample,indexingAuthorized:true},'2026-10-17'));
+ assert.throws(()=>validateSnapshot({...sample,report:{cityCount:3}},'2026-10-17'));
 });

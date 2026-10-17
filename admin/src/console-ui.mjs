@@ -14,6 +14,7 @@ const NAV=[
   {href:'/research/daily',label:'Daily explorer',symbol:'◷'},
   {href:'/research/ingest-status',label:'Import telemetry',symbol:'⇅'},
   {href:'/research/conflicts',label:'Source conflicts',symbol:'≠'},
+  {href:'/research/conflicts/automation',label:'Daily SHA evidence',symbol:'⟳'},
   {href:'/research/conflicts/pilot?date=2026-10-16&format=json',label:'3-city SHA audit',symbol:'▣'},
   {href:'/research/daily-brief',label:'SEO fact briefs',symbol:'⌁'}
  ]},

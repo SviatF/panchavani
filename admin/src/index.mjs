@@ -19,6 +19,7 @@ import { handleScienceConsole } from './science-console.mjs';
 import { handleDailyScienceAudit } from './science-day.mjs';
 import { handleConflictForensics } from './conflict-forensics.mjs';
 import { handlePilotConflictAudit } from './pilot-conflict-audit.mjs';
+import {handleDailyForensicStatus,runDailyForensics} from './daily-forensic-automation.mjs';
 
 
 const HEADERS = {
@@ -83,6 +84,8 @@ const baseWorker = {
     // The dashboard refuses access without Cloudflare-verified identity and explicit email allowlist.
     const actor = await authenticate(ctx, env);
     if (!actor) return deny();
+    const archivedForensics=await handleDailyForensicStatus(request,env,actor);
+    if(archivedForensics)return archivedForensics;
     const pilotConflicts=await handlePilotConflictAudit(request,env,actor);
     if(pilotConflicts)return pilotConflicts;
     const forensic=await handleConflictForensics(request,env,actor);
@@ -162,11 +165,16 @@ const baseWorker = {
   async scheduled(controller, env, ctx) {
     // Cloudflare Cron events are internal triggers, never exposed via HTTP.
     // Without BOTH explicitly opted-in flags there are zero queued/model jobs.
-    const result=await runAutonomy(env,controller.scheduledTime);
+    const [result,forensics]=await Promise.all([
+      runAutonomy(env,controller.scheduledTime),
+      runDailyForensics(env,controller.scheduledTime).catch(()=>({status:'private-forensics-cron-error',indexingAuthorized:false}))
+    ]);
     console.log('PANCHAVANI private automation',JSON.stringify({
       research:result.queue?.status,queued:result.queue?.queued||0,
       ingest:result.ingest?.status,ingested:result.ingest?.stored||0,
       editorial:result.draft?.status,attempted:result.draft?.attempted||0,
+      forensicsStatus:forensics.status,
+      unresolvedCityCount:forensics.unresolvedCityCount??null,
       publishingAuthorized:false
     }));
   },

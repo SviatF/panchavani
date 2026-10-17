@@ -1,0 +1,67 @@
+name: PANCHAVANI private Admin Worker safe auto-deploy (on main only)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'admin/**'
+      - '.github/workflows/deploy-private-admin.yml'
+  pull_request:
+    paths:
+      - 'admin/**'
+      - '.github/workflows/deploy-private-admin.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: panchavani-private-admin-production
+  cancel-in-progress: false
+jobs:
+  production-admin-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Private Admin full tests and dry-run before deploying anything
+        run: |
+          cd admin
+          npm install --no-audit --no-fund
+          npm run check
+      - name: Confirm Cloudflare Worker deploy authentication is available
+        id: auth
+        run: |
+          if test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"; then
+            echo 'ready=true' >> "$GITHUB_OUTPUT"
+            echo 'Private Admin Worker authenticated deployment is enabled'
+          else
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+            echo 'MISSING CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID: live deployment was NOT attempted'
+          fi
+      - name: Deploy ONLY protected private Admin Worker to existing Cloudflare account
+        if: github.ref == 'refs/heads/main' && steps.auth.outputs.ready == 'true'
+        run: |
+          cd admin
+          npx wrangler deploy --config wrangler.jsonc
+      - name: Record deployment truth (no claims about D1/Access health)
+        if: always()
+        env:
+          HAS_CREDENTIALS: ${{ steps.auth.outputs.ready }}
+          IS_MAIN_BRANCH: ${{ github.ref == 'refs/heads/main' }}
+          JOB_RESULT: ${{ job.status }}
+        run: |
+          echo '## PANCHAVANI PRIVATE Admin automatic deployment' >> "$GITHUB_STEP_SUMMARY"
+          if test "$IS_MAIN_BRANCH" != true; then
+            echo '**NOT DEPLOYED:** Pull request validation cannot modify the production Worker.' >> "$GITHUB_STEP_SUMMARY"
+          elif test "$HAS_CREDENTIALS" = true && test "$JOB_RESULT" = success; then
+            echo 'Wrangler completed deployment. Cloudflare Access/D1/R2 and the next private scheduled SHA snapshot still require actual live health checks.' >> "$GITHUB_STEP_SUMMARY"
+          elif test "$HAS_CREDENTIALS" != true; then
+            echo '**NOT DEPLOYED:** Cloudflare GitHub repository credentials unavailable. The source and unit tests still exist in main.' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo '**DEPLOY FAILED:** See explicit Wrangler or test failure above. Never assume private Cron is active.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo 'No public site, sitemap or indexing settings were changed by this workflow.' >> "$GITHUB_STEP_SUMMARY"
