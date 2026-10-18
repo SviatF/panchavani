@@ -1,0 +1,178 @@
+{
+  "wedding": {
+    "eyebrow": "VIVAHA · DATE SELECTION",
+    "lead": "A wedding Muhurat is a carefully defined ritual window, not simply a Tithi that sounds favourable.",
+    "summary": "A city-specific marriage recommendation needs both the relevant astronomical intervals and a named marriage rule tradition. The correct question is which intervals survive all restrictions, not which date contains a particular Nakshatra.",
+    "sections": [
+      {
+        "title": "First establish the city and local dawn",
+        "body": "Fix the observer coordinates and sunrise convention. Record sunrise and the following sunrise in India Standard Time, then find the exact Tithi, Nakshatra, Yoga and Karana intervals. A crossing near dawn changes which elements are active on the sunrise-defined day; the UTC crossing itself does not move when you switch cities."
+      },
+      {
+        "title": "Apply marriage-specific exclusions",
+        "body": "Marriage calendar methods often filter candidate dates by lunar and solar month, Panchang elements and Guru or Shukra Tara Asta. Whether a particular period is excluded depends on the stated tradition and its actual rules. PANCHAVANI must not turn a generic five-limb score into a confirmed Vivaha Muhurat without this additional rule layer."
+      },
+      {
+        "title": "Verify the actual ceremony window",
+        "body": "An otherwise promising calendar day may have only a short usable interval. Review boundaries of all relevant conditions, including Lagna where the chosen tradition requires it, and express the intersection in local IST with an explicit next-day indicator. Never silently treat a post-midnight time as the previous civil date."
+      }
+    ],
+    "checklist": [
+      "City-specific sunrise and horizon convention",
+      "Time-resolved Tithi, Nakshatra, Yoga and Karana",
+      "Named solar/lunar month and marriage tradition",
+      "Guru and Shukra Asta method when applicable",
+      "Exact Lagna and ritual window if required",
+      "Versioned rules and independent human review"
+    ],
+    "question": "Can two websites agree on the Tithi but disagree about a wedding date?",
+    "answer": "Yes. They might use different rules for the month, Guru/Shukra restrictions or the ceremony window, or use different local sunrise references. Compare the timestamp and each named rule, not just the final date.",
+    "source": {
+      "label": "Drik Panchang — Marriage Muhurat methodology (comparison reference)",
+      "url": "https://www.drikpanchang.com/shubh-dates/shubh-marriage-dates-with-muhurat.html?lang=en&rd=0"
+    },
+    "state": "No scientifically and ritually approved wedding dates are published yet. Our JPL research calculates the raw intervals, while this page explains the additional review requirements.",
+    "references": [
+      {
+        "label": "IMD Positional Astronomy Centre — Rashtriya Panchang",
+        "url": "https://mausam.imd.gov.in/imd_latest/contents/rashtriy_panchang.php"
+      },
+      {
+        "label": "Drik Panchang — Marriage Muhurat methodology (comparison reference)",
+        "url": "https://www.drikpanchang.com/shubh-dates/shubh-marriage-dates-with-muhurat.html?lang=en&rd=0"
+      }
+    ]
+  },
+  "vehicle-purchase": {
+    "eyebrow": "VAHAN · PURCHASE PLANNING",
+    "lead": "Choose a vehicle purchase window using a location-specific rule, not a city-independent list of lucky days.",
+    "summary": "A Vahan Muhurat requires a dated intersection of selected Tithi, Nakshatra, weekday and sometimes Lagna constraints. A ready-made Tithi label alone cannot tell you whether a purchase time is eligible.",
+    "sections": [
+      {
+        "title": "Start with the transaction city",
+        "body": "A purchase in Pune and a purchase in Mumbai share IST, and under one ephemeris share the underlying geocentric lunar transition. The sunrise defining the local Panchang day differs by observer location. Do not copy Mumbai dawn or a published minute from another city and relabel it as Pune."
+      },
+      {
+        "title": "Check the applicable vehicle criteria",
+        "body": "Vehicle-purchase calendars commonly screen weekdays, Tithi and Nakshatra; some add Lagna constraints. The final rule pack must specify inclusions and exclusions, not just preferred star names. A date should be recommended only when the relevant approved intervals overlap in the selected city."
+      },
+      {
+        "title": "Remove excluded periods and handle midnight",
+        "body": "The chosen convention may exclude Rahu Kalam and require a minimum viable window. Compute those windows against the actual local daytime, preserve after-midnight date notation and avoid offering a zero-minute interval. Never assume that a favourable day makes every hour suitable."
+      }
+    ],
+    "checklist": [
+      "Location and transaction date",
+      "Sunrise through following sunrise in IST",
+      "Tithi and Nakshatra interval intersection",
+      "Applicable weekday and Lagna requirements",
+      "Explicit exclusion windows and minimum duration",
+      "Verified regional source and final human reviewer"
+    ],
+    "question": "If a car purchase is in Bengaluru but its registration is in another city, which location matters?",
+    "answer": "First define which action the tradition evaluates, such as the purchase or first use, and where that action takes place. Use that chosen event's actual city for the local time window; do not mix two cities within one calculation.",
+    "source": {
+      "label": "Drik Panchang — Vehicle purchase criteria (comparison reference)",
+      "url": "https://www.drikpanchang.com/shubh-dates/vehicle-buying-auspicious-dates-with-muhurat.html?geoname-id=1261481&time-format=24hour&year=2026"
+    },
+    "state": "No verified vehicle-purchase dates or eligibility windows are shown yet. PANCHAVANI keeps the date table empty until its Vahan rule pack is reviewed.",
+    "references": [
+      {
+        "label": "IMD Positional Astronomy Centre — Rashtriya Panchang",
+        "url": "https://mausam.imd.gov.in/imd_latest/contents/rashtriy_panchang.php"
+      },
+      {
+        "label": "Drik Panchang — Vehicle purchase criteria (comparison reference)",
+        "url": "https://www.drikpanchang.com/shubh-dates/vehicle-buying-auspicious-dates-with-muhurat.html?geoname-id=1261481&time-format=24hour&year=2026"
+      }
+    ]
+  },
+  "griha-pravesh": {
+    "eyebrow": "GRIHA PRAVESH · FIRST ENTRY",
+    "lead": "A house-entry ceremony needs the location of the home and rules for the chosen calendar tradition.",
+    "summary": "A housewarming date is not a universal astronomical event. The underlying Tithi and Nakshatra intervals can be computed, but the recommendation also needs a regional Griha Pravesh rule, local ceremony window and clear treatment of Guru/Shukra restrictions where applicable.",
+    "sections": [
+      {
+        "title": "Use the coordinates of the home",
+        "body": "The local sunrise is determined for the property city, not the address of the person planning the ceremony. A shared Tithi transition and a different local dawn can yield different sunrise-attributed readings. Display the city and calculation convention directly beside any future suggested time."
+      },
+      {
+        "title": "Check house-entry observance rules",
+        "body": "Published Griha Pravesh calendars may consider Nakshatra, Tithi, weekday and lunar month, and often distinguish new-home entry traditions. A rule cannot be inferred from one favourable Nakshatra alone. For a specific family or region the tradition must be named instead of silently chosen."
+      },
+      {
+        "title": "Produce a real ceremony interval",
+        "body": "Intersect every required time-based criterion rather than selecting a calendar date and labelling it eligible all day. Show time windows with IST, daylight context and the date on which any post-midnight segment actually occurs. When rules conflict or lack authoritative review, withhold the recommendation."
+      }
+    ],
+    "checklist": [
+      "New home location and ceremony context",
+      "Local sunrise, sunset and the following sunrise",
+      "Time-resolved relevant lunar elements",
+      "Named home-entry tradition and lunar month rule",
+      "Guru/Shukra Asta exclusions if the tradition uses them",
+      "Independent source and final reviewer sign-off"
+    ],
+    "question": "Is a favourable Griha Pravesh Nakshatra enough to fix a housewarming date?",
+    "answer": "No. It is only one possible eligibility factor. The applicable tradition can require additional month, weekday, Tithi and planetary considerations, along with a valid ceremony interval at the location of the home.",
+    "source": {
+      "label": "Drik Panchang — Griha Pravesh methodology (comparison reference)",
+      "url": "https://www.drikpanchang.com/shubh-dates/griha-pravesh-dates-with-muhurat.html?time-format=24hour"
+    },
+    "state": "Home-entry date recommendations remain withheld until the relevant regional rule pack and the location-specific scientific inputs have been reviewed.",
+    "references": [
+      {
+        "label": "IMD Positional Astronomy Centre — Rashtriya Panchang",
+        "url": "https://mausam.imd.gov.in/imd_latest/contents/rashtriy_panchang.php"
+      },
+      {
+        "label": "Drik Panchang — Griha Pravesh methodology (comparison reference)",
+        "url": "https://www.drikpanchang.com/shubh-dates/griha-pravesh-dates-with-muhurat.html?time-format=24hour"
+      }
+    ]
+  },
+  "start-business": {
+    "eyebrow": "VYAPAR · BUSINESS BEGINNINGS",
+    "lead": "A business-start Muhurat should specify the exact business action and the convention used to evaluate it.",
+    "summary": "Opening a shop, signing a founding document and beginning first sales can be separate events on the same day. PANCHAVANI should never label all of them auspicious based on a generic sunrise Tithi. A meaningful result requires an explicit event definition, localized interval and reviewed business-opening rules.",
+    "sections": [
+      {
+        "title": "Define the event before scoring a date",
+        "body": "Select the physical action being timed: opening premises, conducting a ceremony, signing a document or beginning commercial activity. These are not interchangeable. Record its city and whether the selected tradition assesses the actual event moment, a solar-day label or a Lagna interval."
+      },
+      {
+        "title": "Keep astronomical evidence separate from custom",
+        "body": "Tithi, Nakshatra, Yoga, Karana and solar-day chronology can be calculated from the astronomical engine, but a claim that the resulting interval is good for a business needs a separately versioned regional and activity-specific rule. Avoid claiming all businesses and all communities follow the same standard."
+      },
+      {
+        "title": "Publish only an explained eligible interval",
+        "body": "The final table should show each allowed local IST interval, the applied exclusions and why it survived. A single green badge without the rule source is not useful. Business hours, legal deadlines and practical readiness are separate choices from traditional Muhurat practice."
+      }
+    ],
+    "checklist": [
+      "Defined opening or transaction event",
+      "City and local civil date of the action",
+      "Sunrise and exact lunar-phase transitions",
+      "Named regional business-opening rule pack",
+      "Time intersections and any exclusion periods",
+      "Editorial and rule-domain approval before publication"
+    ],
+    "question": "Should I use the same Muhurat for opening a shop and registering a company?",
+    "answer": "Not automatically. They are different actions, and a chosen observance tradition may assign different conditions or may not prescribe a rule for one of them. Establish the action and reference rule first; then calculate a location-specific window.",
+    "source": {
+      "label": "IMD Rashtriya Panchang — astronomical building blocks",
+      "url": "https://mausam.imd.gov.in/imd_latest/contents/rashtriy_panchang.php"
+    },
+    "state": "PANCHAVANI does not publish a best business-opening date without a documented tradition-specific assessment. The page is an explanatory guide, not a financial recommendation.",
+    "references": [
+      {
+        "label": "IMD Positional Astronomy Centre — Rashtriya Panchang",
+        "url": "https://mausam.imd.gov.in/imd_latest/contents/rashtriy_panchang.php"
+      },
+      {
+        "label": "IMD Rashtriya Panchang — astronomical building blocks",
+        "url": "https://mausam.imd.gov.in/imd_latest/contents/rashtriy_panchang.php"
+      }
+    ]
+  }
+}
