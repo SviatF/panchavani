@@ -104,6 +104,27 @@ jobs:
             out.write('\nCity observers, Lahiri and private D1 source hashes still require scientific review.\n')
           print('PASS: TWENTY location-unique JPL research previews, zero public pages')
           PY
+      - name: Mirror 20 complete research records to PRIVATE R2 only (no D1 overwrite or publication)
+        if: github.ref == 'refs/heads/main'
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.PANCHAVANI_R2_ACCOUNT_ID }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.PANCHAVANI_R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.PANCHAVANI_R2_SECRET_ACCESS_KEY }}
+          SNAPSHOT_DATE: ${{ steps.day.outputs.day }}
+        run: |
+          set -euo pipefail
+          if test -z "$R2_ACCOUNT_ID" || test -z "$AWS_ACCESS_KEY_ID" || test -z "$AWS_SECRET_ACCESS_KEY"; then
+            echo 'PRIVATE R2 MIRROR NOT ACTIVE: repository R2 credentials absent. GitHub artifact still contains science report.' | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          key="ops/ten-city-six-limb/v1/$SNAPSHOT_DATE/$GITHUB_RUN_ID"
+          aws s3 cp engine/artifacts/rolling-six-limb-UNAPPROVED.json \
+            "s3://panchavani-research-private/$key/science-UNAPPROVED.json" \
+            --endpoint-url "https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com" --no-progress
+          aws s3 cp engine/artifacts/rolling-six-city-preview-index-UNAPPROVED.json \
+            "s3://panchavani-research-private/$key/preview-index-UNAPPROVED.json" \
+            --endpoint-url "https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com" --no-progress
+          echo "PRIVATE R2 SNAPSHOT STORED: immutable research namespace $key (NOT an approved candidate, no release)." >> "$GITHUB_STEP_SUMMARY"
       - name: Archive private-only research; do not deploy
         uses: actions/upload-artifact@v4
         with:
