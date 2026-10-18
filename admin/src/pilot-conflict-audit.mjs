@@ -40,7 +40,19 @@ export function aggregatePilotConflicts(cases){
        observedDistinctVariants:new Set(variants.map(v=>v.incomingSha256)).size,
        hasNoSourceVariants:variants.length===0,
        changedResearchFields:[...new Set(changed.flatMap(v=>v.changedResearchFields||[]))].sort(),
-       byteOnlyOrUnexplained:changed.some(v=>v.disposition==='DIFFERENT_BYTES_FIELDS_NOT_YET_EXPLAINED')
+       // For a SHA mismatch, distinguish true source serialization-only
+       // changes from JSON changes missed by the former field allowlist.
+       jsonSerializationOnly:changed.length>0&&changed.every(
+         v=>v.disposition==='JSON_SERIALIZATION_ONLY_DIFFERENCE'),
+       hasOtherJsonFieldDifferences:changed.some(v=>
+         v.disposition==='OTHER_JSON_RECORD_FIELDS_DIFFER'),
+       fullJsonDifferenceCounts:changed.map(v=>({
+         incomingSha256:v.incomingSha256,
+         changedPathCount:v.completeJsonComparison?.allChangedPathCount??null,
+         categoryCounts:v.completeJsonComparison?.categoryCounts??null
+       })),
+       byteOnlyOrUnexplained:changed.some(v=>
+         v.disposition==='DIFFERENT_BYTES_FIELDS_NOT_YET_EXPLAINED')
      });
  }
  return {
@@ -59,7 +71,7 @@ export function aggregatePilotConflicts(cases){
    scientificApproval:false,
    approvedClaimsForDeepSeek:[],
    releaseAuthorized:false,indexingAuthorized:false,
-   nextAction:'External scientific reviewer must inspect all original versioned sources and explicitly sign each disposition; nothing was written.'
+   nextAction:'Review the full per-city JSON structural comparison, including omitted Nakshatra/Yoga and provenance fields. Only an authorized scientific reviewer can sign the source disposition; no D1/R2 source was modified.'
  };
 }
 export async function handlePilotConflictAudit(request,env,actor){
