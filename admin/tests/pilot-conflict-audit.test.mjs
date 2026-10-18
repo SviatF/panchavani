@@ -144,6 +144,15 @@ test('all 3 private D1 mock source hashes inspected through one Access route',as
  assert.deepEqual(report.unresolved.map(c=>c.changedResearchFields),[
   ['sun.sunsetUtc'],['sun.sunsetUtc'],['sun.sunsetUtc']
  ]);
+ assert.deepEqual(report.unresolved.map(c=>c.fullJsonDifferenceCounts[0].changedPathCount),[1,1,1]);
+ assert.deepEqual(report.unresolved.map(c=>c.jsonSerializationOnly),[false,false,false]);
+ assert.deepEqual(report.unresolved.map(c=>c.hasOtherJsonFieldDifferences),[false,false,false]);
+ for(const item of report.cases){
+   assert.equal(item.variants[0].completeJsonComparison.allChangedPathCount,1);
+   assert.equal(item.variants[0].completeJsonComparison.wholeJsonStructureEqual,false);
+   assert.equal(item.variants[1].disposition,'DUPLICATE_INCOMING_SHA');
+   assert.equal(item.variants[1].completeJsonComparison.allChangedPathCount,1);
+ }
  assert.equal(e.writes(),0);
 });
 test('one tampered source or missing D1 blocks whole audit with a safe city diagnosis',async()=>{
