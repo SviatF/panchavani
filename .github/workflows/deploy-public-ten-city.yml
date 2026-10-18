@@ -7,6 +7,8 @@ on:
       - 'components/**'
       - 'lib/**'
       - 'data/city-guides.json'
+      - 'data/muhurat-guides.json'
+      - 'scripts/test-product-experience.mjs'
       - 'data/approved-panchang.json'
       - 'scripts/assert_first_ten_public_release.py'
       - 'scripts/approved-day-value-gate.mjs'
@@ -44,6 +46,8 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Verify source-backed editorial substance and not-too-similar city copy
         run: npm run audit:content
+      - name: Verify ten-city selection and substantive, unindexed Muhurat guides
+        run: npm run test:product
       - name: Build real static site
         run: npm run build
       - name: Enforce 10-URL index, sitemap and full-site 404/noindex barriers before production deploy
