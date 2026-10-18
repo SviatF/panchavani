@@ -42,9 +42,11 @@ def assert_release():
         html=file.read_text(encoding="utf-8")
         tags=Meta()
         tags.feed(html)
-        assert len(tags.robots)==1,(rel,tags.robots)
-        robots=tags.robots[0].lower().replace(" ","")
+        assert tags.robots,(rel,tags.robots)
+        normalized=[value.lower().replace(" ","") for value in tags.robots]
+        robots=normalized[0]
         if rel in target_pages:
+            assert len(normalized)==1,(rel,normalized)
             city=rel.split("/")[1]
             assert "noindex" not in robots and "index" in robots and "follow" in robots,(rel,robots)
             assert tags.canonical==["https://panchavani.com/panchang/"+city+"/"],(rel,tags.canonical)
@@ -59,7 +61,7 @@ def assert_release():
                     assert text.lower() in html.lower(),(rel,text)
             actual_indexable.append(rel)
         else:
-            assert "noindex" in robots,(rel,robots)
+            assert all("noindex" in value for value in normalized),(rel,normalized)
             assert not ("panchang/" in rel and rel.count("/")>2),\
                 "Accidental unapproved city-day page leaked: "+rel
     assert set(actual_indexable)==target_pages,(actual_indexable,target_pages)
