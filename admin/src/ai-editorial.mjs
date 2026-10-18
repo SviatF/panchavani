@@ -17,7 +17,7 @@ const FIELD_NAMES=['headline','seoTitle','metaDescription','introduction',
 const MAX_DRAFTS_PER_DAY=3;
 const MAX_SOURCE_BYTES=210000;
 const MAX_MODEL_REPLY_BYTES=25000;
-const POLICY='deepseek-private-automated-seo-v1';
+const POLICY='deepseek-ten-city-location-first-v5';
 export const EDITORIAL_POLICY_VERSION=POLICY;
 const htmlHeaders={
   'Content-Type':'text/html; charset=utf-8',
@@ -97,6 +97,19 @@ export function buildEditorialPrompt(candidate,city,intent,lang,sourceHash){
     +'Avoid repeating the same idea in introduction and dailyUnderstanding. '
     +'The application composes SEO title, metadata, local context and FAQ '
     +'deterministically from its sourced brief; focus on substantial body copy. '
+    +'Open with the distinct reader problem in seoTask.focusQuestion, not a generic Panchang definition. '
+    +'Give a practical numbered-in-prose comparison using the specific locality and the distinct focus, '
+    +'but do not invent timings, locations, rituals, festival dates or sourced place facts. '
+    +'Avoid phrases like cosmic harmony, deeply rooted traditions, explore the ancient, '
+    +'ever-changing rhythm, or any other SEO filler. '
+    +'For Delhi consider near-dawn boundary interpretation; Mumbai distinguish IST and dawn; '
+    +'Kolkata distinguish the official central station from a city sunrise; '
+    +'Chennai distinguish astronomical time from Tamil calendar observance rules; '
+    +'Bengaluru keep dawn and the shared lunar event separate; '
+    +'Hyderabad separate Telugu calendar observance windows; '
+    +'Ahmedabad distinguish lunar month convention; Pune compare Pune versus Mumbai sunrise; '
+    +'Jaipur compare Jaipur versus Delhi; Varanasi separate Tithi interval and vrata assignment. '
+    +'Do not imply these areas have officially different phase transition instants. '
     +'Make the city paragraph substantive, but a city research question is '
     +'NOT proof of a city-specific religious or astronomical fact. '
     +'Do not invent regional customs, source citations, numerical clock '
@@ -276,7 +289,7 @@ export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=
         '<table><thead><tr><th>City</th><th>Body words</th><th>Quality flags</th>'+
         '</tr></thead><tbody>'+flags+'</tbody></table>'+
         '<p class="muted">Eligible city-hub drafts found: '+drafts.length+
-        ' of 3 pilot cities. Empty rows require draft generation, or a one-shot slot may need an operator check. '+
+        ' of 10 city guides. Empty rows require draft generation, or a one-shot slot may need an operator check. '+
         'Report reads cached R2 only: zero new DeepSeek calls. No publication approval is inferred.</p></section>'+
         '<section><h2>Cross-city lexical overlap</h2>'+
         '<table><thead><tr><th>Pair</th><th>Token overlap</th>'+
@@ -428,7 +441,7 @@ export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=
       +'<section><h2>DeepSeek server-side secret</h2><p>'+ (connected?'Configured for private draft generation.':'Not configured or missing private R2.')+'</p><p><a href="/ai/provider-status">Check DeepSeek API connection and balance availability (no model call)</a></p></section>'
       +'<section><h2>Automatic research and editorial scheduler</h2><p>'+(
          'Evergreen DeepSeek city guides: '+(evergreenDraftConfigured?
-           'ENABLED for Delhi, Mumbai, Chennai; one paid attempt per eligible city/language at most, saved privately.':
+           'ENABLED for 10 city guides, one paid attempt per eligible city/language at most (max 3 new attempts/day), saved privately.':
            'WAITING for configured private DeepSeek secret, D1/R2 or AUTO_EDITORIAL_ENABLED flag.')+
          ' Separate live Runner queue: '+(researchConfigured?
            'ENABLED with HMAC credentials.':'not enabled in this Worker; existing scheduled GitHub research ingestion is independent.')
@@ -441,7 +454,7 @@ export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=
       +'<form method="post" action="/ai/draft"><label>Completed research city/date</label><select required name="jobId">'+choice+'</select>'
       +'<label>Content type</label><select name="intent">'+opt('city-hub','City guide · evergreen (new V4 test)')+opt('daily-panchang','Daily Panchang · only cached; new calls paused')+[...INTENTS].filter(v=>!['city-hub','daily-panchang'].includes(v)).map(v=>opt(v,v+' · new calls paused')).join('')+'</select>'
       +'<label>Language</label><select name="language">'+opt('en','English')+opt('hi','Hindi')+'</select>'
-      +'<p class="muted">EDITORIAL V4: new paid attempts are CITY GUIDES only. Daily Panchang, Vrat, Muhurat and Festival copy are paused until verified day-specific evidence is available. Existing daily drafts remain readable without charges. City guides are evergreen, with a one-per-city/language pilot safeguard. Max 3 new drafts per editor per 24h. Never published automatically.</p>'
+      +'<p class="muted">EDITORIAL V5: new paid attempts are CITY GUIDES only. Daily Panchang, Vrat, Muhurat and Festival copy are paused until verified day-specific evidence is available. Existing daily drafts remain readable without charges. City guides are evergreen, with a one-per-city/language pilot safeguard. Max 3 new drafts per editor per 24h. Never published automatically.</p>'
       +'<button type="submit" '+(!connected||!jobs.length?'disabled':'')+'>Generate PRIVATE research draft</button></form></section>'
       +oneShotState
       +'<section><h2>Originality & quality</h2><p class="muted">Compare saved evergreen city guides without making a new model request. Lexical overlap is only an editorial screening tool; all scientific, ritual and SEO release blockers remain active.</p><p><a href="/ai/quality-report">View private cross-city quality report</a></p></section>';

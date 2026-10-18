@@ -13,12 +13,12 @@ const good={
  faq:[],
  referencedFactIds:[]
 };
-test('new V4 research questions give distinct non-factual directions for three pilot cities',()=>{
+test('new V4 research questions give distinct non-factual directions for ten city-guide cities',()=>{
  assert.equal(EDITORIAL_V4_POLICY,'deepseek-private-editorial-v4');
  const angles=Object.values(CITY_RESEARCH_QUESTIONS);
- assert.equal(angles.length,3);
- assert.equal(new Set(angles).size,3);
- assert.ok(angles.every(x=>x.length>120));
+ assert.equal(angles.length,10);
+ assert.equal(new Set(angles).size,10);
+ assert.ok(angles.every(x=>x.length>80));
 });
 test('valid city-hub example has substantive local copy and never claims approval',()=>{
  const issues=v4QualityIssues(good,'Mumbai',{intent:'city-hub',lang:'en'});

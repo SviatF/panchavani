@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import {ArrowRight,MapPin,ShieldCheck} from 'lucide-react';
-import {CITY_GUIDES,PILOT_CITY_IDS} from '@/lib/public-panchang';
+import {CITY_GUIDES,CITY_GUIDE_IDS} from '@/lib/public-panchang';
 export default function PanchangDirectory(){
  return <div className="page-width verified-hub">
   <p className="section-eyebrow">PANCHAVANI · LOCAL PANCHANG</p>
   <h1>Panchang by City</h1>
-  <p className="verified-intro">Choose Delhi, Mumbai or Chennai to understand local sunrise, Tithi transitions and the calendar conventions that can change how a date is read. Daily timing records will appear when their sources and calculations are independently reviewed.</p>
-  <div className="verified-city-grid">{PILOT_CITY_IDS.map(id=>{
+  <p className="verified-intro">Explore ten location-specific Panchang guides. Learn how to compare sunrise and Tithi transitions in each city, distinguish astronomical events from festival rules, and consult source references. Daily calendar dates are published separately only after their calculations are reviewed.</p>
+  <div className="verified-city-grid">{CITY_GUIDE_IDS.map(id=>{
    const city=CITY_GUIDES[id];
    return <Link href={`/panchang/${id}/`} key={id} className="verified-city-card">
     <MapPin size={20}/><span className="section-eyebrow">{city.region}</span>

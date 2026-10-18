@@ -6,7 +6,20 @@
     "metaDescription": "Learn how to read Delhi Panchang values, compare local sunrise and Tithi transitions, and understand why observance dates need clear calendar rules.",
     "introduction": "Checking the Panchang for Delhi? Start with the city's sunrise and the day's Tithi. A Tithi follows the angle between the Moon and Sun, so it can change between two sunrises. That is why an almanac may show one Tithi at sunrise and a transition later on the same date.",
     "insight": "Two Delhi Panchangs can show different timings even though both use the IST clock. Check the location used for sunrise, the calculation convention and whether the displayed Tithi is measured at sunrise or at another point in the day. A lunar transition is an astronomical event; an observance date may require another rule.",
-    "method": "Compare Delhi as the selected location, the sunrise definition and the transition timestamp. If your question concerns a fast or festival, find the source's observance rule rather than assuming that the transition alone settles the date."
+    "method": "Compare Delhi as the selected location, the sunrise definition and the transition timestamp. If your question concerns a fast or festival, find the source's observance rule rather than assuming that the transition alone settles the date.",
+    "question": "If a lunar-day change falls around dawn, why can Delhi and a nearby NCR city display different sunrise-day labels?",
+    "answer": "The astronomical transition is one instant, but sunrise is calculated for the selected place. Compare both sites' specified dawn times against the transition. If it falls between the two sunrises, their sunrise-day labels can differ without changing the lunar calculation.",
+    "example": "Practical comparison: write down the selected Delhi reference point, the reported sunrise and the exact end of the current Tithi. Then repeat for the other city using the same calculation convention. If the transition is earlier than Delhi sunrise but later than the other site's sunrise, the dawn labels may legitimately disagree.",
+    "sources": [
+      {
+        "label": "IMD Positional Astronomy Centre — Rashtriya Panchang",
+        "url": "https://mausam.imd.gov.in/imd_latest/contents/rashtriy_panchang.php"
+      },
+      {
+        "label": "CSIR-NPL — Indian Standard Time",
+        "url": "https://www.nplindia.res.in/clockcode/html/"
+      }
+    ]
   },
   "mumbai": {
     "label": "Mumbai",
@@ -15,7 +28,20 @@
     "metaDescription": "Understand Mumbai Panchang timing: how local sunrise relates to IST, why Tithi can change during the day, and what to compare between calendars.",
     "introduction": "Mumbai uses India Standard Time like the rest of the country, but the sunrise in a Mumbai Panchang must be calculated for the selected local point. If a Tithi changes close to dawn, a sunrise calculated for another city could give you a different Tithi at the start of the day.",
     "insight": "A local sunrise is an event, not a second time zone: its calculated time can be expressed in IST. If two almanacs disagree, first compare the places and sunrise conventions they use. Then check whether both label the day by the Tithi at sunrise or by another method.",
-    "method": "Before relying on a timing, check that the source uses Mumbai and gives the time in IST. For a festival or fasting date, look for the stated observance convention: lunar timing on its own does not decide every traditional date."
+    "method": "Before relying on a timing, check that the source uses Mumbai and gives the time in IST. For a festival or fasting date, look for the stated observance convention: lunar timing on its own does not decide every traditional date.",
+    "question": "Why does a Mumbai Panchang need its own local sunrise even when every clock shows IST?",
+    "answer": "IST is the national civil clock, not a single sunrise time for India. Compute dawn for the Mumbai reference position, express it in IST, and compare it with the reported astronomical event. Never treat the IST offset as a way to determine a local sunrise.",
+    "example": "Practical comparison: keep the IST time zone fixed when comparing Mumbai with Pune or Delhi; change the reference latitude and longitude and the sunrise model. If an almanac supplies a Tithi transition, it is the relation between that event and the selected local sunrise that determines the sunrise-day reading.",
+    "sources": [
+      {
+        "label": "IMD Positional Astronomy Centre — Rashtriya Panchang",
+        "url": "https://mausam.imd.gov.in/imd_latest/contents/rashtriy_panchang.php"
+      },
+      {
+        "label": "CSIR-NPL — Indian Standard Time",
+        "url": "https://www.nplindia.res.in/clockcode/html/"
+      }
+    ]
   },
   "chennai": {
     "label": "Chennai",
@@ -24,6 +50,173 @@
     "metaDescription": "Learn how Chennai Panchang readings use local sunrise and lunar transitions, and why regional calendar conventions matter when comparing observance dates.",
     "introduction": "For Chennai, begin with the local sunrise used by the Panchang. The Moon's phase does not wait for midnight: a Tithi can begin or end during the day. A useful local Panchang therefore shows both the Tithi at sunrise and the time of its next transition.",
     "insight": "Chennai shares IST with other Indian cities, but a calendar prepared for Delhi cannot simply reuse Delhi's sunrise. Tamil and other Hindu calendar traditions can also name months or assign observances differently. Check which method a source follows before comparing festival dates.",
-    "method": "Read the city, sunrise time and Tithi transition together. If your question is about a vrata or festival, check the regional convention as well. An isolated astronomical timestamp is not a complete ritual instruction."
+    "method": "Read the city, sunrise time and Tithi transition together. If your question is about a vrata or festival, check the regional convention as well. An isolated astronomical timestamp is not a complete ritual instruction.",
+    "question": "Why might a Tamil-calendar observance label not match a nationwide Panchang astronomical timing table?",
+    "answer": "An astronomical boundary and the assignment of an observance are different questions. Confirm Chennai's modeled sunrise first; for festivals or fasting, also identify which regional calendar and observance rule the source actually follows. Do not infer a ritual date from a bare Tithi-end clock time.",
+    "example": "Practical comparison: separate three fields when checking a Chennai entry — the local sunrise, the Tithi-end time, and the named calendar tradition. The first two are time calculations; deciding which civil date carries a festival may require a rule applying to a particular time window.",
+    "sources": [
+      {
+        "label": "IMD Positional Astronomy Centre — Rashtriya Panchang",
+        "url": "https://mausam.imd.gov.in/imd_latest/contents/rashtriy_panchang.php"
+      },
+      {
+        "label": "CSIR-NPL — Indian Standard Time",
+        "url": "https://www.nplindia.res.in/clockcode/html/"
+      }
+    ]
+  },
+  "kolkata": {
+    "label": "Kolkata",
+    "region": "West Bengal",
+    "tagline": "Distinguish the official national Panchang reference station from the Kolkata sunrise.",
+    "metaDescription": "Read a Kolkata Panchang accurately: understand IMD/PAC reference stations, city-specific sunrise, and why shared lunar events need local day attribution.",
+    "introduction": "A Kolkata Panchang should not automatically inherit the sunrise of a national reference observatory. The India Meteorological Department's Positional Astronomy Centre publishes a Rashtriya Panchang, but its astronomical explanations distinguish adopted central-station material from timings for metropolitan locations. Start by confirming whether the dawn shown is specifically for Kolkata before assigning a Tithi to that sunrise.",
+    "insight": "Two different issues can look like one disagreement. An almanac may use the same astronomical lunar transition but show a different calendar-day label because its chosen sunrise differs. Another comparison may use a different calculation convention. These cannot be resolved by simply converting a central-station timestamp into Kolkata time: the country uses one IST clock, while the location changes the solar event.",
+    "method": "When checking Kolkata, record the source's reference location, local sunrise and lunar-transition time separately. If quoting the Rashtriya Panchang, distinguish printed central-station information from the city-specific table rather than claiming the central result is Kolkata's observed dawn. For festival dates, look for the calendar school's actual observance rule.",
+    "question": "Is the sunrise in the national Rashtriya Panchang always Kolkata's local sunrise?",
+    "answer": "No. The publication explains its adopted central station and also provides information for metropolitan cities. Identify which table or reference station a quoted time belongs to before comparing it with a calculation for Kolkata.",
+    "example": "Useful check: first identify the exact reference station in the official table; next identify the Kolkata entry if present; finally keep a shared Tithi transition separate from both sunrise times. A close match in a different station is not evidence of a verified Kolkata clock.",
+    "sources": [
+      {
+        "label": "IMD Positional Astronomy Centre — Rashtriya Panchang",
+        "url": "https://mausam.imd.gov.in/imd_latest/contents/rashtriy_panchang.php"
+      },
+      {
+        "label": "PAC Rashtriya Panchang — explanation and station conventions",
+        "url": "https://packolkata.imd.gov.in/panchang/en/explanation"
+      }
+    ]
+  },
+  "bengaluru": {
+    "label": "Bengaluru",
+    "region": "Karnataka",
+    "tagline": "Compare Bengaluru dawn with Panchang transitions without confusing IST and local sunlight.",
+    "metaDescription": "Explore Bengaluru Panchang principles: local sunrise, Tithi boundaries, IST timestamps and what to verify when comparing Karnataka calendar entries.",
+    "introduction": "For Bengaluru, two calendars can agree on an instant of lunar change yet display different headings for the date. To interpret them, begin with the Bengaluru sunrise specified by each source, not the city's position on a generic India-wide clock. A Panchang often anchors a daily entry to local dawn; a Tithi may cross that boundary before or after sunrise.",
+    "insight": "The distinction matters when reading a date-sensitive entry: civil midnight, the start of an astronomical Tithi and the local sunrise are not necessarily the same time. India Standard Time gives a common clock for all three, but it does not remove differences between the places used for sunrise calculations. Bengaluru's reference coordinates should therefore be stated rather than silently borrowed from a nearby city.",
+    "method": "Read a Bengaluru entry in this order: confirm its latitude/longitude reference, check the sunrise and sunset definition, note the Tithi and Nakshatra transition instants in IST, then ask which rule assigned the daily label. A Karnataka festival or fasting question also needs an identified regional observance convention.",
+    "question": "What should I compare first when two Bengaluru Panchangs disagree?",
+    "answer": "Check whether both specify Bengaluru as their observer location and use the same sunrise and sidereal-calculation conventions. Compare the actual transition clock only after these are aligned; a ritual date requires an additional calendar-rule comparison.",
+    "example": "Example method: when a transition happens near dawn, place its IST time on a timeline with the first Bengaluru sunrise and the following sunrise. That makes it easier to see whether the entry describes the value at dawn or an event later in the local day.",
+    "sources": [
+      {
+        "label": "IMD Positional Astronomy Centre — Rashtriya Panchang",
+        "url": "https://mausam.imd.gov.in/imd_latest/contents/rashtriy_panchang.php"
+      },
+      {
+        "label": "CSIR-NPL — Indian Standard Time",
+        "url": "https://www.nplindia.res.in/clockcode/html/"
+      }
+    ]
+  },
+  "hyderabad": {
+    "label": "Hyderabad",
+    "region": "Telangana",
+    "tagline": "Separate Hyderabad's astronomical daily timings from Telugu calendar observance rules.",
+    "metaDescription": "Understand Hyderabad Panchang: local sunrise and Tithi timing in IST, plus how to check Telugu calendar conventions for festivals and fasting.",
+    "introduction": "Hyderabad readers often need two answers from a Panchang: what astronomical element is active at local sunrise, and which traditional rule assigns an observance to a date. Those questions should be handled separately. A calculated Tithi end belongs to an instant in time; the Hyderabad sunrise supplies one of the possible anchors used by a calendar's daily display.",
+    "insight": "A printed festival name is not itself a proof of when the Moon-Sun angle crossed a Tithi boundary. A reliable Hyderabad guide labels the city reference point, IST timing and calculation convention. It should also name the calendar tradition when discussing a vrata, because an astronomical transition alone does not identify the eligible observance window.",
+    "method": "To check a Hyderabad date, start with the city's local sunrise, then read the interval in which the Tithi and Nakshatra are active. If you want an observance rather than astronomy, consult the source's published Telugu or regional convention. The national Rashtriya Panchang is useful as a reference, but must not be silently equated with every local ritual rule.",
+    "question": "Does a Tithi ending in the afternoon automatically settle a Hyderabad fasting date?",
+    "answer": "No. Its end time tells you when the astronomical element changes. The fasting or festival assignment may use an additional sunrise, daylight or other observance window defined by the relevant tradition. Check that rule explicitly.",
+    "example": "Useful checklist: record 'Tithi at Hyderabad sunrise', 'Tithi transition IST', and 'rule used for the observance' in three separate lines before deciding whether two calendars truly disagree.",
+    "sources": [
+      {
+        "label": "IMD Positional Astronomy Centre — Rashtriya Panchang",
+        "url": "https://mausam.imd.gov.in/imd_latest/contents/rashtriy_panchang.php"
+      },
+      {
+        "label": "CSIR-NPL — Indian Standard Time",
+        "url": "https://www.nplindia.res.in/clockcode/html/"
+      }
+    ]
+  },
+  "ahmedabad": {
+    "label": "Ahmedabad",
+    "region": "Gujarat",
+    "tagline": "Make sense of Ahmedabad sunrise and Gujarati calendar conventions as separate layers.",
+    "metaDescription": "Ahmedabad Panchang explained: local sunrise, Tithi at dawn, national IST and how to check Gujarati lunar calendar conventions without guesswork.",
+    "introduction": "An Ahmedabad Panchang starts with a location, not merely a clock setting. The national IST offset is shared across India, but the city's sunrise must be calculated for its own chosen reference point. When a lunar transition is close to dawn, even calendars that agree on the transition time can assign the displayed sunrise Tithi differently.",
+    "insight": "For Gujarati calendar questions, it is especially important not to treat a lunar-month label or festival date as the direct output of a single planetary angle. The raw phase transition belongs to astronomy. Month naming, year starts and observance assignments depend on a declared calendar convention. Different regional presentations can use the same timekeeping evidence while describing a date in different terms.",
+    "method": "Check the location when comparing an Ahmedabad page with a general Indian almanac. First confirm which city the sunrise belongs to. Next locate the transition time, its IST timezone and the method used to calculate the lunar element. For month and festival questions, require the Gujarati convention to be explicitly named and supported before using the answer.",
+    "question": "Can Ahmedabad and an all-India almanac share a Tithi time but show different month or date labels?",
+    "answer": "Yes, if they apply distinct documented calendar conventions or refer to different local sunrise anchors. Compare the underlying event, chosen sunrise and month/observance rule independently rather than treating one display label as the calculation itself.",
+    "example": "A practical three-column check is 'astronomical transition', 'Ahmedabad local sunrise' and 'named calendar tradition'. This prevents a year or month convention from being mistaken for a mathematical timing error.",
+    "sources": [
+      {
+        "label": "IMD Positional Astronomy Centre — Rashtriya Panchang",
+        "url": "https://mausam.imd.gov.in/imd_latest/contents/rashtriy_panchang.php"
+      },
+      {
+        "label": "CSIR-NPL — Indian Standard Time",
+        "url": "https://www.nplindia.res.in/clockcode/html/"
+      }
+    ]
+  },
+  "pune": {
+    "label": "Pune",
+    "region": "Maharashtra",
+    "tagline": "Compare Pune and Mumbai Panchangs without copying another city's sunrise.",
+    "metaDescription": "Read Pune Panchang with the right observer location: local sunrise, IST lunar transitions and what to check against Mumbai calendar entries.",
+    "introduction": "Pune and Mumbai both use IST, and a shared lunar transition has the same clock instant under the same calculation model. That does not mean a Pune Panchang should reuse a Mumbai sunrise. Local dawn must be calculated at the selected Pune reference point, and a small difference can matter if a Tithi boundary lies between the two sunrise events.",
+    "insight": "This is a practical test of whether a website offers actual locality rather than city-name substitution. A meaningful Pune entry states its observer point, sunrise convention and active lunar element at that sunrise. A clock label copied from Mumbai without recalculation cannot establish the local dawn assignment for Pune. The city names are not interchangeable astronomical inputs.",
+    "method": "For a Pune-versus-Mumbai comparison, preserve the same IST timezone and the same lunar-transition algorithm. Change only the observing location when calculating the two dawns, and check which Tithi occupies each sunrise. If the question concerns a Maharashtra-specific observance, examine its own rule rather than assuming the timing comparison fully settles it.",
+    "question": "Is it correct to use Mumbai's sunrise in a Pune Panchang because both cities are in Maharashtra?",
+    "answer": "No. A sunrise calculation depends on the selected observing coordinates and convention. A lunar transition may remain common to both, but the label at each city's dawn must be evaluated separately.",
+    "example": "Example: draw two distinct dawn markers labelled Pune and Mumbai around one shared Tithi boundary. A boundary between those markers can produce a difference in sunrise-day attribution without implying that the underlying lunar transition changed.",
+    "sources": [
+      {
+        "label": "IMD Positional Astronomy Centre — Rashtriya Panchang",
+        "url": "https://mausam.imd.gov.in/imd_latest/contents/rashtriy_panchang.php"
+      },
+      {
+        "label": "CSIR-NPL — Indian Standard Time",
+        "url": "https://www.nplindia.res.in/clockcode/html/"
+      }
+    ]
+  },
+  "jaipur": {
+    "label": "Jaipur",
+    "region": "Rajasthan",
+    "tagline": "Check Jaipur's sunrise and lunar-day boundary before relying on a nearby-city calendar.",
+    "metaDescription": "Jaipur Panchang guide: compare local sunrise with lunar transitions, distinguish national IST from city timing, and verify observance rules.",
+    "introduction": "When searching for Jaipur Panchang, avoid substituting a Delhi or other northern-city entry just because the regional calendar looks familiar. Sunrise is a location-dependent astronomical event, and the Tithi active at sunrise can change when a transition occurs between two cities' dawns. The correct comparison needs an identified Jaipur reference location and a consistent calculation method.",
+    "insight": "A Jaipur reader may see a Tithi listed at sunrise and another Tithi ending later that day. Those statements are not contradictory: one describes a snapshot at the dawn boundary while the other describes the next transition. The national civil clock remains IST for both events; what differs between city calculations is the solar observation time.",
+    "method": "Check that a Jaipur daily page identifies its place, sunrise convention and the exact timestamp and label of any Tithi or Nakshatra transition. When comparing with a Rajasthan festival calendar, also find the calendar rule that maps an event to a civil date. Do not assume every regional practice can be inferred from lunar timing alone.",
+    "question": "When is a Delhi Panchang a misleading substitute for Jaipur?",
+    "answer": "When the question depends on a local sunrise or a date assignment tied to that sunrise. The same astronomical transition should be compared against the Jaipur and Delhi dawns separately, with an identical method and clock convention.",
+    "example": "Useful check: note the two city sunrises in IST on the same civil date, then plot the shared Tithi-end instant against them. If no boundary lies between the dawns, that particular transition does not explain a difference in sunrise label.",
+    "sources": [
+      {
+        "label": "IMD Positional Astronomy Centre — Rashtriya Panchang",
+        "url": "https://mausam.imd.gov.in/imd_latest/contents/rashtriy_panchang.php"
+      },
+      {
+        "label": "CSIR-NPL — Indian Standard Time",
+        "url": "https://www.nplindia.res.in/clockcode/html/"
+      }
+    ]
+  },
+  "varanasi": {
+    "label": "Varanasi",
+    "region": "Uttar Pradesh",
+    "tagline": "Distinguish Varanasi's local dawn from the separate rules used for observances.",
+    "metaDescription": "Varanasi Panchang reading guide: separate city sunrise, Tithi transitions and ritual observance windows before choosing a calendar date.",
+    "introduction": "A Varanasi Panchang is frequently consulted for questions that combine astronomical timing with religious dates. The safe first step is to separate the two. Sunrise and sunset must refer to the chosen Varanasi observing location, while Tithi, Nakshatra, Yoga and Karana boundaries are calculated astronomical events under a stated model.",
+    "insight": "A Tithi active at sunrise may not be the only relevant element when a tradition assigns a festival or fast. Some observance rules refer to a different part of the day or to conditions spanning more than one sunrise. These are rule questions, not problems a clock conversion can solve. A generic 'auspicious today' claim without its referenced tradition is not a reliable substitute.",
+    "method": "Check a Varanasi entry by first reading the exact reference place and local sunrise. Examine the full Tithi interval and any transition during the day or after sunset. Then identify the ritual question — such as a fasting or festival date — and seek the applicable published observance rule. Do not derive religious instructions from the astronomical timestamp alone.",
+    "question": "If a Tithi changes after Varanasi sunrise, is its end time enough to choose a vrata date?",
+    "answer": "No. The timestamp states the astronomical transition. A vrata or festival may depend on a defined observance window, the Tithi at sunrise or additional tradition-specific conditions. The relevant rule must be checked independently.",
+    "example": "A reader-friendly page should show two linked but distinct explanations: 'what lunar element is active at the local dawn' and 'which documented rule assigns the requested observance'. Their answers can depend on different evidence.",
+    "sources": [
+      {
+        "label": "IMD Positional Astronomy Centre — Rashtriya Panchang",
+        "url": "https://mausam.imd.gov.in/imd_latest/contents/rashtriy_panchang.php"
+      },
+      {
+        "label": "CSIR-NPL — Indian Standard Time",
+        "url": "https://www.nplindia.res.in/clockcode/html/"
+      }
+    ]
   }
 }

@@ -5,7 +5,14 @@ export const EDITORIAL_V4_POLICY='deepseek-private-editorial-v4';
 export const CITY_RESEARCH_QUESTIONS=Object.freeze({
   delhi:'Explain what a Delhi reader should check when comparing local sunrise conventions across nearby northern Indian locations. Avoid unsupported numerical or religious assertions.',
   mumbai:'Explain why a Mumbai reader should distinguish the shared IST civil clock from a location-specific sunrise calculation. Treat coast-related ritual claims as needing separate evidence.',
-  chennai:'Explain why a Chennai reader should verify both local sunrise conventions and the selected regional calendar tradition rather than treating a nationwide timing card as universal.'
+  chennai:'Explain why a Chennai reader should verify both local sunrise conventions and the selected regional calendar tradition rather than treating a nationwide timing card as universal.',
+  kolkata:'Explain how a Kolkata reader can distinguish the IMD PAC adopted central station from a separate metro-specific sunrise. Name the different reference scopes without fabricating a Kolkata clock.',
+  bengaluru:'Explain a Bengaluru sunrise-to-sunrise local calendar day, keeping the instant of a shared lunar crossing separate from local sunrise. Show the reader what fields to compare.',
+  hyderabad:'Explain why a Hyderabad Telugu-calendar question needs the applicable observance window in addition to Tithi-end time. Avoid asserting local festival dates.',
+  ahmedabad:'Show Ahmedabad readers how to separate the city sunrise, shared lunar transition, and chosen Gujarati month/year convention. Do not invent a New Year date.',
+  pune:'Help a Pune reader check a Mumbai-vs-Pune Panchang comparison with a fixed IST clock and different observer locations. Do not copy solar timings.',
+  jaipur:'Help Jaipur readers understand why a Delhi sunrise may be an invalid substitute for Jaipur on near-dawn Tithi crossings. Avoid inventing regional practices.',
+  varanasi:'Answer why a Varanasi fasting-date question needs a documented rule and local-time window, not merely the moment a Tithi changes. Do not recommend ritual actions.'
 });
 const READER_KEYS=['headline','seoTitle','metaDescription','introduction','localContext','dailyUnderstanding'];
 const clean=x=>typeof x==='string'?x.trim():'';
@@ -66,7 +73,7 @@ export function v4QualityIssues(draft,city,{intent='city-hub',lang='en'}={}){
 export function canonicalSimilarity(left,right){
  // Heuristic ONLY for editor screening; not a plagiarism determination.
  const tokens=x=>new Set(words(norm(readerText(x))
-   .replace(/\b(delhi|mumbai|chennai)\b/g,' '))
+   .replace(/\b(delhi|mumbai|kolkata|chennai|bengaluru|hyderabad|ahmedabad|pune|jaipur|varanasi)\b/g,' '))
    .filter(w=>w.length>=4));
  const a=tokens(left),b=tokens(right);
  if(!a.size||!b.size)return 0;

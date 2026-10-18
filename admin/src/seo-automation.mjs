@@ -3,8 +3,9 @@
  * are deterministic. No page release or follow-up paid model requests.
  */
 import research from '../../engine/editorial/expansion-17-research-briefs.v1.json' with {type:'json'};
+import publicGuides from '../../data/city-guides.json' with {type:'json'};
 
-export const SEO_PIPELINE_VERSION='city-evergreen-grounded-v1';
+export const SEO_PIPELINE_VERSION='ten-city-grounded-editorial-v2';
 const NPL='https://www.nplindia.org/clockcode/html/';
 const FOCUS=Object.freeze({
  delhi:{
@@ -40,7 +41,15 @@ export function buildSeoBrief(city,{language='en'}={}){
  if(!city||!(/^[a-z][a-z0-9-]*$/).test(city.id)||!clean(city.name))
   throw new Error('Invalid city identity');
  if(city.timezone!=='Asia/Kolkata')throw new Error('Unsupported civil timezone');
- const topic=FOCUS[city.id];
+ const existing=publicGuides[city.id];
+ const topic=FOCUS[city.id]||(existing?{
+  query:city.name+' Panchang',
+  title:city.name+' Panchang: Sunrise, Tithi & Local Calendar',
+  meta:existing.metaDescription,
+  question:existing.question,
+  answer:existing.answer,
+  context:existing.insight
+ }:null);
  const other=sourceBrief(city.id);
  const focus=topic||{
   query:city.name+' Panchang',
@@ -79,7 +88,10 @@ export function buildSeoBrief(city,{language='en'}={}){
   groundedLocalContext:focus.context,
   researchQuestion:clean(other?.localResearchAngle)||focus.question,
   // This legal civil clock fact is explicitly documented by the metrology institute.
-  sourceFacts:[{id:'npl-ist-utc-offset',claim:'India Standard Time (IST) uses UTC +05:30.',url:NPL}],
+  sourceFacts:[
+   {id:'npl-ist-utc-offset',claim:'India Standard Time (IST) uses UTC +05:30.',url:'https://www.nplindia.res.in/clockcode/html/'},
+   {id:'pac-rashtriya-method',claim:'The Rashtriya Panchang includes astronomical elements and distinguishes a central station from selected metropolitan-city information.',url:'https://packolkata.imd.gov.in/panchang/en/explanation'}
+  ],
   // Provisional coordinates and regional ritual practices are NEVER sent as facts.
   approvedAstronomicalFacts:[],approvedRitualFacts:[],
   relatedLinks:[{label:'Panchang city directory',href:'/panchang/'}],
@@ -116,7 +128,8 @@ export function composeSeoDraft(model,brief){
   faq:[{question:brief.practicalQuestion,answer:brief.practicalAnswer}],
   referencedFactIds:[]
  };
- const known=Object.values(FOCUS).some(x=>x.context===brief.groundedLocalContext);
+ const known=Object.values(FOCUS).some(x=>x.context===brief.groundedLocalContext)||
+  Object.values(publicGuides).some(x=>x.insight===brief.groundedLocalContext);
  if(!known)repairs.push('generic-city-context-needs-source');
  const wordCount=words([
    draft.introduction,draft.localContext,draft.dailyUnderstanding,draft.faq[0].answer

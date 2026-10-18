@@ -48,49 +48,54 @@ jobs:
           test -f out/imgs/favicon_gold_frame.ico
           grep -q 'favicon_gold_frame.ico' out/index.html
           grep -qi 'noindex' out/index.html
-      - name: Fail closed if ANY static HTML route accidentally becomes indexable
+      - name: Verify exactly ten educational city pages indexable and all unapproved science remains noindex
         run: |
           python - <<'PY'
           from pathlib import Path
-          routes=list(Path('out').rglob('*.html'))
-          assert routes, 'No HTML files found'
-          missing=[p.as_posix() for p in routes if 'noindex' not in p.read_text(encoding='utf-8').lower()]
-          assert not missing, 'UNREVIEWED PUBLIC INDEXING: '+str(missing)
-          print('PASS:', len(routes), 'static routes remain noindex until scientific/editorial release gate')
-          PY
-      - name: Verify public sitemap contains ZERO unapproved/noindex URLs
-        run: |
-          test -f out/sitemap.xml
-          test -f out/robots.txt
-          python - <<'PY'
-          from pathlib import Path
+          from html.parser import HTMLParser
           from xml.etree import ElementTree
-          page=Path('out/sitemap.xml')
-          root=ElementTree.parse(page).getroot()
-          locs=[n.text for n in root.iter() if n.tag.endswith('}loc') or n.tag=='loc']
-          assert not locs, f'UNAPPROVED sitemap entries: {locs}'
-          assert 'sitemap.xml' in Path('out/robots.txt').read_text().lower()
-          print('PASS: valid empty sitemap, no draft/day URLs indexed')
-          PY
-      - name: Verify three genuinely distinct city hubs and no unapproved daily URLs
-        run: |
-          python - <<'PY'
-          from pathlib import Path
           import json
-          from html import unescape
+          names=('delhi','mumbai','kolkata','chennai','bengaluru','hyderabad','ahmedabad','pune','jaipur','varanasi')
+          expected={'https://panchavani.com/panchang/'+city+'/' for city in names}
+          routes=list(Path('out').rglob('*.html'))
+          assert routes, 'No static HTML built'
+          class Meta(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.robots=[]
+                  self.canonical=[]
+              def handle_starttag(self,tag,attrs):
+                  a=dict(attrs)
+                  if tag=='meta' and a.get('name')=='robots':
+                      self.robots.append(a.get('content',''))
+                  if tag=='link' and a.get('rel')=='canonical':
+                      self.canonical.append(a.get('href',''))
+          indexable=set()
+          for path in routes:
+              p=Meta();p.feed(path.read_text(encoding='utf-8'))
+              rel=path.relative_to('out').as_posix()
+              expected_index=rel in {'panchang/'+city+'/index.html' for city in names}
+              if expected_index:
+                  city=rel.split('/')[1]
+                  assert p.canonical==['https://panchavani.com/panchang/'+city+'/'],(rel,p.canonical)
+                  assert len(p.robots)==1 and 'noindex' not in p.robots[0].lower() and 'index' in p.robots[0].lower(),(rel,p.robots)
+                  indexable.add('https://panchavani.com/panchang/'+city+'/')
+              else:
+                  assert p.robots and all('noindex' in x.lower() for x in p.robots),(rel,p.robots)
+                  assert not (rel.startswith('panchang/') and rel.count('/')>2), 'Unreviewed daily calendar page leaked: '+rel
+          assert indexable==expected,(indexable,expected)
+          root=ElementTree.parse('out/sitemap.xml').getroot()
+          urls={n.text for n in root.iter() if n.tag.endswith('}loc') or n.tag=='loc'}
+          assert urls==expected,(urls,expected)
+          assert len(list(root.iter()))>=10
+          assert 'sitemap.xml' in Path('out/robots.txt').read_text().lower()
           bundle=json.loads(Path('data/approved-panchang.json').read_text())
-          assert bundle['records']==[], 'Public records must remain empty until external approval'
-          assert bundle['releaseStatus']=='NO_APPROVED_RECORDS'
-          paths=[Path('out/panchang')/city/'index.html' for city in ('delhi','mumbai','chennai')]
-          for city,path in zip(('delhi','mumbai','chennai'),paths):
-              assert path.is_file(), f'Missing city hub {city}'
-              text=unescape(path.read_text()).lower()
-              assert city in text and 'noindex' in text, f'City hub unsafe: {city}'
-          assert len(set(p.read_bytes() for p in paths))==3, 'Duplicate city HTML'
-          for path in Path('out/panchang').rglob('index.html'):
-              rel=path.relative_to('out/panchang').parts
-              assert len(rel)<=2, 'Unapproved daily date HTML: '+str(path)
-          print('PASS: 3 unique research-ready city hubs, zero falsely approved daily routes')
+          assert bundle['records']==[] and bundle['releaseStatus']=='NO_APPROVED_RECORDS'
+          assert len({Path('out/panchang',c,'index.html').read_bytes() for c in names})==10,'Repeated city HTML'
+          for c in names:
+              text=Path('out/panchang',c,'index.html').read_text().lower()
+              assert c in text and 'practical reader question' in text and 'source and method references' in text,c
+          print('PASS: exactly 10 educational city URLs index/follow and sitemap, all other HTML noindex, 0 unapproved day pages')
           PY
       - name: Reject legacy mocked calendar dates and preview labels in public HTML
         run: |
