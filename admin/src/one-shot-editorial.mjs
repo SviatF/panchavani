@@ -7,7 +7,7 @@ const encoder=new TextEncoder();
 const hex=value=>[...new Uint8Array(value)].map(x=>x.toString(16).padStart(2,'0')).join('');
 const sha256=async raw=>hex(await crypto.subtle.digest('SHA-256',encoder.encode(raw)));
 const keyArgs=(record,intent,language)=>[record.city_id,record.local_date,intent,language];
-export const ONE_SHOT_PILOT_CITIES=Object.freeze(['delhi','mumbai','chennai']);
+export const ONE_SHOT_PILOT_CITIES=Object.freeze(['delhi','mumbai','kolkata','chennai','bengaluru','hyderabad','ahmedabad','pune','jaipur','varanasi']);
 
 export async function readOneShot(env,record,intent,language){
   // Missing D1 migration MUST fail closed, before any billable API request.
