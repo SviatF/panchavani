@@ -71,6 +71,8 @@ export function summarizeSnapshot(science,index,day,hash){
      record.publicReleaseAllowed!==false||
      record.indexingAuthorized!==false||
      record.paidGenerationAuthorized!==false||
+     !Array.isArray(record.approvedClaimsForDeepSeek)||
+     record.approvedClaimsForDeepSeek.length!==0||
      record.cityReference?.coordinatesVerified!==false||
      record.methodology?.siderealMethodIndependentlyCalibrated!==false||
      record.timezone!=='Asia/Kolkata'||
@@ -108,8 +110,9 @@ export async function handleTenCityEvidence(request,env,actor){
  if(url.pathname!=='/research/daily/ten-city')return null;
  if(!actor)return fail('access-denied',403);
  if(request.method!=='GET')return fail('read-only-get',405);
- if([...url.searchParams.keys()].some(k=>k!=='date')||
-    url.searchParams.getAll('date').length>1)
+ // Browser and link-app tracking parameters are irrelevant to the fixed
+ // science source scope; only an explicit date can select a snapshot.
+ if(url.searchParams.getAll('date').length>1)
   return fail('invalid-query',400);
  const day=url.searchParams.get('date')||tomorrowIndia();
  if(!isoDate(day)||day<'2026-01-01'||day>'2099-12-30')
@@ -120,9 +123,11 @@ export async function handleTenCityEvidence(request,env,actor){
   const listing=await env.INGEST_INBOX.list({prefix,limit:1000});
   if(listing.truncated)return fail('source-list-truncated');
   const suffix='/science-UNAPPROVED.json';
-  const eligible=(listing.objects||[]).map(x=>x.key).filter(k=>
-   k.startsWith(prefix)&&k.endsWith(suffix)&&
-   new RegExp('^'+prefix.replaceAll('/','\\/')+'[0-9]{9,16}'+suffix.replace('.','\\.').replace('/','\\/')+'$').test(k));
+  const eligible=(listing.objects||[]).map(x=>x.key).filter(k=>{
+    if(!k.startsWith(prefix))return false;
+    const rest=k.slice(prefix.length);
+    return /^[0-9]{9,16}\/science-UNAPPROVED\.json$/.test(rest);
+  });
   if(!eligible.length)return fail('ten-city-source-not-yet-archived');
   eligible.sort((a,b)=>BigInt(a.slice(prefix.length).split('/')[0])<
     BigInt(b.slice(prefix.length).split('/')[0])?-1:1);
