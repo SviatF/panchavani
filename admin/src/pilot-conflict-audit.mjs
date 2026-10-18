@@ -67,24 +67,53 @@ export async function handlePilotConflictAudit(request,env,actor){
  if(url.pathname!=='/research/conflicts/pilot')return null;
  if(!actor)return json({error:'access-denied'},403);
  if(request.method!=='GET')return json({error:'only-read-only-get'},405);
- if(url.searchParams.get('date')!==DATE||
-    [...url.searchParams.keys()].some(k=>k!=='date'&&k!=='format')||
-    ![null,'json'].includes(url.searchParams.get('format')))
-  return json({error:'historical-pilot-date-only'},400);
+ // One fixed archival case: GET without search params is the canonical URL.
+ // Query parameters are optional. Fail closed on any other city/day/filter
+ // and on duplicate keys; never allow selector injection into D1 or R2.
+ const dateValues=url.searchParams.getAll('date');
+ const formatValues=url.searchParams.getAll('format');
+ if(dateValues.length>1||formatValues.length>1||
+    (dateValues.length===1&&dateValues[0]!==DATE)||
+    (formatValues.length===1&&formatValues[0]!=='json')||
+    [...url.searchParams.keys()].some(k=>k!=='date'&&k!=='format'))
+  return json({error:'unsupported-pilot-audit-query',
+    expectedPath:'/research/conflicts/pilot',
+    supportedHistoricalDate:DATE,
+    hint:'Open the clean path without query parameters. This always audits Delhi, Mumbai and Chennai for the original historical date.',
+    indexingAuthorized:false},400);
  if(!env?.DB||!env?.CANDIDATES||!env?.INGEST_INBOX)
   return json({error:'private-stores-not-configured'},503);
- try{
-  const cases=[];
-  for(const city of CITIES){
+ // Access-only: provide a minimal per-city blocker for useful real
+ // production troubleshooting; do not expose stored hashes or D1/R2 bytes
+ // when any source is missing or malformed.
+ const cases=[];
+ for(const city of CITIES){
+  try{
    const {report}=await inspectConflictCase(env,city,DATE);
+   if(report.livePrivateD1WasActuallyRead!==true){
+    return json({
+      error:'private-source-incomplete',
+      blockedCityId:city,
+      reason:'HISTORICAL_D1_CANDIDATE_NOT_AVAILABLE',
+      status:'INCOMPLETE_PRIVATE_FORENSICS',
+      unresolved:true,publicationAuthorized:false,indexingAuthorized:false
+    },503);
+   }
    cases.push(report);
+  }catch{
+   return json({
+      error:'private-source-validation-failed',
+      blockedCityId:city,
+      reason:'D1_R2_OR_MANIFEST_VALIDATION_FAILED',
+      status:'INCOMPLETE_PRIVATE_FORENSICS',
+      unresolved:true,publicationAuthorized:false,indexingAuthorized:false
+   },503);
   }
-  return json(aggregatePilotConflicts(cases));
- }catch{
-  return json({
-   error:'one-or-more-pilot-sources-failed-validation',
+ }
+ try{return json(aggregatePilotConflicts(cases))}
+ catch{return json({
+   error:'private-three-city-integrity-check-failed',
    status:'INCOMPLETE_PRIVATE_FORENSICS',
    unresolved:true,publicationAuthorized:false,indexingAuthorized:false
-  },503);
- }
+ },503)}
 }
