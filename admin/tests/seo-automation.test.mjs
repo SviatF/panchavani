@@ -22,7 +22,8 @@ test('SEO composition is deterministic, city specific and independent of model-p
  assert.equal(m.canonicalPath,'/panchang/mumbai/');
  assert.equal(new Set([m.seoTitle,d.seoTitle,c.seoTitle]).size,3);
  assert.equal(new Set([m.groundedLocalContext,d.groundedLocalContext,c.groundedLocalContext]).size,3);
- assert.equal(m.sourceFacts[0].url,'https://www.nplindia.org/clockcode/html/');
+ assert.equal(m.sourceFacts[0].url,'https://www.nplindia.res.in/clockcode/html/');
+ assert.equal(m.sourceFacts.length,2);
  const compiled=composeSeoDraft(raw,m);
  assert.equal(compiled.draft.headline,'Mumbai Panchang');
  assert.equal(compiled.draft.seoTitle,m.seoTitle);
@@ -46,8 +47,9 @@ test('catalogue allows research-only SEO briefs beyond 3 cities, without claimin
  assert.equal(b.approvedRitualFacts.length,0);
  assert.equal(b.indexingAuthorized,false);
  assert.ok(b.researchQuestion);
- assert.equal(b.practicalQuestion,b.researchQuestion);
- assert.ok(b.groundedLocalContext.includes('Which local sunrise-based Panchang values'));
+ assert.notEqual(b.practicalQuestion,b.researchQuestion);
+ assert.ok(b.groundedLocalContext.toLowerCase().includes('jaipur'));
+ assert.ok(b.practicalQuestion.includes('Jaipur'));
  const hyderabad=buildSeoBrief(city('hyderabad'));
  assert.notEqual(b.groundedLocalContext,hyderabad.groundedLocalContext);
  assert.notEqual(b.practicalQuestion,hyderabad.practicalQuestion);
@@ -67,4 +69,20 @@ test('unsupported precise daily Anga output cannot become automatically publishe
  const result=composeSeoDraft(modified,buildSeoBrief(city('delhi')));
  assert.ok(result.blockers.includes('seo-unapproved-daily-fact-in-model-prose'));
  assert.equal(result.publicationAuthorized,false);
+});
+
+test('all first-ten SEO briefs have distinct sourced local questions and no generic-city-evidence blockers',()=>{
+ const ids=['delhi','mumbai','kolkata','chennai','bengaluru','hyderabad','ahmedabad','pune','jaipur','varanasi'];
+ const briefs=ids.map(id=>buildSeoBrief(city(id)));
+ assert.equal(briefs.length,10);
+ assert.equal(new Set(briefs.map(x=>x.practicalQuestion)).size,10);
+ assert.equal(new Set(briefs.map(x=>x.groundedLocalContext)).size,10);
+ for(const b of briefs){
+  assert.ok(b.groundedLocalContext.length>110,b.cityId);
+  assert.ok(b.seoTitle.length<=65,b.cityId);
+  assert.ok(b.metaDescription.length<=160,b.cityId);
+  assert.equal(b.sourceFacts.length,2);
+  assert.equal(b.indexingAuthorized,false);
+  assert.equal(b.approvedAstronomicalFacts.length,0);
+ }
 });
