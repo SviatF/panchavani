@@ -5,6 +5,9 @@
  */
 import { createHash } from 'node:crypto';
 import raw from '@/data/approved-panchang.json';
+// Public evergreen city guides are separate from scientifically approved day records.
+export const CITY_GUIDE_IDS=['delhi','mumbai','kolkata','chennai','bengaluru',
+ 'hyderabad','ahmedabad','pune','jaipur','varanasi'] as const;
 export const PILOT_CITY_IDS=['delhi','mumbai','chennai'] as const;
 export type PilotCityId=typeof PILOT_CITY_IDS[number];
 import cityGuides from '@/data/city-guides.json';
