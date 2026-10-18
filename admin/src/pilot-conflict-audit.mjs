@@ -83,18 +83,37 @@ export async function handlePilotConflictAudit(request,env,actor){
     indexingAuthorized:false},400);
  if(!env?.DB||!env?.CANDIDATES||!env?.INGEST_INBOX)
   return json({error:'private-stores-not-configured'},503);
- try{
-  const cases=[];
-  for(const city of CITIES){
+ // Access-only: provide a minimal per-city blocker for useful real
+ // production troubleshooting; do not expose stored hashes or D1/R2 bytes
+ // when any source is missing or malformed.
+ const cases=[];
+ for(const city of CITIES){
+  try{
    const {report}=await inspectConflictCase(env,city,DATE);
+   if(report.livePrivateD1WasActuallyRead!==true){
+    return json({
+      error:'private-source-incomplete',
+      blockedCityId:city,
+      reason:'HISTORICAL_D1_CANDIDATE_NOT_AVAILABLE',
+      status:'INCOMPLETE_PRIVATE_FORENSICS',
+      unresolved:true,publicationAuthorized:false,indexingAuthorized:false
+    },503);
+   }
    cases.push(report);
+  }catch{
+   return json({
+      error:'private-source-validation-failed',
+      blockedCityId:city,
+      reason:'D1_R2_OR_MANIFEST_VALIDATION_FAILED',
+      status:'INCOMPLETE_PRIVATE_FORENSICS',
+      unresolved:true,publicationAuthorized:false,indexingAuthorized:false
+   },503);
   }
-  return json(aggregatePilotConflicts(cases));
- }catch{
-  return json({
-   error:'one-or-more-pilot-sources-failed-validation',
+ }
+ try{return json(aggregatePilotConflicts(cases))}
+ catch{return json({
+   error:'private-three-city-integrity-check-failed',
    status:'INCOMPLETE_PRIVATE_FORENSICS',
    unresolved:true,publicationAuthorized:false,indexingAuthorized:false
-  },503);
- }
+ },503)}
 }
