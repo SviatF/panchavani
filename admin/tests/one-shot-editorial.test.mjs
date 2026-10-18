@@ -37,8 +37,8 @@ const artifact={
  intent:'daily-panchang',language:'en',sourceCandidateHash:record.content_hash,
  publicationAuthorized:false,indexingAuthorized:false
 };
-test('one-shot pilot starts with exactly three research cities',()=>{
- assert.deepEqual(ONE_SHOT_PILOT_CITIES,['delhi','mumbai','chennai']);
+test('one-shot city-guide pilot covers ten research cities only',()=>{
+ assert.deepEqual(ONE_SHOT_PILOT_CITIES,['delhi','mumbai','kolkata','chennai','bengaluru','hyderabad','ahmedabad','pune','jaipur','varanasi']);
 });
 test('first request reserves atomically; subsequent attempts cannot spend again',async()=>{
  const {env}=harness();
