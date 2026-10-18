@@ -1,0 +1,79 @@
+name: Deploy 10 reviewed evergreen city guides to public Cloudflare (main only)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'components/**'
+      - 'lib/**'
+      - 'data/city-guides.json'
+      - 'data/approved-panchang.json'
+      - 'scripts/assert_first_ten_public_release.py'
+      - 'scripts/approved-day-value-gate.mjs'
+      - 'scripts/generate-reviewed-pages.mjs'
+      - 'wrangler.jsonc'
+      - '.github/workflows/deploy-public-ten-city.yml'
+  pull_request:
+    paths:
+      - 'app/**'
+      - 'components/**'
+      - 'lib/**'
+      - 'data/city-guides.json'
+      - 'data/approved-panchang.json'
+      - 'scripts/assert_first_ten_public_release.py'
+      - '.github/workflows/deploy-public-ten-city.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: panchavani-public-first-ten
+  cancel-in-progress: false
+jobs:
+  ten-city-controlled-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Verify source-backed editorial substance and not-too-similar city copy
+        run: npm run audit:content
+      - name: Build real static site
+        run: npm run build
+      - name: Enforce 10-URL index, sitemap and full-site 404/noindex barriers before production deploy
+        run: python scripts/assert_first_ten_public_release.py
+      - name: Require configured GitHub Cloudflare credentials for main deploy
+        id: auth
+        run: |
+          if test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"; then
+            echo 'ready=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+            echo 'Cloudflare GitHub secrets are missing; main deploy must FAIL' >&2
+          fi
+      - name: Fail closed when main is missing authenticated Cloudflare production deploy access
+        if: github.ref == 'refs/heads/main' && steps.auth.outputs.ready != 'true'
+        run: exit 1
+      - name: Deploy ONLY validated public static out/ assets to Cloudflare Workers
+        id: deploy
+        if: github.ref == 'refs/heads/main' && steps.auth.outputs.ready == 'true'
+        run: |
+          npx wrangler deploy --config wrangler.jsonc
+          echo 'deployed=true' >> "$GITHUB_OUTPUT"
+      - name: Report factual release status
+        if: always()
+        env:
+          PUBLISHING: ${{ steps.deploy.outputs.deployed }}
+        run: |
+          echo '## PANCHAVANI — first ten educational city URLs' >> "$GITHUB_STEP_SUMMARY"
+          if test "$PUBLISHING" = true; then
+            echo 'Cloudflare Worker deployment succeeded. Ten city guides were built with index/follow and in sitemap.xml; zero unapproved day records released. A live HTTP check and Search Console submission must still follow.' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'NOT DEPLOYED. Pull request or blocked tests/credentials. Never claim Google indexing.' >> "$GITHUB_STEP_SUMMARY"
+          fi
