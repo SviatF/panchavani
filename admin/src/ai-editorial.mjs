@@ -110,7 +110,7 @@ export function buildEditorialPrompt(candidate,city,intent,lang,sourceHash){
     +'Ahmedabad distinguish lunar month convention; Pune compare Pune versus Mumbai sunrise; '
     +'Jaipur compare Jaipur versus Delhi; Varanasi separate Tithi interval and vrata assignment. '
     +'Do not imply these areas have officially different phase transition instants. '
-    +'Make the city paragraph substantive, but a city research question is 
+    +'Make the city paragraph substantive, but a city research question is '
     +'NOT proof of a city-specific religious or astronomical fact. '
     +'Do not invent regional customs, source citations, numerical clock '
     +'times, Nakshatra/Tithi/Karana/Yoga, Muhurat or activity advice. '
