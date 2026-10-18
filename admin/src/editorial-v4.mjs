@@ -73,7 +73,7 @@ export function v4QualityIssues(draft,city,{intent='city-hub',lang='en'}={}){
 export function canonicalSimilarity(left,right){
  // Heuristic ONLY for editor screening; not a plagiarism determination.
  const tokens=x=>new Set(words(norm(readerText(x))
-   .replace(/\b(delhi|mumbai|chennai)\b/g,' '))
+   .replace(/\b(delhi|mumbai|kolkata|chennai|bengaluru|hyderabad|ahmedabad|pune|jaipur|varanasi)\b/g,' '))
    .filter(w=>w.length>=4));
  const a=tokens(left),b=tokens(right);
  if(!a.size||!b.size)return 0;
