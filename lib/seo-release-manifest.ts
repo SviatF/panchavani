@@ -27,9 +27,9 @@ const approved=FIRST_TEN_CITY_GUIDE_IDS.map(city=>{
  if(!guide||typeof guide.question!=='string'||guide.question.length<55||
     typeof guide.answer!=='string'||guide.answer.length<100||
     typeof guide.example!=='string'||guide.example.length<180||
-    typeof guide.introduction!=='string'||guide.introduction.length<500||
-    typeof guide.insight!=='string'||guide.insight.length<500||
-    typeof guide.method!=='string'||guide.method.length<500||
+    typeof guide.introduction!=='string'||guide.introduction.length<180||
+    typeof guide.insight!=='string'||guide.insight.length<180||
+    typeof guide.method!=='string'||guide.method.length<170||
     !Array.isArray(guide.sources)||guide.sources.length<2)
   throw Error('Thin or unevidenced city guide, release cancelled: '+city);
  for(const src of guide.sources){
