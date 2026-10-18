@@ -119,12 +119,12 @@ jobs:
           fi
           key="ops/ten-city-six-limb/v1/$SNAPSHOT_DATE/$GITHUB_RUN_ID"
           aws s3 cp engine/artifacts/rolling-six-limb-UNAPPROVED.json \
-            "s3://panchavani-research-private/$key/science-UNAPPROVED.json" \
+            "s3://panchavani-jpl-research-inbox/$key/science-UNAPPROVED.json" \
             --endpoint-url "https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com" --no-progress
           aws s3 cp engine/artifacts/rolling-six-city-preview-index-UNAPPROVED.json \
-            "s3://panchavani-research-private/$key/preview-index-UNAPPROVED.json" \
+            "s3://panchavani-jpl-research-inbox/$key/preview-index-UNAPPROVED.json" \
             --endpoint-url "https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com" --no-progress
-          echo "PRIVATE R2 SNAPSHOT STORED: immutable research namespace $key (NOT an approved candidate, no release)." >> "$GITHUB_STEP_SUMMARY"
+          echo "PRIVATE R2 INBOX (isolated ops prefix) STORED: immutable research namespace $key (NOT an approved candidate, no release)." >> "$GITHUB_STEP_SUMMARY"
       - name: Archive private-only research; do not deploy
         uses: actions/upload-artifact@v4
         with:

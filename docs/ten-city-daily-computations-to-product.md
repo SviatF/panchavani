@@ -14,7 +14,7 @@ The scheduled GitHub Actions job `.github/workflows/rolling-six-limb-research.ym
 
 The job saves an immutable SHA-addressed `rolling-six-limb-UNAPPROVED.json`, an overall `rolling-six-city-preview-index-UNAPPROVED.json`, and **20 distinct research-only Markdown previews** in one GitHub Actions artifact. Job failures are genuine failed checks, not silently substituted cached numerical outputs.
 
-On **main only**, the same workflow also mirrors the two validated JSON reports to the private R2 bucket `panchavani-research-private`, under `ops/ten-city-six-limb/v1/<IST-first-date>/<GitHub-run-id>/` if the existing three `PANCHAVANI_R2_*` repository secrets are present. This is a versioned archival namespace, NOT the nightly D1 import inbox and NOT a public release. If secrets are absent the Action explicitly reports that private mirroring was skipped, while its GitHub QA artifacts remain available.
+On **main only**, the same workflow also mirrors the two validated JSON reports to the private research inbox R2 bucket `panchavani-jpl-research-inbox`, under `ops/ten-city-six-limb/v1/<IST-first-date>/<GitHub-run-id>/` if the existing three `PANCHAVANI_R2_*` repository secrets are present. This is a versioned archival namespace, NOT the nightly D1 import inbox and NOT a public release. If secrets are absent the Action explicitly reports that private mirroring was skipped, while its GitHub QA artifacts remain available.
 
 Manual dispatch allows an explicit first date. The older static Wave 7 / Wave 8 3-city QA pipelines remain **unchanged in their default cohort** for historical reproducibility.
 
