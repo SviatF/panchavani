@@ -117,14 +117,20 @@ test('all 3 private D1 mock source hashes inspected through one Access route',as
  ]);
  assert.equal(e.writes(),0);
 });
-test('one tampered source or missing D1 blocks whole audit',async()=>{
- for(const options of [{tamperCity:'mumbai'},{missCity:'chennai'}]){
+test('one tampered source or missing D1 blocks whole audit with a safe city diagnosis',async()=>{
+ for(const [options,city,reason] of [
+   [{tamperCity:'mumbai'},'mumbai','D1_R2_OR_MANIFEST_VALIDATION_FAILED'],
+   [{missCity:'chennai'},'chennai','HISTORICAL_D1_CANDIDATE_NOT_AVAILABLE']
+ ]){
    const e=mock(options);
-   const r=await handlePilotConflictAudit(new Request(url),e,'owner');
+   const r=await handlePilotConflictAudit(new Request(plainUrl),e,'owner');
    assert.equal(r.status,503,await r.clone().text());
    const report=await r.json();
+   assert.equal(report.blockedCityId,city);
+   assert.equal(report.reason,reason);
    assert.equal(report.unresolved,true);
    assert.equal(report.indexingAuthorized,false);
+   assert.ok(!('storedSha256' in report));
    assert.equal(e.writes(),0);
  }
 });
