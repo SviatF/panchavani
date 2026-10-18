@@ -21,7 +21,7 @@ test('Every indexable city has one public selector identity and one authored gui
  }
  assert.match(home,/CITY_OPTIONS/);
  assert.match(header,/CITY_OPTIONS/);
- assert.match(header,/\\.\\.\\.CITY_OPTIONS\\.map/);
+ assert.ok(header.includes('...CITY_OPTIONS.map'), 'Header search must list all 10 cities');
  assert.doesNotMatch(header,/first three research locations/i);
 });
 test('Four muhurat pages are substantially different, contain real reader answers and source attribution',()=>{
