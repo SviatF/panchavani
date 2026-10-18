@@ -31,6 +31,6 @@
     "AUTO_RESEARCH_IMPORT_ENABLED": "true",
     "AUTO_PRIVATE_FORENSICS_ENABLED": "true",
     "AUTO_EDITORIAL_ENABLED": "true",
-    "AUTO_EDITORIAL_CITY_IDS": "delhi,mumbai,chennai"
+    "AUTO_EDITORIAL_CITY_IDS": "delhi,mumbai,kolkata,chennai,bengaluru,hyderabad,ahmedabad,pune,jaipur,varanasi"
   }
 }
