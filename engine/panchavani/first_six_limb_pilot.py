@@ -25,6 +25,10 @@ from .validation_matrix import (verify_partition, compare_samplings,
                                 cross_city_utc_invariance)
 
 PILOT = ("delhi", "mumbai", "chennai")
+TEN_CITY_IDS = ("delhi","mumbai","kolkata","chennai","bengaluru",
+                "hyderabad","ahmedabad","pune","jaipur","varanasi")
+assert len(TEN_CITY_IDS)==len(set(TEN_CITY_IDS))==10
+assert set(TEN_CITY_IDS)<=set(RESEARCH_CITIES)
 KINDS = ("tithi", "karana", "nakshatra", "yoga")
 VERSION = "first-six-limb-provenance-v1"
 MAX_GRID_DRIFT_S = 1.0
@@ -35,7 +39,7 @@ def _iso(t):
     return t.astimezone(timezone.utc).isoformat(timespec="microseconds").replace("+00:00", "Z")
 
 
-def verify_six_limb_record(packet: dict) -> dict:
+def verify_six_limb_record(packet: dict, allowed_cities=PILOT) -> dict:
     """Pure invariants that also run on synthetic fixtures, without Skyfield."""
     if (not isinstance(packet, dict) or packet.get("artifactType") !=
             "PANCHAVANI_SIX_LIMB_RESEARCH_PACKET" or
@@ -46,7 +50,7 @@ def verify_six_limb_record(packet: dict) -> dict:
             packet.get("paidGenerationAuthorized") is not False or
             packet.get("approvedClaimsForDeepSeek") != []):
         raise ValueError("Research status or release safety missing")
-    if packet.get("cityId") not in PILOT:
+    if packet.get("cityId") not in allowed_cities:
         raise ValueError("Pilot city scope mismatch")
     if packet.get("timezone") != "Asia/Kolkata":
         raise ValueError("Timezone unsupported")
@@ -105,10 +109,10 @@ def verify_six_limb_record(packet: dict) -> dict:
             "layerContinuityPassed":True,"tithiKaranaIdentityPassed":True}
 
 
-def build_day(adapter, sidereal, city_id: str, day: date) -> dict:
+def build_day(adapter, sidereal, city_id: str, day: date, allowed_cities=PILOT) -> dict:
     """Return one SHA-linked but *UNAPPROVED* complete six-limb candidate."""
-    if city_id not in PILOT:
-        raise ValueError("Only three agreed pilot cities permitted")
+    if city_id not in allowed_cities:
+        raise ValueError("City not in explicitly scoped research cohort")
     raw=calculate_with_verified_context(
         city_id,day,adapter,JPL_DE440S_SHA,"de440s.bsp")
     if inspect_candidate(raw) or raw["validation"]["blockerCount"]<1:
@@ -203,16 +207,18 @@ def build_day(adapter, sidereal, city_id: str, day: date) -> dict:
             "tradition-specific ritual rules and editorial scientific signoff absent",
         ],
     }
-    packet["scienceInvariants"]=verify_six_limb_record(packet)
+    packet["scienceInvariants"]=verify_six_limb_record(packet,allowed_cities)
     if (packet["panchangAtSunrise"]["tithi"]!=raw["panchangAtSunrise"]["tithi"]
        or packet["panchangAtSunrise"]["karana"]!=raw["panchangAtSunrise"]["karana"]):
         raise ValueError("Base JPL lunar limb disagrees with complete research packet")
     return packet
 
 
-def verify_batch(packets: list[dict]) -> dict:
-    if len(packets)!=6:
-        raise ValueError("Exactly 3 cities x 2 local days required")
+def verify_batch(packets: list[dict], allowed_cities=PILOT) -> dict:
+    if tuple(allowed_cities) not in (PILOT,TEN_CITY_IDS):
+        raise ValueError("Unsupported or unreviewed research cohort")
+    if len(packets)!=2*len(allowed_cities):
+        raise ValueError("Exactly scoped cities x 2 local days required")
     try:
         start=min(date.fromisoformat(x["localDate"]) for x in packets)
     except (ValueError,KeyError,TypeError):
@@ -220,18 +226,18 @@ def verify_batch(packets: list[dict]) -> dict:
     first_date=start.isoformat()
     following_date=(start+timedelta(days=1)).isoformat()
     if {(x["cityId"],x["localDate"]) for x in packets}!={ 
-        (c,d) for c in PILOT for d in (first_date,following_date)}:
+        (c,d) for c in allowed_cities for d in (first_date,following_date)}:
         raise ValueError("Exactly 3 cities x 2 CONTIGUOUS local days required")
     for packet in packets:
-        verify_six_limb_record(packet)
+        verify_six_limb_record(packet,allowed_cities)
     same_date={}
     for record in packets:
         same_date.setdefault(record["localDate"],[]).append(record)
     for date_str,recs in same_date.items():
-        if len({x["sun"]["sunriseUtc"] for x in recs})!=3:
+        if len({x["sun"]["sunriseUtc"] for x in recs})!=len(allowed_cities):
             raise ValueError("Different city sites share identical sunrise: "+date_str)
     dawn_checked=0
-    for city in PILOT:
+    for city in allowed_cities:
         first=next(x for x in packets if x["cityId"]==city and x["localDate"]==first_date)
         next_=next(x for x in packets if x["cityId"]==city and x["localDate"]==following_date)
         for kind in KINDS:
@@ -243,7 +249,7 @@ def verify_batch(packets: list[dict]) -> dict:
             dawn_checked+=1
     cross_city_duplicates=cross_city_utc_invariance(packets)
     return {
-        "checkedCityDays":6,"cities":list(PILOT),
+        "checkedCityDays":2*len(allowed_cities),"cities":list(allowed_cities),
         "localDateFrom":first_date,"localDateThrough":following_date,
         "checkedFourLimbDawnContinuities":dawn_checked,
         "crossCitySharedGeocentricEventsCompared":cross_city_duplicates,
@@ -253,22 +259,25 @@ def verify_batch(packets: list[dict]) -> dict:
     }
 
 
-def build_pilot(ephemeris: Path, out: Path, start:date=date(2026,10,16)):
+def build_pilot(ephemeris: Path, out: Path, start:date=date(2026,10,16),allowed_cities=PILOT):
+    if tuple(allowed_cities) not in (PILOT,TEN_CITY_IDS):
+        raise ValueError("Only explicitly scoped 3-city or 10-city research cohorts supported")
     if out.exists():
         raise ValueError("Refusing to overwrite a prior immutable science packet")
     if digest(ephemeris)!=JPL_DE440S_SHA:
         raise ValueError("Exact NASA/JPL DE440s SHA mismatch")
     adapter=SkyfieldAdapter(ephemeris)
     sidereal=LahiriEpochAnchorResearch(adapter)
-    packets=[build_day(adapter,sidereal,c,start+timedelta(days=d))
-             for d in (0,1) for c in PILOT]
-    checks=verify_batch(packets)
+    packets=[build_day(adapter,sidereal,c,start+timedelta(days=d),allowed_cities)
+             for d in (0,1) for c in allowed_cities]
+    checks=verify_batch(packets,allowed_cities)
     result={
-        "artifactType":"PANCHAVANI_FIRST_SIX_LIMB_SCIENCE_BATCH",
+        "artifactType":("PANCHAVANI_FIRST_SIX_LIMB_SCIENCE_BATCH" if allowed_cities==PILOT
+                        else "PANCHAVANI_TEN_CITY_SIX_LIMB_RESEARCH_BATCH"),
         "schemaVersion":1,"status":"UNAPPROVED_RESEARCH",
         "scienceChecks":checks,
         "kernelSha256":JPL_DE440S_SHA,"cityCatalogSha256":CATALOG_SHA256,
-        "records":packets,
+        "cityCount":len(allowed_cities),"records":packets,
         "publicationAuthorized":False,"scientificApproval":False,
         "approvedClaimsForDeepSeek":[],"indexingAuthorized":False,
         "conflictDisposition":"NOT_REVIEWED_IN_PRIVATE_D1",
@@ -286,10 +295,13 @@ def main():
     p.add_argument("--out",type=Path,required=True)
     p.add_argument("--start",type=date.fromisoformat,default=date(2026,10,16),
                    help="India local date of first 3-city research day")
+    p.add_argument("--cities",choices=("pilot","ten"),default="pilot",
+                   help="3 historical pilot cities or 10 current SEO research city cohort")
     a=p.parse_args()
     if a.start.year<2000 or a.start.year>2099:
         p.error("Outside approved historical/future ephemeris pilot interval")
-    packet=build_pilot(a.ephemeris,a.out,a.start)
+    scope=TEN_CITY_IDS if a.cities=="ten" else PILOT
+    packet=build_pilot(a.ephemeris,a.out,a.start,scope)
     print("SIX-LIMB UNAPPROVED research",packet["scienceChecks"])
     print("DeepSeek approved claims:",len(packet["approvedClaimsForDeepSeek"]))
     print("Google indexing allowed:",packet["indexingAuthorized"])
