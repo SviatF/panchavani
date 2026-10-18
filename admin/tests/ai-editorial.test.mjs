@@ -406,7 +406,7 @@ test('V4 city-hub prompt is evergreen and explicit about exact FAQ ARRAY schema'
  assert.match(instructions,/faq":\[\]/);
  assert.match(instructions,/never write it/);
  const sent=JSON.parse(messages[1].content.split('\n').at(-1));
- assert.equal(sent.promptVersion,'deepseek-private-automated-seo-v1');
+ assert.equal(sent.promptVersion,'deepseek-ten-city-location-first-v5');
  assert.equal(sent.localResearchQuestion.includes('Delhi'),true);
  assert.deepEqual(sent.approvedAstronomicalFacts,[]);
  assert.equal(JSON.stringify(sent).includes('Shukla Tritiya'),false);
