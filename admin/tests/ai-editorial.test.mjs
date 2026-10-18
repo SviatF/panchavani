@@ -343,12 +343,32 @@ test('V4 private cross-city quality route reuses saved R2 without model calls',a
  const body=await report.text();
  assert.match(body,/Stored V4 city guides/);
  assert.match(body,/Eligible city-hub drafts found: 1/);
+ assert.match(body,/delhi/);
+ assert.match(body,/mumbai/);
+ assert.match(body,/chennai/);
+ assert.match(body,/AWAITING ONE-SHOT DRAFT OR STORED SLOT REVIEW/);
+ assert.match(body,/Ready for manual fact\/editor review|v4-|seo-/);
  assert.match(body,/zero new DeepSeek calls/);
  assert.equal(body.includes(env.DEEPSEEK_API_KEY),false);
  assert.equal(requests,1);
  const blocked=await handleAi(new Request('https://admin.panchavani.com/ai/quality-report'),
   env,null,isTrustedBrowserPost);
  assert.equal(blocked.status,403);
+});
+test('the Admin city-hub page shows evergreen automation independently from research Runner',async()=>{
+ const env=fakeEnv();
+ env.AUTO_EDITORIAL_ENABLED='true';
+ env.AUTO_EDITORIAL_CITY_IDS='delhi,mumbai,chennai';
+ env.AUTO_RESEARCH_ENABLED='false';
+ const view=await handleAi(new Request('https://admin.panchavani.com/ai'),env,actor,
+   isTrustedBrowserPost,()=>{throw Error('GET must not pay DeepSeek')});
+ assert.equal(view.status,200);
+ const body=await view.text();
+ assert.match(body,/Evergreen DeepSeek city guides:/);
+ assert.match(body,/ENABLED for Delhi, Mumbai, Chennai/);
+ assert.match(body,/Separate live Runner queue:/);
+ assert.match(body,/not enabled in this Worker/);
+ assert.match(body,/This system never releases pages or enables Google indexing/);
 });
 test('V4 daily research without independently approved values does NOT reserve a paid slot',async()=>{
  const env=fakeEnv(); let calls=0;
