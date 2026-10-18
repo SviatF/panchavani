@@ -1,4 +1,4 @@
-name: PANCHAVANI rolling six-limb city research previews (DAILY / UNAPPROVED)
+name: PANCHAVANI TEN-city six-limb research previews (DAILY / UNAPPROVED)
 on:
   schedule:
     - cron: '41 04 * * *'
@@ -15,21 +15,23 @@ on:
       - 'engine/panchavani/first_six_limb_pilot.py'
       - 'engine/panchavani/rolling_day_previews.py'
       - 'engine/tests/test_rolling_day_previews.py'
+      - 'engine/tests/test_ten_city_six_limb_research.py'
   pull_request:
     paths:
       - '.github/workflows/rolling-six-limb-research.yml'
       - 'engine/panchavani/first_six_limb_pilot.py'
       - 'engine/panchavani/rolling_day_previews.py'
       - 'engine/tests/test_rolling_day_previews.py'
+      - 'engine/tests/test_ten_city_six_limb_research.py'
 permissions:
   contents: read
 concurrency:
-  group: panchavani-rolling-six-limb-research
+  group: panchavani-rolling-ten-city-six-limb-research
   cancel-in-progress: false
 jobs:
   six-limb-city-research-only:
     runs-on: ubuntu-latest
-    timeout-minutes: 22
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -39,6 +41,7 @@ jobs:
         run: |
           cd engine
           python -m unittest discover -s tests -p 'test_rolling_day_previews.py' -v
+          python -m unittest discover -s tests -p 'test_ten_city_six_limb_research.py' -v
           python -m unittest discover -s tests -p 'test_first_six_limb_pilot.py' -v
       - name: Determine tomorrow in India (or explicit date)
         id: day
@@ -64,18 +67,18 @@ jobs:
             https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp \
             --output /tmp/de440s.bsp
           echo 'c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2  /tmp/de440s.bsp' | sha256sum --check
-      - name: Compute real JPL six-limb sunrise-based 3-city x 2-day pilot
+      - name: Compute real JPL six-limb sunrise-based 10-city x 2-day research cohort
         run: |
           PYTHONPATH=engine python -m panchavani.first_six_limb_pilot \
-            --start '${{ steps.day.outputs.day }}' --ephemeris /tmp/de440s.bsp \
+            --cities ten --start '${{ steps.day.outputs.day }}' --ephemeris /tmp/de440s.bsp \
             --out engine/artifacts/rolling-six-limb-UNAPPROVED.json
-      - name: Six human-review astronomy briefs only, no AI or public pages
+      - name: Twenty human-review astronomy briefs only, no AI or public pages
         run: |
           PYTHONPATH=engine python -m panchavani.rolling_day_previews \
             --batch engine/artifacts/rolling-six-limb-UNAPPROVED.json \
             --out engine/artifacts/rolling-six-city-preview-index-UNAPPROVED.json \
             --previews engine/artifacts/rolling-city-briefs
-      - name: Check six unique city facts, science safety, and report daily status
+      - name: Check twenty distinct city-day astronomy records, science integrity and no release
         run: |
           python - <<'PY'
           import json,os,hashlib,pathlib
@@ -83,28 +86,49 @@ jobs:
           report=json.loads((root/'rolling-six-city-preview-index-UNAPPROVED.json').read_text())
           src=(root/'rolling-six-limb-UNAPPROVED.json').read_bytes()
           assert report['jplResearchBatchSha256']==hashlib.sha256(src).hexdigest()
-          assert report['cityDays']==6 and report['fourLimbDawnChecks']==12
+          assert report['cityCount']==10 and report['cityDays']==20 and report['fourLimbDawnChecks']==40
           assert report['status']=='UNAPPROVED_RESEARCH'
           assert not report['scientificApproval'] and not report['publicationAuthorized']
           assert not report['indexingAuthorized'] and not report['modelInvocationAuthorized']
           assert report['approvedClaimsForDeepSeek']==[]
-          assert len({p['previewSha256'] for p in report['records']})==6
-          assert len({p['modeledSunriseIST'] for p in report['records']})==6
-          assert len(list((root/'rolling-city-briefs').glob('*-UNAPPROVED.md')))==6
+          assert len({p['previewSha256'] for p in report['records']})==20
+          assert len({p['modeledSunriseIST'] for p in report['records']})==20
+          assert len(list((root/'rolling-city-briefs').glob('*-UNAPPROVED.md')))==20
           with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:
-            out.write('## PANCHAVANI nightly: 6-limb / 3-city / 2-day research preview\n\n')
+            out.write('## PANCHAVANI nightly: 6-limb / TEN-city / 2-day research preview\n\n')
             out.write('**Still blocked from public release, paid generation and automatic scientific approval.**\n\n')
             out.write('| City | Local date | JPL sunrise IST | Astronomical changes | Reviewed? |\n')
             out.write('|---|---|---|---:|---|\n')
             for p in report['records']:
               out.write(f"| {p['cityId']} | {p['localDate']} | {p['modeledSunriseIST']} | {p['changeCount']} | NO |\n")
             out.write('\nCity observers, Lahiri and private D1 source hashes still require scientific review.\n')
-          print('PASS: six location-unique JPL research previews, zero public pages')
+          print('PASS: TWENTY location-unique JPL research previews, zero public pages')
           PY
+      - name: Mirror 20 complete research records to PRIVATE R2 only (no D1 overwrite or publication)
+        if: github.ref == 'refs/heads/main'
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.PANCHAVANI_R2_ACCOUNT_ID }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.PANCHAVANI_R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.PANCHAVANI_R2_SECRET_ACCESS_KEY }}
+          SNAPSHOT_DATE: ${{ steps.day.outputs.day }}
+        run: |
+          set -euo pipefail
+          if test -z "$R2_ACCOUNT_ID" || test -z "$AWS_ACCESS_KEY_ID" || test -z "$AWS_SECRET_ACCESS_KEY"; then
+            echo 'PRIVATE R2 MIRROR NOT ACTIVE: repository R2 credentials absent. GitHub artifact still contains science report.' | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          key="ops/ten-city-six-limb/v1/$SNAPSHOT_DATE/$GITHUB_RUN_ID"
+          aws s3 cp engine/artifacts/rolling-six-limb-UNAPPROVED.json \
+            "s3://panchavani-research-private/$key/science-UNAPPROVED.json" \
+            --endpoint-url "https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com" --no-progress
+          aws s3 cp engine/artifacts/rolling-six-city-preview-index-UNAPPROVED.json \
+            "s3://panchavani-research-private/$key/preview-index-UNAPPROVED.json" \
+            --endpoint-url "https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com" --no-progress
+          echo "PRIVATE R2 SNAPSHOT STORED: immutable research namespace $key (NOT an approved candidate, no release)." >> "$GITHUB_STEP_SUMMARY"
       - name: Archive private-only research; do not deploy
         uses: actions/upload-artifact@v4
         with:
-          name: panchavani-rolling-three-city-six-limb-UNAPPROVED
+          name: panchavani-rolling-ten-city-six-limb-UNAPPROVED
           path: |
             engine/artifacts/rolling-six-limb-UNAPPROVED.json
             engine/artifacts/rolling-six-city-preview-index-UNAPPROVED.json
