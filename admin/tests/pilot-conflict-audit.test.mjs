@@ -88,11 +88,40 @@ test('historical pilot audit opens directly without query string and also accept
     assert.equal(env.writes(),0);
   }
 });
-test('malformed HTML-escaped ampersand and duplicated selectors fail with a clean-url hint',async()=>{
-  for(const suffix of ['?date=2026-10-16&amp;format=json','?date=2026-10-16&date=2026-10-16','?format=json&format=json','?date=2026-10-17','?city=delhi']){
+test('URL tracking, HTML-escaped ampersand and unknown decorative params cannot break fixed-scope read-only audit',async()=>{
+  for(const suffix of [
+    '?utm_source=chatgpt.com',
+    '?utm_source=chatgpt.com&utm_medium=assistant',
+    '?date=2026-10-16&amp;format=json',
+    '?city=delhi',
+    '?source=mobile&ref=chat',
+    '?foo=bar&random=123',
+    '?date=2026-10-16&format=json&utm_campaign=test'
+  ]){
+    const e=mock();
+    const result=await handlePilotConflictAudit(new Request(plainUrl+suffix),e,'owner');
+    assert.equal(result.status,200,suffix+': '+await result.clone().text());
+    const report=await result.json();
+    assert.equal(report.localDate,'2026-10-16');
+    assert.deepEqual(report.pilotCities,['delhi','mumbai','chennai']);
+    assert.equal(report.realProductionD1ReadForAllCities,true);
+    assert.equal(report.historicalConflictsScientificallyResolved,false);
+    assert.equal(report.indexingAuthorized,false);
+    assert.equal(e.writes(),0);
+  }
+});
+test('explicit conflicting date, format and duplicated selectors remain rejected',async()=>{
+  for(const suffix of [
+    '?date=2026-10-16&date=2026-10-16',
+    '?format=json&format=json',
+    '?date=2026-10-17',
+    '?format=csv',
+    '?date=2026-10-17&utm_source=chatgpt.com'
+  ]){
     const result=await handlePilotConflictAudit(new Request(plainUrl+suffix),mock(),'owner');
     assert.equal(result.status,400,suffix);
     const report=await result.json();
+    assert.equal(report.error,'invalid-historical-audit-selector');
     assert.equal(report.expectedPath,'/research/conflicts/pilot');
     assert.equal(report.indexingAuthorized,false);
   }
@@ -139,7 +168,7 @@ test('no Access, POST, invalid date or query is denied',async()=>{
   [new Request(url),null,403],
   [new Request(url,{method:'POST'}),'owner',405],
   [new Request(url.replace('2026-10-16','2026-10-17')),'owner',400],
-  [new Request(url+'&allowPublishing=1'),'owner',400],
+  [new Request(url.replace('2026-10-16','2026-10-17')+'&allowPublishing=1'),'owner',400],
  ]){
   const r=await handlePilotConflictAudit(request,mock(),actor);
   assert.equal(r.status,status);
