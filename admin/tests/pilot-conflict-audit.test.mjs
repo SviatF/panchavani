@@ -75,6 +75,29 @@ function mock({tamperCity=null,missCity=null}={}){
  };
 }
 const url='https://admin.panchavani.com/research/conflicts/pilot?date=2026-10-16&format=json';
+const plainUrl='https://admin.panchavani.com/research/conflicts/pilot';
+test('historical pilot audit opens directly without query string and also accepts only format=json',async()=>{
+  for(const u of [plainUrl,plainUrl+'?format=json',plainUrl+'?date=2026-10-16',url]){
+    const env=mock();
+    const result=await handlePilotConflictAudit(new Request(u),env,'authorized-owner');
+    assert.equal(result.status,200,await result.clone().text());
+    const report=await result.json();
+    assert.equal(report.localDate,'2026-10-16');
+    assert.equal(report.caseCount,3);
+    assert.equal(report.historicalConflictsScientificallyResolved,false);
+    assert.equal(env.writes(),0);
+  }
+});
+test('malformed HTML-escaped ampersand and duplicated selectors fail with a clean-url hint',async()=>{
+  for(const suffix of ['?date=2026-10-16&amp;format=json','?date=2026-10-16&date=2026-10-16','?format=json&format=json','?date=2026-10-17','?city=delhi']){
+    const result=await handlePilotConflictAudit(new Request(plainUrl+suffix),mock(),'owner');
+    assert.equal(result.status,400,suffix);
+    const report=await result.json();
+    assert.equal(report.expectedPath,'/research/conflicts/pilot');
+    assert.equal(report.indexingAuthorized,false);
+  }
+});
+
 test('all 3 private D1 mock source hashes inspected through one Access route',async()=>{
  const e=mock();
  const r=await handlePilotConflictAudit(new Request(url),e,'owner@example.org');
