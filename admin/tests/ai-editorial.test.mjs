@@ -365,7 +365,7 @@ test('the Admin city-hub page shows evergreen automation independently from rese
  assert.equal(view.status,200);
  const body=await view.text();
  assert.match(body,/Evergreen DeepSeek city guides:/);
- assert.match(body,/ENABLED for Delhi, Mumbai, Chennai/);
+ assert.match(body,/ENABLED for 10 city guides/);
  assert.match(body,/Separate live Runner queue:/);
  assert.match(body,/not enabled in this Worker/);
  assert.match(body,/This system never releases pages or enables Google indexing/);
