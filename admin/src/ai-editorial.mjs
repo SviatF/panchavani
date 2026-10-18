@@ -251,11 +251,15 @@ export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=
           }
         }catch{warnings.push(row.city_id+': unable to read stored draft');}
       }
-      const flags=drafts.map(x=>'<tr><td>'+escapeHtml(x.city)+'</td><td>'+
-        escapeHtml(x.words)+'</td><td>'+
-        escapeHtml((x.record.reviewBlockers||[]).filter(v=>
-          typeof v==='string'&&v.startsWith('v4-')).join(', ')||'—')+
-        '</td></tr>').join('');
+      const found=new Map(drafts.map(x=>[x.city,x]));
+      const flags=ONE_SHOT_PILOT_CITIES.map(city=>{
+        const entry=found.get(city);
+        if(!entry)return '<tr><td>'+escapeHtml(city)+'</td><td>—</td><td>AWAITING ONE-SHOT DRAFT OR STORED SLOT REVIEW</td></tr>';
+        const blockers=Array.isArray(entry.record.reviewBlockers)?
+          entry.record.reviewBlockers.filter(v=>typeof v==='string'&&v.length<90):[];
+        return '<tr><td>'+escapeHtml(city)+'</td><td>'+escapeHtml(entry.words)+
+          '</td><td>'+escapeHtml(blockers.join(', ')||'Ready for manual fact/editor review')+'</td></tr>';
+      }).join('');
       const comparisons=[];
       for(let i=0;i<drafts.length;i++)for(let j=i+1;j<drafts.length;j++){
         const a=drafts[i],b=drafts[j];
@@ -272,7 +276,8 @@ export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=
         '<table><thead><tr><th>City</th><th>Body words</th><th>Quality flags</th>'+
         '</tr></thead><tbody>'+flags+'</tbody></table>'+
         '<p class="muted">Eligible city-hub drafts found: '+drafts.length+
-        '. Report uses cached R2 only: zero new DeepSeek calls.</p></section>'+
+        ' of 3 pilot cities. Empty rows require draft generation, or a one-shot slot may need an operator check. '+
+        'Report reads cached R2 only: zero new DeepSeek calls. No publication approval is inferred.</p></section>'+
         '<section><h2>Cross-city lexical overlap</h2>'+
         '<table><thead><tr><th>Pair</th><th>Token overlap</th>'+
         '<th>Screening result</th></tr></thead><tbody>'+
@@ -381,8 +386,10 @@ export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=
       jobs=(await env.DB.prepare("SELECT id,city_id,local_date FROM job_requests WHERE status='candidate' ORDER BY created_at DESC LIMIT 30").all()).results||[];
     }catch{return errorPage(503,'Private job listing unavailable.')}
     const connected=Boolean(env.CANDIDATES&&typeof env.DEEPSEEK_API_KEY==='string'&&env.DEEPSEEK_API_KEY.trim().length>=12);
-    const automationConfigured=env.AUTO_RESEARCH_ENABLED==='true'&&
-      env.AUTO_EDITORIAL_ENABLED==='true'&&Boolean(env.RUNNER_HMAC_SECRET&&env.DB&&env.CANDIDATES);
+    const researchConfigured=env.AUTO_RESEARCH_ENABLED==='true'&&
+      Boolean(env.RUNNER_HMAC_SECRET&&env.DB&&env.CANDIDATES);
+    const evergreenDraftConfigured=env.AUTO_EDITORIAL_ENABLED==='true'&&
+      Boolean(env.DB&&env.CANDIDATES&&connected);
     let counts={queued:0,candidates:jobs.length,drafts:0};
     try {
       const q=await env.DB.prepare("SELECT COUNT(*) AS n FROM job_requests WHERE requested_by='panchavani-cron@internal' AND status IN ('queued','running')").first();
@@ -420,8 +427,11 @@ export async function handleAi(request,env,actor,isTrustedBrowserPost,transport=
     const content='<h1>AI Editorial Drafts</h1><p class="warning">Private drafts only. No direct SEO publication, human-approved cultural advice or verified astrology.</p>'
       +'<section><h2>DeepSeek server-side secret</h2><p>'+ (connected?'Configured for private draft generation.':'Not configured or missing private R2.')+'</p><p><a href="/ai/provider-status">Check DeepSeek API connection and balance availability (no model call)</a></p></section>'
       +'<section><h2>Automatic research and editorial scheduler</h2><p>'+(
-         automationConfigured?'Configured for research/drafts (requires active Cloudflare Cron and a connected scheduled GitHub Runner).'
-         :'NOT ACTIVE. An encrypted DeepSeek key alone does not start automatic astronomy jobs. Configure D1 migration 0003, Runner credentials, scheduled GitHub workflow and explicit AUTO_RESEARCH_ENABLED/AUTO_EDITORIAL_ENABLED flags.'
+         'Evergreen DeepSeek city guides: '+(evergreenDraftConfigured?
+           'ENABLED for Delhi, Mumbai, Chennai; one paid attempt per eligible city/language at most, saved privately.':
+           'WAITING for configured private DeepSeek secret, D1/R2 or AUTO_EDITORIAL_ENABLED flag.')+
+         ' Separate live Runner queue: '+(researchConfigured?
+           'ENABLED with HMAC credentials.':'not enabled in this Worker; existing scheduled GitHub research ingestion is independent.')
        )+'</p><p class="muted">Waiting calculation tasks: '+escapeHtml(counts.queued)
        +' · Finished candidates (recent): '+escapeHtml(counts.candidates)
        +' · Saved autonomous drafts: '+escapeHtml(counts.drafts)
