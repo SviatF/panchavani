@@ -72,12 +72,95 @@ const page=(markup,status=200)=>new Response('<!doctype html><html lang="en"><he
  '<p class="warning">Private research only. Read-only SHA and field comparisons; no auto overwrite, scientific approval, AI billing or public release.</p>'+
  markup+'</body></html>',{status,headers:H});
 const printed=v=>esc(typeof v==='object'&&v!==null?JSON.stringify(v):v);
+/** The original field allowlist is deliberately NOT complete: it omits, for
+ * example, Nakshatra/Yoga, many source provenance fields, and validation
+ * details. Perform a complete JSON VALUE comparison without echoing arbitrary
+ * private values to the audit output. Object key ordering does not matter;
+ * array ordering, omitted keys, nulls and actual numbers do matter.
+ */
+const ASTRO_ROOTS=new Set(['city','methodology','sun','panchangAtSunrise','transitions',
+  'localDate','recordId']);
+const QUALITY_ROOTS=new Set(['validation','status','approvedBy','releaseId','schemaVersion']);
+const pathCategory=path=>{
+ const root=path.replace(/^\$/, '').split(/[.\[]/).filter(Boolean)[0];
+ return ASTRO_ROOTS.has(root)?'ASTRONOMY_OR_PROVENANCE':
+  QUALITY_ROOTS.has(root)?'VALIDATION_OR_RELEASE_METADATA':
+  'OTHER_RECORD_CONTENT_REVIEW_REQUIRED';
+};
+const safeJsonPath=(path,key)=>path+'.'+String(key).replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,64);
+function structurallyEqual(a,b){
+ if(Object.is(a,b))return true;
+ if(a===null||b===null||typeof a!==typeof b)return false;
+ if(typeof a!=='object')return false;
+ const arrA=Array.isArray(a),arrB=Array.isArray(b);
+ if(arrA!==arrB)return false;
+ if(arrA){
+  if(a.length!==b.length)return false;
+  return a.every((value,i)=>structurallyEqual(value,b[i]));
+ }
+ const ak=Object.keys(a).sort(),bk=Object.keys(b).sort();
+ return ak.length===bk.length&&ak.every((key,i)=>
+    key===bk[i]&&structurallyEqual(a[key],b[key]));
+}
+/** Safe full-object semantic difference summary; no raw values leaked.
+ * JSON candidates max 220 kB and independent SHA checks apply at read time.
+ */
+export function compareCompleteRecordStructure(stored,incoming){
+ const counters={
+  ASTRONOMY_OR_PROVENANCE:0,
+  VALIDATION_OR_RELEASE_METADATA:0,
+  OTHER_RECORD_CONTENT_REVIEW_REQUIRED:0
+ };
+ const changedPaths=[],LIMIT=60;
+ let changedCount=0;
+ const note=(path,kind)=>{
+  const category=pathCategory(path);counters[category]++;
+  changedCount++;
+  if(changedPaths.length<LIMIT)changedPaths.push({path,category,changeKind:kind});
+ };
+ function walk(a,b,path,depth=0){
+  if(Object.is(a,b))return;
+  if(depth>32){note(path,'MAX_DEPTH_REACHED');return;}
+  if(a===null||b===null||typeof a!==typeof b||
+     typeof a!=='object'||Array.isArray(a)!==Array.isArray(b)){
+   note(path,'VALUE_OR_TYPE_DIFFERENCE');return;
+  }
+  if(Array.isArray(a)){
+   if(a.length!==b.length)note(path+'.length','ARRAY_LENGTH_DIFFERENCE');
+   const common=Math.min(a.length,b.length);
+   for(let i=0;i<common;i++)walk(a[i],b[i],path+'['+i+']',depth+1);
+   return;
+  }
+  const keys=new Set([...Object.keys(a),...Object.keys(b)]);
+  for(const key of [...keys].sort()){
+   const sub=safeJsonPath(path,key);
+   if(!Object.hasOwn(a,key)){note(sub,'ONLY_IN_INCOMING');continue;}
+   if(!Object.hasOwn(b,key)){note(sub,'ONLY_IN_STORED');continue;}
+   walk(a[key],b[key],sub,depth+1);
+  }
+ }
+ walk(stored,incoming,'$');
+ const equal=structurallyEqual(stored,incoming);
+ if(equal!==(changedCount===0))throw Error('full-json-diff-invariant-failed');
+ return {
+  wholeJsonStructureEqual:equal,
+  allChangedPathCount:changedCount,
+  categoryCounts:counters,
+  changedPaths,
+  pathSamplesTruncated:changedCount>changedPaths.length,
+  note:equal?
+   'All parsed JSON values match; differing SHA means JSON serialization-only. This is not scientific approval.' :
+   'JSON values, keys or arrays differ outside the original narrow field list. Do not automatically select a source.'
+ };
+}
+
 /** Downloadable forensic metadata for one authenticated city/date. No database writes. */
 export function conflictTriage(city,date,stored,variants,scanned){
  const first=stored.state==='research'?stored.record:null;
  const seen=new Set();
  const results=variants.map(variant=>{
   const changes=first?compareResearchVersions(first,variant.record):[];
+  const full=first?compareCompleteRecordStructure(first,variant.record):null;
   const repeated=seen.has(variant.sha256);
   seen.add(variant.sha256);
   const shaMatches=first&&variant.sha256===stored.sha256;
@@ -88,9 +171,14 @@ export function conflictTriage(city,date,stored,variants,scanned){
     shaMatches?'IDENTICAL_SHA':
     repeated?'DUPLICATE_INCOMING_SHA':
     changes.length?'RESEARCH_FIELDS_DIFFER':
-                   'DIFFERENT_BYTES_FIELDS_NOT_YET_EXPLAINED',
+    full?.wholeJsonStructureEqual?'JSON_SERIALIZATION_ONLY_DIFFERENCE':
+                   'OTHER_JSON_RECORD_FIELDS_DIFFER',
+   // The legacy allowlist is intentionally preserved for comparisons
+   // across older reports; it does NOT include every scientific field.
    changedResearchFields:changes.map(x=>x.field),
-   differences:changes,independentlyValidated:false
+   differences:changes,
+   completeJsonComparison:full,
+   independentlyValidated:false
   };
  });
  return {
@@ -123,7 +211,12 @@ function renderCase(city,date,stored,variants,scanned){
    duplicate?'Same SHA as another nightly version':'DIFFERENT SHA')+'</p>';
   if(!origin)out+='<p>Stored D1 candidate unavailable; field comparison blocked.</p>';
   else if(isStored)out+='<p>Identical source bytes by verified SHA.</p>';
-  else if(!changes.length)out+='<p>Different SHA, but selected scientific fields match. Other bytes/fields may still differ; manual investigation required.</p>';
+  else if(!changes.length){
+   const full=compareCompleteRecordStructure(origin,v.record);
+   if(full.wholeJsonStructureEqual)
+    out+='<p>All parsed JSON values identical, raw SHA differs due to serialization. Human source review remains required.</p>';
+   else out+='<p>Full JSON field differences: '+full.allChangedPathCount+'. Check JSON report for categorized paths; no automatic approval.</p>';
+  }
   else{
    out+='<p>Changed scientific/metadata fields: '+changes.length+'. No automatic authority or winner selected.</p>'+
     '<div style="overflow:auto"><table><thead><tr><th>Field</th><th>Saved D1</th><th>Nightly R2</th></tr></thead><tbody>';

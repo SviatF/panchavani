@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { compareResearchVersions, handleConflictForensics } from '../src/conflict-forensics.mjs';
+import { compareResearchVersions, compareCompleteRecordStructure, conflictTriage, handleConflictForensics } from '../src/conflict-forensics.mjs';
 import { CITY_META, CATALOG_VERSION } from '../src/city-catalog.mjs';
 
 const JPL='c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2';
@@ -126,4 +126,67 @@ test('JSON SHA triage requires Access, refuses unsafe selectors and tampered inp
  const e=env({tamper:true});
  assert.equal((await handleConflictForensics(new Request(url+'&format=json'),e,'reviewer')).status,503);
  assert.equal(e.writes(),0);
+});
+
+test('full JSON forensic catches omitted Nakshatra and Yoga values, not only historical allowlist',()=>{
+ const changed=structuredClone(original);
+ changed.panchangAtSunrise.nakshatra='Mula';
+ changed.panchangAtSunrise.yoga='Shobhana';
+ const legacy=compareResearchVersions(original,changed);
+ assert.equal(legacy.length,0,'the original allowlist MUST not be mistaken for a complete comparison');
+ const full=compareCompleteRecordStructure(original,changed);
+ assert.equal(full.wholeJsonStructureEqual,false);
+ assert.equal(full.allChangedPathCount,2);
+ assert.deepEqual(full.changedPaths.map(x=>x.path),[
+   '$.panchangAtSunrise.nakshatra','$.panchangAtSunrise.yoga'
+ ]);
+ assert.equal(full.categoryCounts.ASTRONOMY_OR_PROVENANCE,2);
+ const stored={state:'research',record:original,sha256:checksum(storedRaw)};
+ const newer=[{record:changed,sha256:checksum(JSON.stringify(changed)),runId:'38813000891',key:'inbox/records/test'}];
+ const triage=conflictTriage(city,date,stored,newer,1);
+ assert.equal(triage.variants[0].disposition,'OTHER_JSON_RECORD_FIELDS_DIFFER');
+ assert.deepEqual(triage.variants[0].changedResearchFields,[]);
+ assert.equal(triage.variants[0].completeJsonComparison.allChangedPathCount,2);
+ assert.equal(triage.indexingAuthorized,false);
+});
+test('different raw SHA with identical JSON values is accurately called serialization-only, not scientific approval',()=>{
+ const alternate=JSON.parse(JSON.stringify(original));
+ const stored={state:'research',record:original,sha256:checksum(storedRaw)};
+ // Reordered object keys are semantically identical although source byte SHA differs.
+ const reordered={...Object.fromEntries(Object.entries(alternate).reverse())};
+ const pretty=JSON.stringify(reordered,null,2);
+ assert.notEqual(checksum(pretty),checksum(storedRaw));
+ const complete=compareCompleteRecordStructure(original,reordered);
+ assert.equal(complete.wholeJsonStructureEqual,true);
+ assert.equal(complete.allChangedPathCount,0);
+ const variant={record:reordered,sha256:checksum(pretty),runId:'38813000891',key:'inbox/records/a'};
+ const triage=conflictTriage(city,date,stored,[variant],4);
+ assert.equal(triage.variants[0].disposition,'JSON_SERIALIZATION_ONLY_DIFFERENCE');
+ assert.equal(triage.shaConflictResolved,false);
+ assert.equal(triage.reviewedScienceApproved,false);
+ assert.deepEqual(triage.approvedClaimsForDeepSeek,[]);
+});
+test('full JSON audit distinguishes missing keys from explicit null and classification of metadata changes',()=>{
+ const edited=structuredClone(original);
+ delete edited.panchangAtSunrise.yoga;
+ edited.validation.reviewStatus='no-scientific-signoff';
+ edited.status='UNAPPROVED';
+ edited.additionalRun={'newJobId':'test-only'};
+ const r=compareCompleteRecordStructure(original,edited);
+ assert.equal(r.allChangedPathCount,4);
+ assert.equal(r.wholeJsonStructureEqual,false);
+ assert.ok(r.changedPaths.some(x=>x.path==='$.panchangAtSunrise.yoga'&&x.changeKind==='ONLY_IN_STORED'));
+ assert.ok(r.changedPaths.some(x=>x.path==='$.validation.reviewStatus'&&x.category==='VALIDATION_OR_RELEASE_METADATA'));
+ assert.ok(r.changedPaths.some(x=>x.path==='$.additionalRun'&&x.category==='OTHER_RECORD_CONTENT_REVIEW_REQUIRED'));
+});
+test('nested phase arrays and unknown scientific fields do not silently pass source equivalence',()=>{
+ const edited=structuredClone(original);
+ edited.transitions[0].value='Krishna Pratipada';
+ edited.methodology.ayanamsaVersion='OTHER_REFERENCE';
+ edited.externalComputation={nutation:'unknown'};
+ const r=compareCompleteRecordStructure(original,edited);
+ assert.equal(r.wholeJsonStructureEqual,false);
+ assert.ok(r.changedPaths.some(x=>x.path==='$.transitions[0].value'));
+ assert.ok(r.changedPaths.some(x=>x.path==='$.methodology.ayanamsaVersion'));
+ assert.ok(r.changedPaths.some(x=>x.path==='$.externalComputation'));
 });
