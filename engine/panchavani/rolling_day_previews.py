@@ -12,7 +12,7 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from .first_six_limb_pilot import KINDS,PILOT,verify_batch
+from .first_six_limb_pilot import KINDS,PILOT,TEN_CITY_IDS,verify_batch
 from .research_batch import JPL_DE440S_SHA
 
 IST=ZoneInfo("Asia/Kolkata")
@@ -24,7 +24,10 @@ def local(utc):
     return dt.astimezone(IST).isoformat(timespec="seconds")
 
 def make_rolling_previews(batch:dict) -> dict:
-    if (batch.get("artifactType")!="PANCHAVANI_FIRST_SIX_LIMB_SCIENCE_BATCH" or
+    artifact=batch.get("artifactType")
+    cities=TEN_CITY_IDS if artifact=="PANCHAVANI_TEN_CITY_SIX_LIMB_RESEARCH_BATCH" else PILOT
+    if (artifact not in ("PANCHAVANI_FIRST_SIX_LIMB_SCIENCE_BATCH",
+                        "PANCHAVANI_TEN_CITY_SIX_LIMB_RESEARCH_BATCH") or
         batch.get("status")!="UNAPPROVED_RESEARCH" or
         batch.get("kernelSha256")!=JPL_DE440S_SHA or
         batch.get("scientificApproval") is not False or
@@ -32,7 +35,7 @@ def make_rolling_previews(batch:dict) -> dict:
         batch.get("indexingAuthorized") is not False or
         batch.get("approvedClaimsForDeepSeek")!=[]):
         raise ValueError("Cannot preview untrusted or approved-source science")
-    qa=verify_batch(batch["records"])
+    qa=verify_batch(batch["records"],cities)
     pages=[]
     for rec in sorted(batch["records"],key=lambda x:(x["localDate"],x["cityId"])):
         city,date=rec["cityId"],rec["localDate"]
@@ -97,14 +100,15 @@ def make_rolling_previews(batch:dict) -> dict:
             "paidGenerationAuthorized":False,
             "indexingAuthorized":False
         })
-    assert len(pages)==6
+    assert len(pages)==2*len(cities)
     if any(not p["reviewMarkdown"].startswith("# ") for p in pages):
         raise ValueError("Review markdown missing")
     return {
       "artifactType":PREFIX,"schemaVersion":1,
       "status":"UNAPPROVED_RESEARCH",
       "dateFrom":qa["localDateFrom"],"dateThrough":qa["localDateThrough"],
-      "cityDays":6,"fourLimbDawnChecks":qa["checkedFourLimbDawnContinuities"],
+      "cityCount":len(cities),"cityDays":2*len(cities),
+      "fourLimbDawnChecks":qa["checkedFourLimbDawnContinuities"],
       "records":pages,
       "scientificApproval":False,"modelInvocationAuthorized":False,
       "approvedClaimsForDeepSeek":[],
