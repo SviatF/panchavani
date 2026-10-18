@@ -67,20 +67,24 @@ export async function handlePilotConflictAudit(request,env,actor){
  if(url.pathname!=='/research/conflicts/pilot')return null;
  if(!actor)return json({error:'access-denied'},403);
  if(request.method!=='GET')return json({error:'only-read-only-get'},405);
- // One fixed archival case: GET without search params is the canonical URL.
- // Query parameters are optional. Fail closed on any other city/day/filter
- // and on duplicate keys; never allow selector injection into D1 or R2.
+ // This is a READ-ONLY fixed-scope historical audit, with hard-coded
+ // three city IDs and historical day. Browser, link, social-preview or
+ // authentication layers may append tracking or return-path query params.
+ // Unrecognized parameters are NOT read, forwarded or interpolated into
+ // SQL/R2 lookups. Reject only contradictory explicit audit selectors.
  const dateValues=url.searchParams.getAll('date');
  const formatValues=url.searchParams.getAll('format');
  if(dateValues.length>1||formatValues.length>1||
     (dateValues.length===1&&dateValues[0]!==DATE)||
-    (formatValues.length===1&&formatValues[0]!=='json')||
-    [...url.searchParams.keys()].some(k=>k!=='date'&&k!=='format'))
-  return json({error:'unsupported-pilot-audit-query',
+    (formatValues.length===1&&formatValues[0]!=='json'))
+  return json({error:'invalid-historical-audit-selector',
     expectedPath:'/research/conflicts/pilot',
     supportedHistoricalDate:DATE,
-    hint:'Open the clean path without query parameters. This always audits Delhi, Mumbai and Chennai for the original historical date.',
+    hint:'This read-only endpoint always audits the 3 original 2026-10-16 city records.',
     indexingAuthorized:false},400);
+ // Every other query key/value is intentionally ignored, including common
+ // UTM and HTML-escaped tracking parameters. The private D1/R2 scope does
+ // not depend on ANY external query property except date/format validation.
  if(!env?.DB||!env?.CANDIDATES||!env?.INGEST_INBOX)
   return json({error:'private-stores-not-configured'},503);
  // Access-only: provide a minimal per-city blocker for useful real
