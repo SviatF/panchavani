@@ -42,25 +42,33 @@ jobs:
             echo 'ready=false' >> "$GITHUB_OUTPUT"
             echo 'MISSING CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID: live deployment was NOT attempted'
           fi
+      - name: Fail main-branch deployment when required Cloudflare secrets are missing
+        if: github.ref == 'refs/heads/main' && steps.auth.outputs.ready != 'true'
+        run: |
+          echo 'BLOCKED: GitHub Actions is missing Cloudflare credentials. The Admin Worker was NOT deployed.' >&2
+          exit 1
       - name: Deploy ONLY protected private Admin Worker to existing Cloudflare account
+        id: deploy
         if: github.ref == 'refs/heads/main' && steps.auth.outputs.ready == 'true'
         run: |
           cd admin
           npx wrangler deploy --config wrangler.jsonc
+          echo 'deployed=true' >> "$GITHUB_OUTPUT"
       - name: Record deployment truth (no claims about D1/Access health)
         if: always()
         env:
           HAS_CREDENTIALS: ${{ steps.auth.outputs.ready }}
+          DEPLOYED: ${{ steps.deploy.outputs.deployed }}
           IS_MAIN_BRANCH: ${{ github.ref == 'refs/heads/main' }}
           JOB_RESULT: ${{ job.status }}
         run: |
           echo '## PANCHAVANI PRIVATE Admin automatic deployment' >> "$GITHUB_STEP_SUMMARY"
           if test "$IS_MAIN_BRANCH" != true; then
             echo '**NOT DEPLOYED:** Pull request validation cannot modify the production Worker.' >> "$GITHUB_STEP_SUMMARY"
-          elif test "$HAS_CREDENTIALS" = true && test "$JOB_RESULT" = success; then
-            echo 'Wrangler completed deployment. Cloudflare Access/D1/R2 and the next private scheduled SHA snapshot still require actual live health checks.' >> "$GITHUB_STEP_SUMMARY"
+          elif test "$DEPLOYED" = true; then
+            echo '**WRANGLER DEPLOYED:** private Admin Worker script updated in Cloudflare. Access and the next real D1/R2 scheduled forensic snapshot still require live verification.' >> "$GITHUB_STEP_SUMMARY"
           elif test "$HAS_CREDENTIALS" != true; then
-            echo '**NOT DEPLOYED:** Cloudflare GitHub repository credentials unavailable. The source and unit tests still exist in main.' >> "$GITHUB_STEP_SUMMARY"
+            echo '**NOT DEPLOYED, MAIN JOB FAILED:** GitHub Cloudflare credentials unavailable. Source-code checks do not prove production deployment.' >> "$GITHUB_STEP_SUMMARY"
           else
             echo '**DEPLOY FAILED:** See explicit Wrangler or test failure above. Never assume private Cron is active.' >> "$GITHUB_STEP_SUMMARY"
           fi
