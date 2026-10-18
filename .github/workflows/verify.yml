@@ -29,6 +29,8 @@ jobs:
         run: npm run audit:preindex
       - name: Audit real public city texts for naturalness, useful reading tasks and distinct SEO snippets
         run: npm run audit:content
+      - name: Verify ten-city UX, substantive Muhurat methods and zero unapproved recommendations
+        run: npm run test:product
       - name: Build static site
         run: npm run build
       - name: Verify generated routes and media
