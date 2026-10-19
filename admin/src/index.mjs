@@ -21,6 +21,7 @@ import { handleConflictForensics } from './conflict-forensics.mjs';
 import { handlePilotConflictAudit } from './pilot-conflict-audit.mjs';
 import {handleDailyForensicStatus,runDailyForensics} from './daily-forensic-automation.mjs';
 import {handleMuhuratWindowConsole} from './muhurat-window-console.mjs';
+import {handleMuhuratRulesConsole} from './muhurat-rule-console.mjs';
 
 
 const HEADERS = {
@@ -85,6 +86,8 @@ const baseWorker = {
     // The dashboard refuses access without Cloudflare-verified identity and explicit email allowlist.
     const actor = await authenticate(ctx, env);
     if (!actor) return deny();
+    const sourceScreen=await handleMuhuratRulesConsole(request,env,actor);
+    if(sourceScreen)return sourceScreen;
     const privateWindows=await handleMuhuratWindowConsole(request,env,actor);
     if(privateWindows)return privateWindows;
     const archivedForensics=await handleDailyForensicStatus(request,env,actor);
