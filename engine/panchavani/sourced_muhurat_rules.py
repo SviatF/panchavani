@@ -20,6 +20,7 @@ from .research_batch import JPL_DE440S_SHA
 from .core import tithi_title
 from .periods import karana_title, daylight_windows
 from .sidereal import NAKSHATRA_NAMES, YOGA_NAMES
+from .muhurat_quality import quality_metrics
 
 IST = ZoneInfo("Asia/Kolkata")
 SOURCE_PROFILE = "PANCHAVANI_REFERENCE_MUHURAT_RULEBOOK"
@@ -368,7 +369,7 @@ def score_reference_grid(grid,book):
             "muhuratRecommendationsAuthorized":False,
             "approvedClaimsForDeepSeek":[]
         }
-    return {
+    report = {
         "artifactType":RESULT_TYPE,"schemaVersion":1,
         "status":"SOURCE_GROUNDED_PRELIMINARY_SCREEN_ONLY",
         "sourceGridSha256":hashlib.sha256(json.dumps(
@@ -390,6 +391,9 @@ def score_reference_grid(grid,book):
         "publicationAuthorized":False,
         "indexingAuthorized":False,
     }
+    report["quantitativeQuality"] = quality_metrics(report)
+    return report
+
 
 def main():
     p=argparse.ArgumentParser(description="Deterministic sourced rule screening; NO auspicious Muhurat release")
