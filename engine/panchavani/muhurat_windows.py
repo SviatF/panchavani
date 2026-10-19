@@ -93,6 +93,11 @@ def intersection_grid(batch: dict) -> dict:
             "modeledSunriseIST": ist(sunrise),
             "modeledFollowingSunriseIST": ist(following),
             "modeledSunsetIST": ist(sunset),
+            # Preserve subsecond UTC solar roots for 1/8-day Rahu calculation:
+            # IST convenience strings may be rounded to whole seconds.
+            "modeledSunriseUtc": sunrise.isoformat(timespec="microseconds").replace("+00:00","Z"),
+            "modeledSunsetUtc": sunset.isoformat(timespec="microseconds").replace("+00:00","Z"),
+            "modeledFollowingSunriseUtc": following.isoformat(timespec="microseconds").replace("+00:00","Z"),
             "windowCount": len(windows), "windows": windows,
             "coordinatesIndependentlyVerified": False,
             "lahiriIndependentlyApproved": False,
