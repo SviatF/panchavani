@@ -8,8 +8,8 @@ import raw from '@/data/approved-panchang.json';
 // Public evergreen city guides are separate from scientifically approved day records.
 export const CITY_GUIDE_IDS=['delhi','mumbai','kolkata','chennai','bengaluru',
  'hyderabad','ahmedabad','pune','jaipur','varanasi'] as const;
-export const PILOT_CITY_IDS=['delhi','mumbai','chennai'] as const;
-export type PilotCityId=typeof PILOT_CITY_IDS[number];
+export const PILOT_CITY_IDS=CITY_GUIDE_IDS;
+export type PilotCityId=typeof CITY_GUIDE_IDS[number];
 import cityGuides from '@/data/city-guides.json';
 export const CITY_GUIDES=cityGuides;
 export type ApprovedCityDay={
@@ -37,7 +37,7 @@ export type ApprovedCityDay={
  };
 };
 type Bundle={schemaVersion:1;releaseStatus:string;records:unknown[]};
-const allowedCity=new Set<string>(PILOT_CITY_IDS);
+const allowedCity=new Set<string>(CITY_GUIDE_IDS);
 const isoDay=(s:unknown)=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&
  Number.isFinite(Date.parse(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s;
 const isoInstant=(s:unknown)=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(s)&&!Number.isNaN(Date.parse(s));
@@ -90,7 +90,6 @@ function check(record:unknown):record is ApprovedCityDay{
    }
    if(cursor!==end||segments[0].name!==p[kind])return false;
  }
- return true;
  return true;
 }
 export function loadApprovedDays(bundle:unknown, expectedDigest:string|undefined):ApprovedCityDay[]{
