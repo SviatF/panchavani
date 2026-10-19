@@ -16,6 +16,8 @@ on:
       - 'engine/panchavani/rolling_day_previews.py'
       - 'engine/tests/test_rolling_day_previews.py'
       - 'engine/tests/test_ten_city_six_limb_research.py'
+      - 'engine/panchavani/muhurat_windows.py'
+      - 'engine/tests/test_muhurat_windows.py'
   pull_request:
     paths:
       - '.github/workflows/rolling-six-limb-research.yml'
@@ -42,6 +44,7 @@ jobs:
           cd engine
           python -m unittest discover -s tests -p 'test_rolling_day_previews.py' -v
           python -m unittest discover -s tests -p 'test_ten_city_six_limb_research.py' -v
+          python -m unittest discover -s tests -p 'test_muhurat_windows.py' -v
           python -m unittest discover -s tests -p 'test_first_six_limb_pilot.py' -v
       - name: Determine tomorrow in India (or explicit date)
         id: day
@@ -78,6 +81,11 @@ jobs:
             --batch engine/artifacts/rolling-six-limb-UNAPPROVED.json \
             --out engine/artifacts/rolling-six-city-preview-index-UNAPPROVED.json \
             --previews engine/artifacts/rolling-city-briefs
+      - name: Build private 4-limb time intersections for Wedding and Vehicle research
+        run: |
+          PYTHONPATH=engine python -m panchavani.muhurat_windows \
+            --batch engine/artifacts/rolling-six-limb-UNAPPROVED.json \
+            --out engine/artifacts/ten-city-muhurat-time-grid-UNAPPROVED.json
       - name: Check twenty distinct city-day astronomy records, science integrity and no release
         run: |
           python - <<'PY'
@@ -91,6 +99,15 @@ jobs:
           assert not report['scientificApproval'] and not report['publicationAuthorized']
           assert not report['indexingAuthorized'] and not report['modelInvocationAuthorized']
           assert report['approvedClaimsForDeepSeek']==[]
+          timegrid=json.loads((root/'ten-city-muhurat-time-grid-UNAPPROVED.json').read_text())
+          assert timegrid['cityCount']==10 and timegrid['cityDays']==20
+          assert len(timegrid['windows'])==20
+          assert timegrid['scientificApproval'] is False
+          assert timegrid['muhuratRecommendationsAuthorized'] is False
+          assert timegrid['approvedClaimsForDeepSeek']==[]
+          assert timegrid['indexingAuthorized'] is False
+          assert timegrid['publicationAuthorized'] is False
+          assert sum(row['windowCount'] for row in timegrid['windows'])>=20
           assert len({p['previewSha256'] for p in report['records']})==20
           assert len({p['modeledSunriseIST'] for p in report['records']})==20
           assert len(list((root/'rolling-city-briefs').glob('*-UNAPPROVED.md')))==20
@@ -124,6 +141,9 @@ jobs:
           aws s3 cp engine/artifacts/rolling-six-city-preview-index-UNAPPROVED.json \
             "s3://panchavani-research-private/$key/preview-index-UNAPPROVED.json" \
             --endpoint-url "https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com" --no-progress
+          aws s3 cp engine/artifacts/ten-city-muhurat-time-grid-UNAPPROVED.json \
+            "s3://panchavani-research-private/$key/muhurat-interval-grid-UNAPPROVED.json" \
+            --endpoint-url "https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com" --no-progress
           echo "PRIVATE R2 SNAPSHOT STORED: immutable research namespace $key (NOT an approved candidate, no release)." >> "$GITHUB_STEP_SUMMARY"
       - name: Archive private-only research; do not deploy
         uses: actions/upload-artifact@v4
@@ -133,5 +153,6 @@ jobs:
             engine/artifacts/rolling-six-limb-UNAPPROVED.json
             engine/artifacts/rolling-six-city-preview-index-UNAPPROVED.json
             engine/artifacts/rolling-city-briefs/*.md
+            engine/artifacts/ten-city-muhurat-time-grid-UNAPPROVED.json
           retention-days: 14
           if-no-files-found: error
