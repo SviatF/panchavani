@@ -6,7 +6,7 @@
  * All inputs must already have separate signed, human-reviewed evidence.
  */
 const kinds=['tithi','karana','nakshatra','yoga'];
-const names=new Set(['delhi','mumbai','chennai']);
+const names=new Set(['delhi','mumbai','kolkata','chennai','bengaluru','hyderabad','ahmedabad','pune','jaipur','varanasi']);
 const date=v=>typeof v==='string'&&/^20\d\d-\d\d-\d\d$/.test(v)&&
  !Number.isNaN(Date.parse(v+'T12:00:00Z'))&&
  new Date(v+'T12:00:00Z').toISOString().slice(0,10)===v;
@@ -17,9 +17,9 @@ const obj=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
 const substantial=v=>typeof v==='string'&&v.trim().length>=40;
 const sourceUrl=v=>typeof v==='string'&&/^https:\/\/[^/\s?#]+\.[^/\s?#]+(?:[/?#][^\s]*)?$/.test(v)&&
  !/(?:example\.com|example\.org|localhost|test\.invalid)/i.test(v);
-const knownCities=['delhi','mumbai','chennai'];
+const knownCities=['delhi','mumbai','kolkata','chennai','bengaluru','hyderabad','ahmedabad','pune','jaipur','varanasi'];
 const tokens=v=>String(v??'').toLocaleLowerCase('en').replace(
- /\b(delhi|mumbai|chennai)\b/g,'CITY').match(/[\p{L}\p{N}]+/gu)||[];
+ /\b(delhi|mumbai|kolkata|chennai|bengaluru|hyderabad|ahmedabad|pune|jaipur|varanasi)\b/g,'CITY').match(/[\p{L}\p{N}]+/gu)||[];
 function shingles(v){
  const words=tokens(v);const out=new Set();
  for(let i=0;i+3<words.length;i++)out.add(words.slice(i,i+4).join(' '));
