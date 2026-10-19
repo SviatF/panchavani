@@ -151,6 +151,10 @@ class SourcedMuhuratRulesTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"local timestamp"):
             validate_research_grid(wrong)
         wrong=copy.deepcopy(g)
+        wrong["windows"][0]["modeledSunsetUtc"]="2027-01-01T16:00:00Z"
+        with self.assertRaisesRegex(ValueError,"chronology|source IST"):
+            validate_research_grid(wrong)
+        wrong=copy.deepcopy(g)
         wrong["jplKernelSha256"]="invalid-astronomical-source"
         with self.assertRaises(ValueError):
             validate_research_grid(wrong)
