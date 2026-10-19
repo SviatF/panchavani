@@ -291,7 +291,7 @@ def score_reference_grid(grid,book):
                     if e["yoga"]["number"] in REJECT_WEDDING_YOGA:
                         reasons.append("YOGA_PROHIBITED_CONSERVATIVE_WHOLE_INTERVAL")
                     if (e["karana"]["name"].casefold() in BAD_KARANA or
-                        e["karana"]["number"] in (1,58,59,60) or
+                        e["karana"]["number"] in (58,59,60) or
                         e["karana"]["number"] in set(range(8,58,7))):
                         reasons.append("KARANA_PROHIBITED")
                 else:
