@@ -47,6 +47,12 @@ The first-stage match count is not a probability of correctness, a ranking, a "s
 
 Reference links are evidence of a **specific publisher's methodology**, not peer-reviewed astronomical accuracy or permission to republish its content.
 
+## Private production R2 permissions
+
+The 2026-10-19 main deployment passed all 20 city/day JPL and source-screen tests but the final R2 upload was denied (`AccessDenied` to `panchavani-research-private`). The existing `PANCHAVANI_R2_ACCESS_KEY_ID` / `PANCHAVANI_R2_SECRET_ACCESS_KEY` pair also powers the separate long-running nightly **`panchavani-jpl-research-inbox`** ingestion. **Do not replace those existing keys** or we may break that pipeline.
+
+Create an independent R2 S3 `Object Read & Write` API token, restricted only to bucket `panchavani-research-private`. Put its S3 **Access Key ID** and **Secret Access Key** into GitHub Actions secrets `PANCHAVANI_PRIVATE_R2_ACCESS_KEY_ID` and `PANCHAVANI_PRIVATE_R2_SECRET_ACCESS_KEY`. The existing `PANCHAVANI_R2_ACCOUNT_ID` stays. The workflow archives checked results in GitHub Actions even if the mirror fails, but correctly fails the main job until the dedicated R2 bucket write succeeds. Never treat research preview data as approved rituals.
+
 ## Next to make real Shubh Muhurat
 
 1. Fix and sign one Lahiri/solar-observer conventions for the ten cities, including timezone and horizon assumptions.
