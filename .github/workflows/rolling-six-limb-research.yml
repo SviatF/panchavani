@@ -157,8 +157,8 @@ jobs:
         continue-on-error: true
         env:
           R2_ACCOUNT_ID: ${{ secrets.PANCHAVANI_R2_ACCOUNT_ID }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.PANCHAVANI_R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.PANCHAVANI_R2_SECRET_ACCESS_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.PANCHAVANI_PRIVATE_R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.PANCHAVANI_PRIVATE_R2_SECRET_ACCESS_KEY }}
           SNAPSHOT_DATE: ${{ steps.day.outputs.day }}
         run: |
           set -euo pipefail
@@ -197,6 +197,6 @@ jobs:
         if: github.ref == 'refs/heads/main' && steps.private_r2.outcome != 'success'
         run: |
           echo '## PRIVATE R2 DELIVERY BLOCKED (research calculation succeeded)' >> "$GITHUB_STEP_SUMMARY"
-          echo 'Cloudflare R2 returned AccessDenied or credentials are unavailable. Update S3-compatible READ+WRITE credentials for the existing bucket panchavani-research-private; never reuse Workers Script edit tokens as R2 S3 keys.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Cloudflare private R2 credentials unavailable or AccessDenied. Create a NEW bucket-scoped Object Read & Write R2 S3 key for panchavani-research-private and set PANCHAVANI_PRIVATE_R2_ACCESS_KEY_ID + PANCHAVANI_PRIVATE_R2_SECRET_ACCESS_KEY as GitHub Actions secrets. Preserve existing PANCHAVANI_R2_* credentials for panchavani-jpl-research-inbox; never reuse Workers Script edit tokens as R2 S3 keys.' >> "$GITHUB_STEP_SUMMARY"
           echo 'The complete computed 10-city Wedding/Vehicle source diagnostics were retained as a GitHub Actions artifact, but Cloudflare Admin does NOT yet have these data.' >> "$GITHUB_STEP_SUMMARY"
           exit 1
