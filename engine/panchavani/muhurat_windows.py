@@ -73,7 +73,10 @@ def intersection_grid(batch: dict) -> dict:
                 "endUtc": b.isoformat().replace("+00:00","Z"),
                 "startIST": ist(a),
                 "endIST": ist(b),
-                "durationSeconds": int((b-a).total_seconds()),
+                # Separate independently solved Tithi/Karana crossings can be
+                # <1 second apart. Preserve fractional seconds rather than
+                # silently creating a zero-length, unusable window.
+                "durationSeconds": (b-a).total_seconds(),
                 "sunlightContext": ("BEFORE_SUNSET" if b <= sunset else
                                     "AFTER_SUNSET" if a >= sunset else "STRADDLES_SUNSET"),
                 "elements": fields,
