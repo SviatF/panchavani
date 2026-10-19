@@ -98,3 +98,16 @@ test('duplicate city/dates and wrong hashes cannot generate public routes',async
   assert.equal(run(dir,digest(fake)).status,1);
  }finally{await rm(dir,{recursive:true,force:true})}
 });
+
+test('a properly reviewed-looking synthetic Kolkata route can be built, never without exact source SHA',async()=>{
+ const dir=await temporary();
+ try{
+  const record=syntheticFullRecord('kolkata');
+  const payload={schemaVersion:1,releaseStatus:'HUMAN_REVIEWED_WITH_EVIDENCE',records:[record]};
+  await put(dir,payload);
+  assert.equal(run(dir,'').status,1);
+  const result=run(dir,digest(payload));
+  assert.equal(result.status,0,result.stderr);
+  assert.match(await readFile(pathFor(dir,'kolkata','2026-10-16'),'utf8'),/ReviewedDayPage/);
+ }finally{await rm(dir,{recursive:true,force:true})}
+});
