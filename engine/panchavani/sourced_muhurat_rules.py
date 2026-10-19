@@ -164,16 +164,17 @@ def validate_research_grid(grid):
             raise ValueError("city/day identity or unknown science integrity")
         sunrise=_dt(row["windows"][0]["startUtc"])
         next_sunrise=_dt(row["windows"][-1]["endUtc"])
-        sunset=datetime.fromisoformat(row["modeledSunsetIST"])
-        if sunset.utcoffset() is None:
-            raise ValueError("local sunset missing zone")
-        sunset=sunset.astimezone(timezone.utc)
+        sunset=_dt(row["modeledSunsetUtc"])
+        if (_dt(row["modeledSunriseUtc"])!=sunrise or
+            _dt(row["modeledFollowingSunriseUtc"])!=next_sunrise):
+            raise ValueError("Independent solar day and phase-window endpoints disagree")
         if not (sunrise < sunset < next_sunrise and 20*3600 <_s(sunrise,next_sunrise)<28*3600 and
                 sunrise.astimezone(IST).date().isoformat()==key[1] and
                 next_sunrise.astimezone(IST).date()==_date(key[1])+timedelta(days=1)):
             raise ValueError("wrong local sunrise and sunset chronology")
         # Existing source has IST to whole seconds but UTC roots to microseconds.
         for label,instant in (("modeledSunriseIST",sunrise),
+                              ("modeledSunsetIST",sunset),
                               ("modeledFollowingSunriseIST",next_sunrise)):
             actual=datetime.fromisoformat(row[label])
             if actual.utcoffset() is None or abs((actual.astimezone(timezone.utc)-instant).total_seconds())>=1:
@@ -276,7 +277,7 @@ def score_reference_grid(grid,book):
         split_samples=0
         for (city,day),row in sorted(rows.items()):
             sunrise=_dt(row["windows"][0]["startUtc"])
-            sunset=datetime.fromisoformat(row["modeledSunsetIST"]).astimezone(timezone.utc)
+            sunset=_dt(row["modeledSunsetUtc"])
             day_obj=_date(day)
             rahu_start,rahu_end,rahu_segment=_rahu_interval(day_obj,sunrise,sunset)
             for i,sl in enumerate(row["windows"]):
