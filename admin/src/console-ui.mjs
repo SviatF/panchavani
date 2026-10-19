@@ -16,7 +16,8 @@ const NAV=[
   {href:'/research/conflicts',label:'Source conflicts',symbol:'≠'},
   {href:'/research/conflicts/automation',label:'Daily SHA evidence',symbol:'⟳'},
   {href:'/research/conflicts/pilot',label:'3-city SHA audit',symbol:'▣'},
-  {href:'/research/daily-brief',label:'SEO fact briefs',symbol:'⌁'}
+  {href:'/research/daily-brief',label:'SEO fact briefs',symbol:'⌁'},
+  {href:'/research/muhurat-windows',label:'Muhurat time grid',symbol:'◷'}
  ]},
  {group:'EDITORIAL',items:[
   {href:'/ai',label:'DeepSeek studio',symbol:'✧'},
@@ -32,6 +33,7 @@ const PAGE=[
  ['/research/ingest-status','Import telemetry','GitHub · R2 · D1'],
  ['/research/conflicts','Source conflicts','D1 vs R2 · SHA forensics'],
  ['/research/daily-brief','SEO fact briefs','Daily reader intent'],
+ ['/research/muhurat-windows','Muhurat time grid','4-limb intersection research'],
  ['/ai','DeepSeek studio','Private editorial'],
  ['/ai/draft','Private draft','Editorial · Research'],
  ['/ai/quality-report','Originality audit','Editorial quality'],
