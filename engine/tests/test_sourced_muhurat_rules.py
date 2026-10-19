@@ -55,6 +55,19 @@ class SourcedMuhuratRulesTests(unittest.TestCase):
         self.assertTrue(all(not x["auspiciousRecommendation"] for x in wedding["rawInitialMatches"]))
         self.assertIn("solar Rashi / permitted solar months",wedding["remainingIndependentChecks"])
 
+    def test_source_permitted_kimstughna_and_prohibited_naga_are_not_confused(self):
+        g=grid()
+        for r in g["windows"]:
+            for w in r["windows"]:
+                w["elements"]["nakshatra"]={"name":"Rohini","number":4}
+                w["elements"]["karana"]={"name":"Kimstughna","number":1}
+        result=score_reference_grid(g,rulebook())["analysis"]["wedding"]
+        self.assertEqual(result["initialSurvivingWindows"],20)
+        g["windows"][0]["windows"][0]["elements"]["karana"]={"name":"Naga","number":60}
+        result=score_reference_grid(g,rulebook())["analysis"]["wedding"]
+        self.assertEqual(result["initialSurvivingWindows"],19)
+        self.assertEqual(result["filteredReasonsBySlice"]["KARANA_PROHIBITED"],1)
+
     def test_nakshatra_pada_without_exact_event_is_not_silently_accepted(self):
         g=grid()
         for r in g["windows"]:
