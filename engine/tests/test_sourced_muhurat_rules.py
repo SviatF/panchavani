@@ -93,10 +93,10 @@ class SourcedMuhuratRulesTests(unittest.TestCase):
     def test_rahu_partition_weekday_mapping_and_half_open_subtraction(self):
         start=datetime(2027,1,3,1,tzinfo=timezone.utc) # 06:30 IST, Sunday
         end=start+timedelta(hours=12)
-        # Sunday eighth segment = 11.5h after dawn, to 12h: 18:00-18:30 IST.
+        # Sunday eighth segment = 10.5h after dawn, to 12h: 17:00-18:30 IST.
         a,b,num=_rahu_interval(date(2027,1,3),start,end)
         self.assertEqual(num,8)
-        self.assertEqual(_s(start,a),11*3600+30*60)
+        self.assertEqual(_s(start,a),10*3600+30*60)
         self.assertEqual(_s(a,b),90*60)
         self.assertEqual(_minus(start,end,a,b),[(start,a)])
         # Monday is second eighth; Saturday is third eighth.
