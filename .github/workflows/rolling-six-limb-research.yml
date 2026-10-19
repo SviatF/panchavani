@@ -18,6 +18,9 @@ on:
       - 'engine/tests/test_ten_city_six_limb_research.py'
       - 'engine/panchavani/muhurat_windows.py'
       - 'engine/tests/test_muhurat_windows.py'
+      - 'engine/panchavani/sourced_muhurat_rules.py'
+      - 'engine/tests/test_sourced_muhurat_rules.py'
+      - 'engine/fixtures/muhurat-reference-rulebook-DRAFT.json'
   pull_request:
     paths:
       - '.github/workflows/rolling-six-limb-research.yml'
@@ -45,6 +48,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_rolling_day_previews.py' -v
           python -m unittest discover -s tests -p 'test_ten_city_six_limb_research.py' -v
           python -m unittest discover -s tests -p 'test_muhurat_windows.py' -v
+          python -m unittest discover -s tests -p 'test_sourced_muhurat_rules.py' -v
           python -m unittest discover -s tests -p 'test_first_six_limb_pilot.py' -v
       - name: Determine tomorrow in India (or explicit date)
         id: day
@@ -86,6 +90,12 @@ jobs:
           PYTHONPATH=engine python -m panchavani.muhurat_windows \
             --batch engine/artifacts/rolling-six-limb-UNAPPROVED.json \
             --out engine/artifacts/ten-city-muhurat-time-grid-UNAPPROVED.json
+      - name: Apply versioned sourced Wedding and Vehicle screens without making auspicious claims
+        run: |
+          PYTHONPATH=engine python -m panchavani.sourced_muhurat_rules \
+            --grid engine/artifacts/ten-city-muhurat-time-grid-UNAPPROVED.json \
+            --rules engine/fixtures/muhurat-reference-rulebook-DRAFT.json \
+            --out engine/artifacts/ten-city-muhurat-sourced-screening-UNAPPROVED.json
       - name: Check twenty distinct city-day astronomy records, science integrity and no release
         run: |
           python - <<'PY'
@@ -107,6 +117,19 @@ jobs:
           assert timegrid['approvedClaimsForDeepSeek']==[]
           assert timegrid['indexingAuthorized'] is False
           assert timegrid['publicationAuthorized'] is False
+          screening=json.loads((root/'ten-city-muhurat-sourced-screening-UNAPPROVED.json').read_text())
+          assert screening['cityCount']==10 and screening['metrics']['cityDaysValidated']==20
+          assert screening['metrics']['maximumSunriseChainErrorSeconds']<=0.001
+          assert screening['metrics']['maximumDurationErrorSeconds']<=0.001
+          assert screening['analysis']['wedding']['testedCityDays']==20
+          assert screening['analysis']['vehicle-purchase']['testedCityDays']==20
+          assert screening['analysis']['wedding']['qualifyingWeddingOrPurchaseMuhuratCount']==0
+          assert screening['analysis']['vehicle-purchase']['qualifyingWeddingOrPurchaseMuhuratCount']==0
+          assert screening['approvedClaimsForDeepSeek']==[]
+          assert screening['muhuratRecommendationsAuthorized'] is False
+          assert screening['publicationAuthorized'] is False
+          assert screening['indexingAuthorized'] is False
+          assert len(screening['rulebookSha256'])==64
           assert sum(row['windowCount'] for row in timegrid['windows'])>=20
           assert len({p['previewSha256'] for p in report['records']})==20
           assert len({p['modeledSunriseIST'] for p in report['records']})==20
@@ -119,6 +142,13 @@ jobs:
             for p in report['records']:
               out.write(f"| {p['cityId']} | {p['localDate']} | {p['modeledSunriseIST']} | {p['changeCount']} | NO |\n")
             out.write('\nCity observers, Lahiri and private D1 source hashes still require scientific review.\n')
+            out.write('\n### Sourced Wedding/Vehicle screening — NOT approved Muhurats\n\n')
+            out.write('| Profile | Raw research windows meeting basic filters | Unverified conditions | Authorized auspicious dates |\n')
+            out.write('|---|---:|---:|---:|\n')
+            for kind in ('wedding','vehicle-purchase'):
+              p=screening['analysis'][kind]
+              out.write(f"| {kind} | {p['initialSurvivingWindows']} | {len(p['remainingIndependentChecks'])} | {p['qualifyingWeddingOrPurchaseMuhuratCount']} |\n")
+            out.write('\n**Rahu:** 1 of 8 locally computed daylight segments by weekday. **Vehicle:** conservative 21:00 IST trim; **Wedding:** 11 Nakshatra reference group, 9 prohibited Yoga (whole-period provisional veto), 4 Karana exclusions and uncomputed Pada/Asta/solar-month blocks. No DeepSeek generation or indexing rights.\n')
           print('PASS: TWENTY location-unique JPL research previews, zero public pages')
           PY
       - name: Mirror 20 complete research records to PRIVATE R2 only (no D1 overwrite or publication)
@@ -144,6 +174,9 @@ jobs:
           aws s3 cp engine/artifacts/ten-city-muhurat-time-grid-UNAPPROVED.json \
             "s3://panchavani-research-private/$key/muhurat-interval-grid-UNAPPROVED.json" \
             --endpoint-url "https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com" --no-progress
+          aws s3 cp engine/artifacts/ten-city-muhurat-sourced-screening-UNAPPROVED.json \
+            "s3://panchavani-research-private/$key/sourced-rule-screening-UNAPPROVED.json" \
+            --endpoint-url "https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com" --no-progress
           echo "PRIVATE R2 SNAPSHOT STORED: immutable research namespace $key (NOT an approved candidate, no release)." >> "$GITHUB_STEP_SUMMARY"
       - name: Archive private-only research; do not deploy
         uses: actions/upload-artifact@v4
@@ -154,5 +187,6 @@ jobs:
             engine/artifacts/rolling-six-city-preview-index-UNAPPROVED.json
             engine/artifacts/rolling-city-briefs/*.md
             engine/artifacts/ten-city-muhurat-time-grid-UNAPPROVED.json
+            engine/artifacts/ten-city-muhurat-sourced-screening-UNAPPROVED.json
           retention-days: 14
           if-no-files-found: error
