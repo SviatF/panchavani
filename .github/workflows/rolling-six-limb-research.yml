@@ -20,6 +20,8 @@ on:
       - 'engine/tests/test_muhurat_windows.py'
       - 'engine/panchavani/sourced_muhurat_rules.py'
       - 'engine/tests/test_sourced_muhurat_rules.py'
+      - 'engine/panchavani/muhurat_quality.py'
+      - 'engine/tests/test_muhurat_quality.py'
       - 'engine/fixtures/muhurat-reference-rulebook-DRAFT.json'
   pull_request:
     paths:
@@ -49,6 +51,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_ten_city_six_limb_research.py' -v
           python -m unittest discover -s tests -p 'test_muhurat_windows.py' -v
           python -m unittest discover -s tests -p 'test_sourced_muhurat_rules.py' -v
+          python -m unittest discover -s tests -p 'test_muhurat_quality.py' -v
           python -m unittest discover -s tests -p 'test_first_six_limb_pilot.py' -v
       - name: Determine tomorrow in India (or explicit date)
         id: day
