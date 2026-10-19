@@ -69,7 +69,7 @@ class SourcedMuhuratRulesTests(unittest.TestCase):
         for r in g["windows"]:
             for w in r["windows"]:
                 w["elements"]["nakshatra"]={"name":"Hasta","number":13}
-                w["elements"]["karana"]={"name":"Vishti","number":14}
+                w["elements"]["karana"]={"name":"Vishti","number":15}
                 w["elements"]["yoga"]={"name":"Atiganda","number":6}
         d=score_reference_grid(g,rulebook())["analysis"]["wedding"]
         self.assertEqual(d["initialSurvivingWindows"],0)
@@ -118,6 +118,29 @@ class SourcedMuhuratRulesTests(unittest.TestCase):
         self.assertEqual(len(out),1)
         self.assertEqual(_s(out[0]["_a"],out[0]["_b"]),320)
         self.assertEqual(out[0]["sourceSliceIndices"],[0,1])
+
+    def test_reject_fake_number_name_pairings_and_local_time_false_precision(self):
+        g=grid()
+        wrong=copy.deepcopy(g)
+        wrong["windows"][0]["windows"][0]["elements"]["nakshatra"]={
+            "name":"Rohini","number":18
+        }
+        with self.assertRaisesRegex(ValueError,"inconsistent ordinal"):
+            validate_research_grid(wrong)
+        wrong=copy.deepcopy(g)
+        wrong["windows"][0]["windows"][0]["elements"]["karana"]={
+            "name":"Vishti","number":11
+        }
+        with self.assertRaisesRegex(ValueError,"inconsistent ordinal"):
+            validate_research_grid(wrong)
+        wrong=copy.deepcopy(g)
+        wrong["windows"][0]["windows"][0]["startIST"]="2027-01-01T20:00:00+05:30"
+        with self.assertRaisesRegex(ValueError,"local timestamp"):
+            validate_research_grid(wrong)
+        wrong=copy.deepcopy(g)
+        wrong["jplKernelSha256"]="invalid-astronomical-source"
+        with self.assertRaises(ValueError):
+            validate_research_grid(wrong)
 
     def test_reject_approval_spoofing_method_list_mutations_and_non_contiguous_grid(self):
         book=rulebook()
