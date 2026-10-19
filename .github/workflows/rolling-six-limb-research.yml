@@ -152,17 +152,19 @@ jobs:
           print('PASS: TWENTY location-unique JPL research previews, zero public pages')
           PY
       - name: Mirror 20 complete research records to PRIVATE R2 only (no D1 overwrite or publication)
+        id: private_r2
         if: github.ref == 'refs/heads/main'
+        continue-on-error: true
         env:
           R2_ACCOUNT_ID: ${{ secrets.PANCHAVANI_R2_ACCOUNT_ID }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.PANCHAVANI_R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.PANCHAVANI_R2_SECRET_ACCESS_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.PANCHAVANI_PRIVATE_R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.PANCHAVANI_PRIVATE_R2_SECRET_ACCESS_KEY }}
           SNAPSHOT_DATE: ${{ steps.day.outputs.day }}
         run: |
           set -euo pipefail
           if test -z "$R2_ACCOUNT_ID" || test -z "$AWS_ACCESS_KEY_ID" || test -z "$AWS_SECRET_ACCESS_KEY"; then
-            echo 'PRIVATE R2 MIRROR NOT ACTIVE: repository R2 credentials absent. GitHub artifact still contains science report.' | tee -a "$GITHUB_STEP_SUMMARY"
-            exit 0
+            echo 'PRIVATE R2 MIRROR BLOCKED: R2 account key or bucket-scoped READ/WRITE credentials missing.' | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 1
           fi
           key="ops/ten-city-six-limb/v1/$SNAPSHOT_DATE/$GITHUB_RUN_ID"
           aws s3 cp engine/artifacts/rolling-six-limb-UNAPPROVED.json \
@@ -179,6 +181,7 @@ jobs:
             --endpoint-url "https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com" --no-progress
           echo "PRIVATE R2 SNAPSHOT STORED: immutable research namespace $key (NOT an approved candidate, no release)." >> "$GITHUB_STEP_SUMMARY"
       - name: Archive private-only research; do not deploy
+        if: always() && hashFiles('engine/artifacts/ten-city-muhurat-sourced-screening-UNAPPROVED.json') != ''
         uses: actions/upload-artifact@v4
         with:
           name: panchavani-rolling-ten-city-six-limb-UNAPPROVED
@@ -190,3 +193,10 @@ jobs:
             engine/artifacts/ten-city-muhurat-sourced-screening-UNAPPROVED.json
           retention-days: 14
           if-no-files-found: error
+      - name: Fail real main research delivery if private R2 WRITE is denied (after preserving artifact)
+        if: github.ref == 'refs/heads/main' && steps.private_r2.outcome != 'success'
+        run: |
+          echo '## PRIVATE R2 DELIVERY BLOCKED (research calculation succeeded)' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Cloudflare private R2 credentials unavailable or AccessDenied. Create a NEW bucket-scoped Object Read & Write R2 S3 key for panchavani-research-private and set PANCHAVANI_PRIVATE_R2_ACCESS_KEY_ID + PANCHAVANI_PRIVATE_R2_SECRET_ACCESS_KEY as GitHub Actions secrets. Preserve existing PANCHAVANI_R2_* credentials for panchavani-jpl-research-inbox; never reuse Workers Script edit tokens as R2 S3 keys.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'The complete computed 10-city Wedding/Vehicle source diagnostics were retained as a GitHub Actions artifact, but Cloudflare Admin does NOT yet have these data.' >> "$GITHUB_STEP_SUMMARY"
+          exit 1
