@@ -13,7 +13,7 @@ const manifest=path.join(root,'app','panchang','.generated-reviewed-day-paths.js
 const validDay=value=>typeof value==='string'&&/^20\d{2}-\d{2}-\d{2}$/.test(value)&&
  !Number.isNaN(Date.parse(value+'T12:00:00Z'))&&
  new Date(value+'T12:00:00Z').toISOString().slice(0,10)===value;
-const VALID_CITIES=new Set(['delhi','mumbai','chennai']);
+const VALID_CITIES=new Set(['delhi','mumbai','kolkata','chennai','bengaluru','hyderabad','ahmedabad','pune','jaipur','varanasi']);
 const safePair=(city,date)=>VALID_CITIES.has(city)&&validDay(date);
 const abs=(city,date)=>path.join(root,'app','panchang',city,date,'page.tsx');
 const payload=JSON.parse(await readFile(file,'utf8'));
