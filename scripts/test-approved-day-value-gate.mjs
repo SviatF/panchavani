@@ -88,3 +88,15 @@ test('shared geocentric lunar times allowed but copied sunrise between cities di
  const report=assessFirstRelease([a,b]);
  assert.ok(report.rows.some(x=>x.issues.includes('identical-cross-city-sunrise')));
 });
+
+test('all ten city IDs are eligible for future REVIEWED dates, never self-authorized',()=>{
+ const cities=['delhi','mumbai','kolkata','chennai','bengaluru','hyderabad','ahmedabad','pune','jaipur','varanasi'];
+ for(const city of cities){
+  const specimen=syntheticReviewed(city);
+  assert.deepEqual(inspectCityDay(specimen),[],city);
+  specimen.status='UNAPPROVED_RESEARCH';
+  assert.ok(inspectCityDay(specimen).includes('unapproved-city-day-identity'),city);
+ }
+ const other=syntheticReviewed('not-a-city');
+ assert.ok(inspectCityDay(other).includes('unapproved-city-day-identity'));
+});
