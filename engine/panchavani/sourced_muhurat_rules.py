@@ -16,6 +16,10 @@ from zoneinfo import ZoneInfo
 
 from .first_six_limb_pilot import TEN_CITY_IDS, KINDS
 from .muhurat_windows import ARTIFACT as GRID_ARTIFACT
+from .research_batch import JPL_DE440S_SHA
+from .core import tithi_title
+from .periods import karana_title, daylight_windows
+from .sidereal import NAKSHATRA_NAMES, YOGA_NAMES
 
 IST = ZoneInfo("Asia/Kolkata")
 SOURCE_PROFILE = "PANCHAVANI_REFERENCE_MUHURAT_RULEBOOK"
@@ -27,6 +31,13 @@ REJECT_WEDDING_YOGA = {1,6,9,10,13,15,17,19,27}
 BAD_KARANA = {"vishti","shakuni","chatushpada","nagava"}
 MOVABLE_VEHICLE_NAKSHATRA = {7,15,22,23,24}
 SUNDAY_FIRST_RAHU_PART = (8,2,7,5,6,4,3)
+LABEL_ALIASES = {
+    "Jyestha":"Jyeshtha",
+    "Mrigashira":"Mrigashirsha",
+    "Dhanishtha":"Dhanishta",
+    "Nagava":"Naga",
+    "Kinstughna":"Kimstughna",
+}
 ALLOWED_HOSTS = {
   "www.drikpanchang.com",
   "github.com",
@@ -115,6 +126,9 @@ def validate_research_grid(grid):
     if (not isinstance(grid,dict) or grid.get("artifactType")!=GRID_ARTIFACT or
         grid.get("schemaVersion")!=1 or grid.get("status")!="UNAPPROVED_RESEARCH" or
         grid.get("cityCount")!=10 or grid.get("cityDays")!=20 or
+        grid.get("jplKernelSha256")!=JPL_DE440S_SHA or
+        not isinstance(grid.get("sourceBatchSha256"),str) or
+        len(grid["sourceBatchSha256"])!=64 or
         grid.get("scientificApproval") is not False or
         grid.get("muhuratRecommendationsAuthorized") is not False or
         grid.get("publicationAuthorized") is not False or
@@ -183,6 +197,22 @@ def validate_research_grid(grid):
                     not 1<=n<=({"tithi":30,"karana":60,"nakshatra":27,"yoga":27}[k]) or
                     not isinstance(v.get("name"),str) or not v["name"]):
                     raise ValueError("corrupt limb evidence: "+k)
+                expected = {
+                    "tithi":lambda:tithi_title(n),
+                    "karana":lambda:karana_title(n),
+                    "nakshatra":lambda:NAKSHATRA_NAMES[n-1],
+                    "yoga":lambda:YOGA_NAMES[n-1],
+                }[k]()
+                if LABEL_ALIASES.get(v["name"],v["name"])!=expected:
+                    raise ValueError("inconsistent ordinal/name evidence: "+k)
+            for local_key,utc in (("startIST",start),("endIST",end)):
+                raw=sl.get(local_key)
+                if not isinstance(raw,str):
+                    raise ValueError("missing local source time")
+                local_dt=datetime.fromisoformat(raw)
+                if (local_dt.utcoffset()!=timedelta(hours=5,minutes=30) or
+                    abs(_s(local_dt.astimezone(timezone.utc),utc))>=1):
+                    raise ValueError("local timestamp differs from UTC edge")
             checks["fourLimbLabelsValidated"]+=4
             checks["phaseSlicesValidated"]+=1
             previous=end
@@ -214,8 +244,10 @@ def _rahu_interval(day,sunrise,sunset):
     # duration; NEVER a fixed wall-clock time and never 12h by assumption.
     sunday_first=(day.weekday()+1)%7
     number=SUNDAY_FIRST_RAHU_PART[sunday_first]
-    daylight=sunset-sunrise
-    return sunrise+daylight*(number-1)/8,sunrise+daylight*number/8,number
+    library=next(w for w in daylight_windows(sunrise,sunset,day.weekday()) if w.kind=="rahu-kalam")
+    if library.part!=number:
+        raise ValueError("Rahu daylight offset mismatches existing trusted solar periods engine")
+    return library.start,library.end,number
 
 def _merge(candidates):
     out=[]
@@ -258,7 +290,9 @@ def score_reference_grid(grid,book):
                     if nak in (10,19,27):reasons.append("NAKSHATRA_PADA_NOT_COMPUTED")
                     if e["yoga"]["number"] in REJECT_WEDDING_YOGA:
                         reasons.append("YOGA_PROHIBITED_CONSERVATIVE_WHOLE_INTERVAL")
-                    if e["karana"]["name"].casefold() in BAD_KARANA:
+                    if (e["karana"]["name"].casefold() in BAD_KARANA or
+                        e["karana"]["number"] in (1,58,59,60) or
+                        e["karana"]["number"] in set(range(8,58,7))):
                         reasons.append("KARANA_PROHIBITED")
                 else:
                     if e["nakshatra"]["number"] not in MOVABLE_VEHICLE_NAKSHATRA:
