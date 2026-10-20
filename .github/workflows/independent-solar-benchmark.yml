@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - '.github/workflows/independent-solar-benchmark.yml'
+      - 'engine/panchavani/reference_coverage.py'
+      - 'engine/tests/test_reference_coverage.py'
       - 'engine/fixtures/delhi-2026-10-21-independent-timings-UNAPPROVED.json'
   pull_request:
     paths:
@@ -20,6 +22,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Test external evidence coverage safeguards
+        run: |
+          cd engine
+          python -m unittest discover -s tests -p 'test_reference_coverage.py' -v
       - name: Install pinned dependencies
         run: pip install -r engine/requirements.txt
       - name: Download and hash-check JPL DE440s ephemeris
@@ -45,12 +51,21 @@ jobs:
             --grid engine/artifacts/solar-benchmark-grid-UNAPPROVED.json \
             --references engine/fixtures/delhi-2026-10-21-independent-timings-UNAPPROVED.json \
             --out engine/artifacts/delhi-2026-10-21-reference-errors-UNAPPROVED.json
+      - name: Quantify ten-city reference evidence gaps
+        run: |
+          PYTHONPATH=engine python -m panchavani.reference_coverage \
+            --benchmark engine/artifacts/delhi-2026-10-21-reference-errors-UNAPPROVED.json \
+            --out engine/artifacts/delhi-2026-10-21-coverage-UNAPPROVED.json
       - name: Assert expected provenance and fail-closed status
         run: |
           python - <<'PY'
           import json, pathlib
           p=pathlib.Path('engine/artifacts/delhi-2026-10-21-reference-errors-UNAPPROVED.json')
           report=json.loads(p.read_text())
+          coverage=json.loads(pathlib.Path('engine/artifacts/delhi-2026-10-21-coverage-UNAPPROVED.json').read_text())
+          assert coverage['hasAllTenCityEventGroups'] is False
+          assert coverage['sampleCountsByEvent']['tithi']==0
+          assert coverage['publicationAuthorized'] is False
           assert report['sampleCount']==2
           print('OBSERVED NUMERICAL ERRORS (research-only):')
           for item in report['comparisons']:
@@ -74,6 +89,8 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: delhi-solar-reference-benchmark-UNAPPROVED
-          path: engine/artifacts/delhi-2026-10-21-reference-errors-UNAPPROVED.json
+          path: |
+            engine/artifacts/delhi-2026-10-21-reference-errors-UNAPPROVED.json
+            engine/artifacts/delhi-2026-10-21-coverage-UNAPPROVED.json
           retention-days: 14
           if-no-files-found: error
