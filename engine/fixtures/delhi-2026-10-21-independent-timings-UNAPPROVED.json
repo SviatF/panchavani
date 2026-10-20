@@ -5,34 +5,8 @@
   "scientificApproval": false,
   "publicationAuthorized": false,
   "indexingAuthorized": false,
-  "captureNote": "Manually transcribed public reference readings for 2026-10-21 New Delhi; sources use minute display precision and may differ by horizon, refraction or observer coordinates. No benchmark result or scientific certification implied.",
+  "captureNote": "Two independently published New Delhi sunrise/sunset values from timeanddate for 2026-10-21. Drik Panchang readings were removed pending directly verified date/city-specific source evidence. Not a claim of second-level accuracy or independent scientific certification.",
   "samples": [
-    {
-      "cityId": "delhi",
-      "localDate": "2026-10-21",
-      "kind": "sunrise",
-      "referenceUtc": "2026-10-21T00:55:00Z",
-      "precisionSeconds": 60,
-      "source": {
-        "provider": "Drik Panchang",
-        "url": "https://www.drikpanchang.com/panchang/day-panchang.html?geoname-id=934657",
-        "method": "Published New Delhi local sunrise at 06:25 IST; original display to minute",
-        "retrievedAt": "2026-10-20T22:30:00Z"
-      }
-    },
-    {
-      "cityId": "delhi",
-      "localDate": "2026-10-21",
-      "kind": "sunset",
-      "referenceUtc": "2026-10-21T12:16:00Z",
-      "precisionSeconds": 60,
-      "source": {
-        "provider": "Drik Panchang",
-        "url": "https://www.drikpanchang.com/panchang/day-panchang.html?geoname-id=934657",
-        "method": "Published New Delhi local sunset at 17:46 IST; original display to minute",
-        "retrievedAt": "2026-10-20T22:30:00Z"
-      }
-    },
     {
       "cityId": "delhi",
       "localDate": "2026-10-21",
