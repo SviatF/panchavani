@@ -64,16 +64,19 @@ jobs:
           report=json.loads(p.read_text())
           coverage=json.loads(pathlib.Path('engine/artifacts/delhi-2026-10-21-coverage-UNAPPROVED.json').read_text())
           assert coverage['hasAllTenCityEventGroups'] is False
-          assert coverage['sampleCountsByEvent']['tithi']==0
+          assert coverage['sampleCountsByEvent']['tithi']==1
+          assert coverage['sampleCountsByEvent']['karana']==2
+          assert coverage['sampleCountsByEvent']['nakshatra']==1
+          assert coverage['sampleCountsByEvent']['yoga']==1
           assert coverage['publicationAuthorized'] is False
-          assert report['sampleCount']==2
+          assert report['sampleCount']==7
           print('OBSERVED NUMERICAL ERRORS (research-only):')
           for item in report['comparisons']:
             print(f"{item['cityId']} {item['localDate']} {item['kind']}: model={item['calculatedUtc']} reference={item['referenceUtc']} signed_error_seconds={item['signedErrorSeconds']} abs_error_seconds={item['absoluteErrorSeconds']} reference_resolution_seconds={item['referencePrecisionSeconds']}")
           for kind, metrics in report['metricsByKind'].items():
             print(f"AGGREGATE {kind}: {metrics}")
           assert report['coverageCityDays']==1
-          assert set(report['metricsByKind'])=={'sunrise','sunset'}
+          assert set(report['metricsByKind'])=={'sunrise','sunset','tithi','karana','nakshatra','yoga'}
           assert report['scientificApproval'] is False
           assert report['publicationAuthorized'] is False
           assert report['indexingAuthorized'] is False
