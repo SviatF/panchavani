@@ -22,6 +22,8 @@ on:
       - 'engine/tests/test_muhurat_windows.py'
       - 'engine/panchavani/sourced_muhurat_rules.py'
       - 'engine/tests/test_sourced_muhurat_rules.py'
+      - 'engine/panchavani/reference_accuracy.py'
+      - 'engine/tests/test_reference_accuracy.py'
       - 'engine/panchavani/muhurat_quality.py'
       - 'engine/tests/test_muhurat_quality.py'
       - 'engine/fixtures/muhurat-reference-rulebook-DRAFT.json'
@@ -55,6 +57,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_muhurat_rule_engine.py' -v
           python -m unittest discover -s tests -p 'test_sourced_muhurat_rules.py' -v
           python -m unittest discover -s tests -p 'test_muhurat_quality.py' -v
+          python -m unittest discover -s tests -p 'test_reference_accuracy.py' -v
           python -m unittest discover -s tests -p 'test_first_six_limb_pilot.py' -v
       - name: Determine tomorrow in India (or explicit date)
         id: day
