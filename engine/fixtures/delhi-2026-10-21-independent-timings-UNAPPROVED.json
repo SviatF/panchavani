@@ -1,0 +1,63 @@
+{
+  "artifactType": "PANCHAVANI_INDEPENDENT_REFERENCE_TIMINGS",
+  "schemaVersion": 1,
+  "status": "EXTERNAL_UNREVIEWED",
+  "scientificApproval": false,
+  "publicationAuthorized": false,
+  "indexingAuthorized": false,
+  "captureNote": "Manually transcribed public reference readings for 2026-10-21 New Delhi; sources use minute display precision and may differ by horizon, refraction or observer coordinates. No benchmark result or scientific certification implied.",
+  "samples": [
+    {
+      "cityId": "delhi",
+      "localDate": "2026-10-21",
+      "kind": "sunrise",
+      "referenceUtc": "2026-10-21T00:55:00Z",
+      "precisionSeconds": 60,
+      "source": {
+        "provider": "Drik Panchang",
+        "url": "https://www.drikpanchang.com/panchang/day-panchang.html?geoname-id=934657",
+        "method": "Published New Delhi local sunrise at 06:25 IST; original display to minute",
+        "retrievedAt": "2026-10-20T15:30:00Z"
+      }
+    },
+    {
+      "cityId": "delhi",
+      "localDate": "2026-10-21",
+      "kind": "sunset",
+      "referenceUtc": "2026-10-21T12:16:00Z",
+      "precisionSeconds": 60,
+      "source": {
+        "provider": "Drik Panchang",
+        "url": "https://www.drikpanchang.com/panchang/day-panchang.html?geoname-id=934657",
+        "method": "Published New Delhi local sunset at 17:46 IST; original display to minute",
+        "retrievedAt": "2026-10-20T15:30:00Z"
+      }
+    },
+    {
+      "cityId": "delhi",
+      "localDate": "2026-10-21",
+      "kind": "sunrise",
+      "referenceUtc": "2026-10-21T00:55:00Z",
+      "precisionSeconds": 60,
+      "source": {
+        "provider": "Timeanddate",
+        "url": "https://www.timeanddate.com/sun/india/new-delhi?month=10&year=2026",
+        "method": "Published New Delhi sunrise at 06:25 IST, refracted apparent solar horizon; original display to minute",
+        "retrievedAt": "2026-10-20T15:30:00Z"
+      }
+    },
+    {
+      "cityId": "delhi",
+      "localDate": "2026-10-21",
+      "kind": "sunset",
+      "referenceUtc": "2026-10-21T12:15:00Z",
+      "precisionSeconds": 60,
+      "source": {
+        "provider": "Timeanddate",
+        "url": "https://www.timeanddate.com/sun/india/new-delhi?month=10&year=2026",
+        "method": "Published New Delhi sunset at 17:45 IST, refracted apparent solar horizon; original display to minute",
+        "retrievedAt": "2026-10-20T15:30:00Z"
+      }
+    }
+  ]
+}
