@@ -52,6 +52,11 @@ jobs:
           p=pathlib.Path('engine/artifacts/delhi-2026-10-21-reference-errors-UNAPPROVED.json')
           report=json.loads(p.read_text())
           assert report['sampleCount']==2
+          print('OBSERVED NUMERICAL ERRORS (research-only):')
+          for item in report['comparisons']:
+            print(f"{item['cityId']} {item['localDate']} {item['kind']}: model={item['calculatedUtc']} reference={item['referenceUtc']} signed_error_seconds={item['signedErrorSeconds']} abs_error_seconds={item['absoluteErrorSeconds']} reference_resolution_seconds={item['referencePrecisionSeconds']}")
+          for kind, metrics in report['metricsByKind'].items():
+            print(f"AGGREGATE {kind}: {metrics}")
           assert report['coverageCityDays']==1
           assert set(report['metricsByKind'])=={'sunrise','sunset'}
           assert report['scientificApproval'] is False
