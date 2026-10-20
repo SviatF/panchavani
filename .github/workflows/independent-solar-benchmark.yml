@@ -1,0 +1,74 @@
+name: PANCHAVANI independent Delhi solar benchmark (RESEARCH ONLY)
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/independent-solar-benchmark.yml'
+      - 'engine/fixtures/delhi-2026-10-21-independent-timings-UNAPPROVED.json'
+  pull_request:
+    paths:
+      - '.github/workflows/independent-solar-benchmark.yml'
+      - 'engine/fixtures/delhi-2026-10-21-independent-timings-UNAPPROVED.json'
+permissions:
+  contents: read
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned dependencies
+        run: pip install -r engine/requirements.txt
+      - name: Download and hash-check JPL DE440s ephemeris
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --max-time 240 --silent --show-error \
+            https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp \
+            --output /tmp/de440s.bsp
+          echo 'c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2  /tmp/de440s.bsp' | sha256sum --check
+      - name: Calculate real October 21-22 ten-city sunrise records
+        run: |
+          PYTHONPATH=engine python -m panchavani.first_six_limb_pilot \
+            --cities ten --start 2026-10-21 --ephemeris /tmp/de440s.bsp \
+            --out engine/artifacts/solar-benchmark-source-UNAPPROVED.json
+      - name: Form complete JPL time grid
+        run: |
+          PYTHONPATH=engine python -m panchavani.muhurat_windows \
+            --batch engine/artifacts/solar-benchmark-source-UNAPPROVED.json \
+            --out engine/artifacts/solar-benchmark-grid-UNAPPROVED.json
+      - name: Compare independently documented solar readings
+        run: |
+          PYTHONPATH=engine python -m panchavani.reference_accuracy \
+            --grid engine/artifacts/solar-benchmark-grid-UNAPPROVED.json \
+            --references engine/fixtures/delhi-2026-10-21-independent-timings-UNAPPROVED.json \
+            --out engine/artifacts/delhi-2026-10-21-reference-errors-UNAPPROVED.json
+      - name: Assert expected provenance and fail-closed status
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          p=pathlib.Path('engine/artifacts/delhi-2026-10-21-reference-errors-UNAPPROVED.json')
+          report=json.loads(p.read_text())
+          assert report['sampleCount']==2
+          assert report['coverageCityDays']==1
+          assert set(report['metricsByKind'])=={'sunrise','sunset'}
+          assert report['scientificApproval'] is False
+          assert report['publicationAuthorized'] is False
+          assert report['indexingAuthorized'] is False
+          assert report['muhuratRecommendationsAuthorized'] is False
+          assert report['approvedClaimsForDeepSeek']==[]
+          with open(__import__('os').environ['GITHUB_STEP_SUMMARY'],'a') as out:
+            out.write('## PANCHAVANI Delhi 2026-10-21 — independent solar timing research\n\n')
+            out.write('| Event | Error (signed seconds) | Absolute error (seconds) | Source precision |\n|---|---:|---:|---:|\n')
+            for row in report['comparisons']:
+              out.write(f"| {row['kind']} | {row['signedErrorSeconds']} | {row['absoluteErrorSeconds']} | {row['referencePrecisionSeconds']}s |\n")
+            out.write('\n**RESEARCH ONLY**: this benchmark does not establish comparable observer/refraction conventions or approve ritual dates.\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: delhi-solar-reference-benchmark-UNAPPROVED
+          path: engine/artifacts/delhi-2026-10-21-reference-errors-UNAPPROVED.json
+          retention-days: 14
+          if-no-files-found: error
