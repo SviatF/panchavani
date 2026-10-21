@@ -1,0 +1,153 @@
+name: PANCHAVANI nightly ten-city independent science QA (UNAPPROVED)
+on:
+  schedule:
+    - cron: '13 05 * * *'
+  workflow_dispatch:
+    inputs:
+      start:
+        description: India-local start date YYYY-MM-DD; empty uses tomorrow IST
+        required: false
+        default: ''
+        type: string
+  push:
+    paths:
+      - '.github/workflows/nightly-independent-science-qa.yml'
+      - 'engine/panchavani/nightly_accuracy_gate.py'
+      - 'engine/tests/test_nightly_accuracy_gate.py'
+      - 'engine/panchavani/swiss_exact_phase_roots.py'
+      - 'engine/tests/test_swiss_exact_phase_roots.py'
+  pull_request:
+    paths:
+      - '.github/workflows/nightly-independent-science-qa.yml'
+      - 'engine/panchavani/nightly_accuracy_gate.py'
+      - 'engine/tests/test_nightly_accuracy_gate.py'
+      - 'engine/panchavani/swiss_exact_phase_roots.py'
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  ten-city-research-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Regression tests for automatic Swiss/JPL QA and fail-closed release
+        run: |
+          cd engine
+          python -m unittest discover -s tests -p 'test_swiss_exact_phase_roots.py' -v
+          python -m unittest discover -s tests -p 'test_nightly_accuracy_gate.py' -v
+          python -m unittest discover -s tests -p 'test_sourced_muhurat_rules.py' -v
+          python -m unittest discover -s tests -p 'test_muhurat_quality.py' -v
+      - name: Select the next India-local research date, or validated manual override
+        id: date
+        env:
+          REQUESTED_START: ${{ inputs.start || '' }}
+        run: |
+          python - <<'PY'
+          import os
+          from datetime import date,datetime,timedelta
+          from zoneinfo import ZoneInfo
+          value=os.environ.get('REQUESTED_START','').strip()
+          day=date.fromisoformat(value) if value else datetime.now(ZoneInfo('Asia/Kolkata')).date()+timedelta(days=1)
+          if not 2020<=day.year<=2099:
+              raise ValueError('Research date out of supported range')
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+              f.write('start='+day.isoformat()+'\n')
+          print('AUTOMATED INDIA DATE:',day.isoformat())
+          PY
+      - name: Install pinned astronomy packages
+        run: |
+          pip install -r engine/requirements.txt
+          pip install 'pyswisseph==2.10.3.2'
+      - name: Download pinned JPL DE440s kernel
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --max-time 240 --silent --show-error \
+            https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp \
+            --output /tmp/de440s.bsp
+          echo 'c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2  /tmp/de440s.bsp' | sha256sum --check
+      - name: Download hash-pinned Swiss planetary and lunar ephemerides
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/swiss-ephe
+          for name in sepl_18.se1 semo_18.se1; do
+            curl --fail --location --retry 3 --max-time 180 --silent --show-error \
+              "https://raw.githubusercontent.com/aloistr/swisseph/master/ephe/$name" \
+              --output "/tmp/swiss-ephe/$name"
+            test "$(stat -c %s "/tmp/swiss-ephe/$name")" -gt 100000
+          done
+          echo "ca1393ceab3a44fbc895887cf789c68819ae6a1cbc9b22225872dbe4ccd99a66  /tmp/swiss-ephe/sepl_18.se1" | sha256sum --check
+          echo "1ca07bd67c24374d77226180c20a4f9996cba013697894810518e7eb582ca4f7  /tmp/swiss-ephe/semo_18.se1" | sha256sum --check
+      - name: Compute ten-city JPL day/sunrise and four-limb research cohort
+        run: |
+          PYTHONPATH=engine python -m panchavani.first_six_limb_pilot \
+            --cities ten --start '${{ steps.date.outputs.start }}' --ephemeris /tmp/de440s.bsp \
+            --out engine/artifacts/nightly-jpl-research-UNAPPROVED.json
+          PYTHONPATH=engine python -m panchavani.muhurat_windows \
+            --batch engine/artifacts/nightly-jpl-research-UNAPPROVED.json \
+            --out engine/artifacts/nightly-time-grid-UNAPPROVED.json
+      - name: Run canonical sourced Wedding/Vehicle preliminary screens (no approval)
+        run: |
+          PYTHONPATH=engine python -m panchavani.sourced_muhurat_rules \
+            --grid engine/artifacts/nightly-time-grid-UNAPPROVED.json \
+            --rules engine/fixtures/muhurat-reference-rulebook-DRAFT.json \
+            --out engine/artifacts/nightly-muhurat-screen-UNAPPROVED.json
+      - name: Independently solve Swiss sidereal crossings across all ten cities
+        env:
+          PANCHAVANI_SWISS_EPHE_PATH: /tmp/swiss-ephe
+        run: |
+          PYTHONPATH=engine python -m panchavani.swiss_exact_phase_roots \
+            --cities ten --grid engine/artifacts/nightly-time-grid-UNAPPROVED.json \
+            --out engine/artifacts/nightly-swiss-phase-roots-UNAPPROVED.json
+      - name: Generate quantitative numerical review, without automatic scientific approval
+        run: |
+          PYTHONPATH=engine python -m panchavani.nightly_accuracy_gate \
+            --swiss engine/artifacts/nightly-swiss-phase-roots-UNAPPROVED.json \
+            --out engine/artifacts/nightly-accuracy-gate-UNAPPROVED.json
+      - name: Verify release remains prohibited and publish Actions summary
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          root=Path('engine/artifacts')
+          grid=json.loads((root/'nightly-time-grid-UNAPPROVED.json').read_text())
+          gate=json.loads((root/'nightly-accuracy-gate-UNAPPROVED.json').read_text())
+          screen=json.loads((root/'nightly-muhurat-screen-UNAPPROVED.json').read_text())
+          assert grid['cityCount']==10 and grid['cityDays']==20
+          assert gate['checkedCities']==10 and gate['checkedCityDays']==20
+          assert gate['numericAlertPassed'] is True
+          assert screen['metrics']['cityDaysValidated']==20
+          for artifact in (grid,gate,screen):
+              assert artifact['publicationAuthorized'] is False
+              assert artifact['indexingAuthorized'] is False
+              assert artifact['muhuratRecommendationsAuthorized'] is False
+              assert artifact['approvedClaimsForDeepSeek']==[]
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:
+              out.write('## PANCHAVANI automated ten-city independent astronomy research QA\n\n')
+              out.write('Date: ${{ steps.date.outputs.start }} (IST). **UNAPPROVED / NO PUBLICATION.**\n\n')
+              out.write(f"Compared {gate['transitionCount']} phase crossings in {gate['checkedCities']} cities over {gate['checkedCityDays']} city-days.\n\n")
+              out.write(f"Maximum Swiss vs JPL discrepancy: **{gate['maxSwissVsJplDifferenceSeconds']:.3f} seconds**; alert threshold: {gate['investigateAboveSeconds']} seconds.\n\n")
+              out.write('| City | Phase | Compared | Max difference, s |\n|---|---|---:|---:|\n')
+              for item in gate['byCityAndKind']:
+                  out.write(f"| {item['cityId']} | {item['kind']} | {item['transitionsCompared']} | {item['maxDifferenceSeconds']:.3f} |\n")
+              out.write('\nThis validates computational consistency only. **Ayanamsha and ritual traditions still require independent human review.**\n')
+          print('PASS: JPL/Swiss ten-city numerical screening; no release, no auto-approval')
+          PY
+      - name: Retain reproducible research evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-ten-city-science-UNAPPROVED
+          path: |
+            engine/artifacts/nightly-jpl-research-UNAPPROVED.json
+            engine/artifacts/nightly-time-grid-UNAPPROVED.json
+            engine/artifacts/nightly-muhurat-screen-UNAPPROVED.json
+            engine/artifacts/nightly-swiss-phase-roots-UNAPPROVED.json
+            engine/artifacts/nightly-accuracy-gate-UNAPPROVED.json
+          retention-days: 30
+          if-no-files-found: warn
