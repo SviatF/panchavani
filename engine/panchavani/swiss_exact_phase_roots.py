@@ -5,7 +5,7 @@ combine ephemeris, coordinate and ayanamsha convention, unlike a linear
 sensitivity estimate. NEVER automatically replaces JPL timings.
 """
 from __future__ import annotations
-import argparse, json
+import argparse, json, os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -51,6 +51,10 @@ def compare(grid):
     import swisseph as swe
     from .sourced_muhurat_rules import validate_research_grid
     rows,_=validate_research_grid(grid)
+    ephe_path=os.environ.get('PANCHAVANI_SWISS_EPHE_PATH')
+    if not ephe_path or not all((Path(ephe_path)/name).is_file() for name in ('sepl_18.se1','semo_18.se1')):
+        raise ValueError('Swiss planetary and lunar ephemeris files are required; no Moshier fallback')
+    swe.set_ephe_path(ephe_path)
     swe.set_sid_mode(swe.SIDM_LAHIRI,0,0)
     results=[]
     for (city,day),row in sorted(rows.items()):
