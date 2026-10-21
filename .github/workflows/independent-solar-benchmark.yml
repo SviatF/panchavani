@@ -76,7 +76,7 @@ jobs:
           mkdir -p /tmp/swiss-ephe
           for name in sepl_18.se1 semo_18.se1; do
             curl --fail --location --retry 3 --max-time 180 --silent --show-error \
-              "https://www.astro.com/ftp/swisseph/ephe/$name" \
+              "https://raw.githubusercontent.com/aloistr/swisseph/master/ephe/$name" \
               --output "/tmp/swiss-ephe/$name"
             test "$(stat -c %s "/tmp/swiss-ephe/$name")" -gt 100000
             sha256sum "/tmp/swiss-ephe/$name"
