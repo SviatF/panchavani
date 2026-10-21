@@ -29,6 +29,17 @@ jobs:
           python-version: '3.12'
       - name: Verify noindex, canonical and sitemap regression guards
         run: python -m unittest scripts/test_live_indexability.py -v
+      - name: Capture production DNS diagnostics without masking real failures
+        run: |
+          echo '## DNS diagnostics before live SEO probe'
+          for host in panchavani.com www.panchavani.com; do
+            echo "### $host via Cloudflare 1.1.1.1"
+            dig +time=3 +tries=1 A "$host" @1.1.1.1 || true
+            echo "### $host via Google 8.8.8.8"
+            dig +time=3 +tries=1 A "$host" @8.8.8.8 || true
+            echo "### public NS for $host"
+            dig +time=3 +tries=1 NS "$host" @1.1.1.1 || true
+          done
       - name: Probe production sitemap and ten city pages
         run: |
           python scripts/audit_live_indexability.py \
