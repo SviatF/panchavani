@@ -80,9 +80,9 @@ jobs:
               --output "/tmp/swiss-ephe/$name"
             test "$(stat -c %s "/tmp/swiss-ephe/$name")" -gt 100000
             sha256sum "/tmp/swiss-ephe/$name"
+          done
           echo "ca1393ceab3a44fbc895887cf789c68819ae6a1cbc9b22225872dbe4ccd99a66  /tmp/swiss-ephe/sepl_18.se1" | sha256sum --check
           echo "1ca07bd67c24374d77226180c20a4f9996cba013697894810518e7eb582ca4f7  /tmp/swiss-ephe/semo_18.se1" | sha256sum --check
-          done
       - name: Independently solve Swiss sidereal Nakshatra Yoga transitions
         env:
           PANCHAVANI_SWISS_EPHE_PATH: /tmp/swiss-ephe
