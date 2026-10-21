@@ -20,6 +20,13 @@ class ExactRootTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'Moshier'):
             swiss_phase(Stub(),t,'nakshatra')
 
+    def test_supported_city_scopes(self):
+        from panchavani.swiss_exact_phase_roots import resolve_cities
+        self.assertEqual(resolve_cities('delhi'),('delhi',))
+        self.assertEqual(len(resolve_cities('ten')),10)
+        with self.assertRaises(ValueError):
+            resolve_cities('all')
+
     def test_bracketed_root_and_unbracketed_failure(self):
         start=datetime(2026,10,21,0,0,tzinfo=timezone.utc)
         class Dummy:
