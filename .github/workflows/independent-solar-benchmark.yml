@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - '.github/workflows/independent-solar-benchmark.yml'
+      - 'engine/panchavani/lahiri_reference.py'
+      - 'engine/tests/test_lahiri_reference.py'
       - 'engine/panchavani/reference_coverage.py'
       - 'engine/tests/test_reference_coverage.py'
       - 'engine/panchavani/reference_discrepancy.py'
@@ -29,8 +31,11 @@ jobs:
           cd engine
           python -m unittest discover -s tests -p 'test_reference_coverage.py' -v
           python -m unittest discover -s tests -p 'test_reference_discrepancy.py' -v
+          python -m unittest discover -s tests -p 'test_lahiri_reference.py' -v
       - name: Install pinned dependencies
         run: pip install -r engine/requirements.txt
+      - name: Install independent Swiss Ephemeris comparison library
+        run: pip install 'pyswisseph==2.10.3.2'
       - name: Download and hash-check JPL DE440s ephemeris
         run: |
           set -euo pipefail
@@ -38,6 +43,11 @@ jobs:
             https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp \
             --output /tmp/de440s.bsp
           echo 'c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2  /tmp/de440s.bsp' | sha256sum --check
+      - name: Independently compare provisional Lahiri against Swiss reference across seasons
+        run: |
+          PYTHONPATH=engine python -m panchavani.lahiri_reference \
+            --ephemeris /tmp/de440s.bsp \
+            --out engine/artifacts/lahiri-independent-comparison-UNAPPROVED.json
       - name: Calculate real October 21-22 ten-city sunrise records
         run: |
           PYTHONPATH=engine python -m panchavani.first_six_limb_pilot \
@@ -108,5 +118,6 @@ jobs:
             engine/artifacts/delhi-2026-10-21-reference-errors-UNAPPROVED.json
             engine/artifacts/delhi-2026-10-21-coverage-UNAPPROVED.json
             engine/artifacts/delhi-2026-10-21-discrepancy-triage-UNAPPROVED.json
+            engine/artifacts/lahiri-independent-comparison-UNAPPROVED.json
           retention-days: 14
           if-no-files-found: error
