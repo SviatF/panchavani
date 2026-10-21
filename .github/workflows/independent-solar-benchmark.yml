@@ -6,6 +6,8 @@ on:
       - '.github/workflows/independent-solar-benchmark.yml'
       - 'engine/panchavani/lahiri_reference.py'
       - 'engine/tests/test_lahiri_reference.py'
+      - 'engine/panchavani/lahiri_transition_sensitivity.py'
+      - 'engine/tests/test_lahiri_transition_sensitivity.py'
       - 'engine/panchavani/reference_coverage.py'
       - 'engine/tests/test_reference_coverage.py'
       - 'engine/panchavani/reference_discrepancy.py'
@@ -32,6 +34,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_reference_coverage.py' -v
           python -m unittest discover -s tests -p 'test_reference_discrepancy.py' -v
           python -m unittest discover -s tests -p 'test_lahiri_reference.py' -v
+          python -m unittest discover -s tests -p 'test_lahiri_transition_sensitivity.py' -v
       - name: Install pinned dependencies
         run: pip install -r engine/requirements.txt
       - name: Install independent Swiss Ephemeris comparison library
@@ -58,6 +61,12 @@ jobs:
           PYTHONPATH=engine python -m panchavani.muhurat_windows \
             --batch engine/artifacts/solar-benchmark-source-UNAPPROVED.json \
             --out engine/artifacts/solar-benchmark-grid-UNAPPROVED.json
+      - name: Quantify first-order Lahiri impact on real Nakshatra/Yoga boundaries
+        run: |
+          PYTHONPATH=engine python -m panchavani.lahiri_transition_sensitivity \
+            --ephemeris /tmp/de440s.bsp \
+            --grid engine/artifacts/solar-benchmark-grid-UNAPPROVED.json \
+            --out engine/artifacts/lahiri-transition-sensitivity-UNAPPROVED.json
       - name: Compare independently documented solar readings
         run: |
           PYTHONPATH=engine python -m panchavani.reference_accuracy \
@@ -119,5 +128,6 @@ jobs:
             engine/artifacts/delhi-2026-10-21-coverage-UNAPPROVED.json
             engine/artifacts/delhi-2026-10-21-discrepancy-triage-UNAPPROVED.json
             engine/artifacts/lahiri-independent-comparison-UNAPPROVED.json
+            engine/artifacts/lahiri-transition-sensitivity-UNAPPROVED.json
           retention-days: 14
           if-no-files-found: error
