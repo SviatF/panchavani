@@ -18,9 +18,15 @@ def swiss_phase(swe, t, kind):
     hr=t.hour+t.minute/60+t.second/3600+t.microsecond/3.6e9
     jd=swe.julday(t.year,t.month,t.day,hr)
     flags=swe.FLG_SWIEPH|swe.FLG_SIDEREAL
-    moon=swe.calc_ut(jd,swe.MOON,flags)[0][0]
+    moon_values,moon_flags=swe.calc_ut(jd,swe.MOON,flags)
+    if not (moon_flags & swe.FLG_SWIEPH) or (moon_flags & swe.FLG_MOSEPH):
+        raise ValueError("Swiss lunar calculation silently fell back to Moshier")
+    moon=moon_values[0]
     if kind=="nakshatra":return moon%360
-    sun=swe.calc_ut(jd,swe.SUN,flags)[0][0]
+    sun_values,sun_flags=swe.calc_ut(jd,swe.SUN,flags)
+    if not (sun_flags & swe.FLG_SWIEPH) or (sun_flags & swe.FLG_MOSEPH):
+        raise ValueError("Swiss solar calculation silently fell back to Moshier")
+    sun=sun_values[0]
     return (moon+sun)%360
 
 def signed_phase_error(value,target):
