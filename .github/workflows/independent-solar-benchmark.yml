@@ -70,7 +70,20 @@ jobs:
             --ephemeris /tmp/de440s.bsp \
             --grid engine/artifacts/solar-benchmark-grid-UNAPPROVED.json \
             --out engine/artifacts/lahiri-transition-sensitivity-UNAPPROVED.json
+      - name: Fetch independent Swiss planetary and lunar ephemeris files
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/swiss-ephe
+          for name in sepl_18.se1 semo_18.se1; do
+            curl --fail --location --retry 3 --max-time 180 --silent --show-error \
+              "https://www.astro.com/ftp/swisseph/ephe/$name" \
+              --output "/tmp/swiss-ephe/$name"
+            test "$(stat -c %s "/tmp/swiss-ephe/$name")" -gt 100000
+            sha256sum "/tmp/swiss-ephe/$name"
+          done
       - name: Independently solve Swiss sidereal Nakshatra Yoga transitions
+        env:
+          PANCHAVANI_SWISS_EPHE_PATH: /tmp/swiss-ephe
         run: |
           PYTHONPATH=engine python -m panchavani.swiss_exact_phase_roots \
             --grid engine/artifacts/solar-benchmark-grid-UNAPPROVED.json \
