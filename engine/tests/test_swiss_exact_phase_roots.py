@@ -6,6 +6,20 @@ class ExactRootTests(unittest.TestCase):
     def test_wrapped_phase_error(self):
         self.assertAlmostEqual(signed_phase_error(359.9,0),-.1)
         self.assertAlmostEqual(signed_phase_error(.1,0),.1)
+    def test_reject_silent_moshier_fallback(self):
+        from panchavani.swiss_exact_phase_roots import swiss_phase
+        t=datetime(2026,10,21,tzinfo=timezone.utc)
+        class Stub:
+            FLG_SWIEPH=2
+            FLG_SIDEREAL=64
+            FLG_MOSEPH=4
+            MOON=1
+            SUN=0
+            def julday(self,*args):return 0
+            def calc_ut(self,jd,planet,flags):return ([20.0],self.FLG_MOSEPH)
+        with self.assertRaisesRegex(ValueError,'Moshier'):
+            swiss_phase(Stub(),t,'nakshatra')
+
     def test_bracketed_root_and_unbracketed_failure(self):
         start=datetime(2026,10,21,0,0,tzinfo=timezone.utc)
         class Dummy:
