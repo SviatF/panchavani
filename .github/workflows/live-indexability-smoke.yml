@@ -1,0 +1,57 @@
+name: PANCHAVANI live public SEO indexability smoke-test (READ ONLY)
+on:
+  schedule:
+    - cron: '11 06 * * *'
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/live-indexability-smoke.yml'
+      - 'scripts/audit_live_indexability.py'
+      - 'scripts/test_live_indexability.py'
+  pull_request:
+    paths:
+      - '.github/workflows/live-indexability-smoke.yml'
+      - 'scripts/audit_live_indexability.py'
+      - 'scripts/test_live_indexability.py'
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  live-seo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify noindex, canonical and sitemap regression guards
+        run: python -m unittest scripts/test_live_indexability.py -v
+      - name: Probe production sitemap and ten city pages
+        run: |
+          python scripts/audit_live_indexability.py \
+            --out /tmp/panchavani-live-indexability-check.json
+      - name: Publish technical crawlability status, not Google index claims
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          r=json.loads(Path('/tmp/panchavani-live-indexability-check.json').read_text())
+          assert r['verifiedCityGuideUrls']==10
+          assert r['googleIndexingConfirmed'] is False
+          assert r['googleSearchConsoleSubmitted'] is False
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:
+              out.write('## PANCHAVANI public SEO technical smoke test\n\n')
+              out.write('**10/10 live city URLs** returned expected HTML index/follow, canonical and sitemap entries.\n\n')
+              out.write('This is **not** Google indexed-page coverage. Verify indexing separately through Search Console.\n')
+          PY
+      - name: Archive technical evidence only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: panchavani-live-seo-smoke
+          path: /tmp/panchavani-live-indexability-check.json
+          if-no-files-found: warn
+          retention-days: 14
