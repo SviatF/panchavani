@@ -1,0 +1,25 @@
+import unittest
+from datetime import datetime,timezone,timedelta
+from panchavani.swiss_exact_phase_roots import signed_phase_error,solve
+
+class ExactRootTests(unittest.TestCase):
+    def test_wrapped_phase_error(self):
+        self.assertAlmostEqual(signed_phase_error(359.9,0),-.1)
+        self.assertAlmostEqual(signed_phase_error(.1,0),.1)
+    def test_bracketed_root_and_unbracketed_failure(self):
+        start=datetime(2026,10,21,0,0,tzinfo=timezone.utc)
+        class Dummy:
+            pass
+        # Verify solver bracketing by patching imported phase function.
+        import panchavani.swiss_exact_phase_roots as m
+        original=m.swiss_phase
+        try:
+            m.swiss_phase=lambda swe,t,kind: ((t-start).total_seconds()/3600+13.3333333333)%360
+            root=solve(Dummy(),start,"nakshatra",1)
+            self.assertLess(abs((root-start).total_seconds()),.125)
+            with self.assertRaises(ValueError):
+                solve(Dummy(),start+timedelta(days=3),"nakshatra",1)
+        finally:
+            m.swiss_phase=original
+
+if __name__=="__main__":unittest.main()
