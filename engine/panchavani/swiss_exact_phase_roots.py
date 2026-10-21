@@ -47,10 +47,19 @@ def solve(swe,approx,kind,ending_number):
         else:lo=mid
     return lo+(hi-lo)/2
 
-def compare(grid):
+def resolve_cities(scope):
+    from .first_six_limb_pilot import TEN_CITY_IDS
+    if scope=="delhi":return ("delhi",)
+    if scope=="ten":return TEN_CITY_IDS
+    raise ValueError("Unsupported independently checked city scope")
+
+def compare(grid, *, city_scope="delhi"):
     import swisseph as swe
     from .sourced_muhurat_rules import validate_research_grid
     rows,_=validate_research_grid(grid)
+    selected=resolve_cities(city_scope)
+    if any(sum(cid==city for cid, day in rows)!=2 for city in selected):
+        raise ValueError("Expected two complete modeled solar days for every selected city")
     ephe_path=os.environ.get('PANCHAVANI_SWISS_EPHE_PATH')
     if not ephe_path or not all((Path(ephe_path)/name).is_file() for name in ('sepl_18.se1','semo_18.se1')):
         raise ValueError('Swiss planetary and lunar ephemeris files are required; no Moshier fallback')
@@ -58,7 +67,7 @@ def compare(grid):
     swe.set_sid_mode(swe.SIDM_LAHIRI,0,0)
     results=[]
     for (city,day),row in sorted(rows.items()):
-        if city!="delhi":continue
+        if city not in selected:continue
         for kind in ("nakshatra","yoga"):
             last=None
             for w in row["windows"]:
@@ -79,6 +88,8 @@ def compare(grid):
     return {"artifactType":"PANCHAVANI_SWISS_EXACT_SIDEREAL_PHASE_ROOTS",
       "status":"UNAPPROVED_REFERENCE_COMPARISON",
       "comparisonCount":len(results),"comparisons":results,
+      "checkedCityIds":list(selected),"checkedCityDays":2*len(selected),
+      "backend":"SWISS_EPHEMERIS_ONLY_NO_MOSHIER_FALLBACK",
       "largestAbsoluteDifferenceSeconds":max(v["absoluteDifferenceSeconds"] for v in results),
       "scientificApproval":False,"muhuratRecommendationsAuthorized":False,
       "approvedClaimsForDeepSeek":[],"publicationAuthorized":False,"indexingAuthorized":False}
@@ -87,8 +98,9 @@ def main():
     p=argparse.ArgumentParser()
     p.add_argument("--grid",type=Path,required=True)
     p.add_argument("--out",type=Path,required=True)
+    p.add_argument("--cities",choices=("delhi","ten"),default="delhi")
     args=p.parse_args()
-    result=compare(json.loads(args.grid.read_text()))
+    result=compare(json.loads(args.grid.read_text()),city_scope=args.cities)
     args.out.parent.mkdir(parents=True,exist_ok=True)
     with args.out.open("x") as f:json.dump(result,f,indent=2);f.write("\n")
     for row in result["comparisons"]:print("EXACT SWISS SIDEREAL ROOT",row)
