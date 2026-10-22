@@ -448,3 +448,36 @@
 .muhurat-details .verified-explain .editorial-details p{
  font-size:13px;line-height:1.84;color:#c8c9ca;margin:13px 0 0
 }
+
+/* Ten-city Panchang directory: a concise location picker, not a grid of giant empty panels. */
+.editorial-directory{padding-top:56px}
+.editorial-directory .verified-intro{margin-bottom:19px}
+.editorial-directory-help{display:flex;align-items:center;gap:17px;padding:18px 21px;
+ border-radius:11px;border:1px solid rgba(203,161,96,.26);background:#111820;
+ margin-bottom:33px}
+.editorial-directory-help>svg{color:#dbad6e;flex:0 0 auto}
+.editorial-directory-help p{font-size:13px;line-height:1.6;color:#c6cbd0;max-width:720px;margin:0}
+.editorial-directory-help strong{color:#f5d7a4}
+.editorial-directory-help a{display:flex;align-items:center;gap:8px;white-space:nowrap;
+ margin-left:auto;font-size:12px;color:#f1c989}
+.editorial-directory-heading{display:flex;align-items:end;justify-content:space-between;gap:15px;margin-bottom:19px}
+.editorial-directory-heading h2{font:normal 34px var(--font-serif);color:#f5d6a4;margin:6px 0 0}
+.editorial-directory-heading>span{font-size:12px;color:#a9aeb4}
+.editorial-directory-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:13px}
+.editorial-directory-grid .verified-city-card{min-height:160px;padding:21px;gap:10px}
+.editorial-directory-grid .verified-city-card h3{font:normal clamp(21px,1.9vw,29px)/1.15 var(--font-serif);
+ color:#f9e9c8;margin:2px 0 11px;overflow-wrap:break-word}
+.editorial-directory-grid .section-eyebrow{font-size:9px;line-height:1.5}
+.editorial-directory-grid .verified-link{margin-top:auto}
+.editorial-directory .verified-method{margin-top:27px}
+@media(max-width:1150px){.editorial-directory-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){
+ .editorial-directory-help{align-items:start;flex-wrap:wrap}
+ .editorial-directory-help a{width:100%;margin:0}
+ .editorial-directory-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:480px){
+ .editorial-directory-grid{grid-template-columns:1fr}
+ .editorial-directory-grid .verified-city-card{min-height:126px}
+ .editorial-directory-heading{align-items:start;flex-direction:column}
+}
