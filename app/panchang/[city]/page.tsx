@@ -67,7 +67,7 @@ export default async function CityPanchang({params}:Props){
    </div>
   </section>
   <section className="editorial-city-question">
-   <p className="section-eyebrow">YOUR PRACTICAL QUESTION</p>
+   <p className="section-eyebrow">PRACTICAL READER QUESTION</p>
    <h2>{guide.question}</h2>
    <p>{guide.answer}</p>
    <details className="editorial-details"><summary>See a practical comparison</summary>
@@ -75,7 +75,7 @@ export default async function CityPanchang({params}:Props){
    </details>
   </section>
   <section className="editorial-city-sources">
-   <p className="section-eyebrow">REFERENCES</p>
+   <p className="section-eyebrow">SOURCE AND METHOD REFERENCES</p>
    <h2>Read the source methods</h2>
    <p>These references help explain astronomical timekeeping. They do not independently approve any unpublished city/day, festival or Muhurat result.</p>
    <ul>{guide.sources.map(source=><li key={source.url}>
