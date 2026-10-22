@@ -25,7 +25,7 @@ export default async function MuhuratDetails({params}:Props){
  const card=muhuratCards.find(x=>x.slug===type);
  if(!card)notFound();
  const guide=guides[card.slug];
- return <div className="interior-page">
+ return <div className="interior-page muhurat-details">
   <div className="interior-hero" style={{backgroundImage:`linear-gradient(90deg,#080e17,rgba(6,10,16,.87),rgba(6,10,16,.12)),url('${ASSET(card.img)}')`}}>
    <div className="page-width interior-hero-content">
     <Link className="back-link" href="/muhurat/"><ArrowLeft size={15}/> All Muhurat types</Link>
@@ -37,12 +37,13 @@ export default async function MuhuratDetails({params}:Props){
   </div>
   <div className="page-width interior-body">
    <div className="interior-feature">
-    <span>THE PRACTICAL QUESTION</span>
+    <span>UNDERSTAND THE METHOD</span>
     <h2>What makes a date eligible?</h2><p>{guide.summary}</p>
+    <p className="muhurat-data-disclaimer">PANCHAVANI does not publish unverified auspicious dates. The method below explains what must be checked before we can show city-specific ceremony windows.</p>
    </div>
    <div className="verified-explain">
     {guide.sections.map((section,index)=><article key={section.title}>
-      <span className="section-eyebrow">STEP {index+1} OF 3</span>
+      <span className="section-eyebrow">METHOD · STEP {index+1} OF 3</span>
       <h2>{section.title}</h2><p>{section.body}</p>
     </article>)}
    </div>

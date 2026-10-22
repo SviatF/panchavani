@@ -176,3 +176,89 @@
 .verified-date-nav>a{padding:10px 14px;border:1px solid #86654170;border-radius:7px}
 .verified-date-nav>a:hover{background:#241c13}
 @media(max-width:680px){.approved-day .verified-daily-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.approved-day .verified-daily-grid article{padding:13px;min-height:83px}.approved-day .verified-daily-grid article strong{font-size:20px;overflow-wrap:anywhere}.verified-date-nav{flex-wrap:wrap}}
+
+
+/* Muhurat educational guides: full-width editorial hierarchy, never squeezed
+   into the shared 1.4fr/.6fr teaser layout. A source/rules guide is not a
+   published set of auspicious times. */
+.muhurat-details .interior-body{
+ display:flex;flex-direction:column;gap:22px;
+ padding-block:40px 84px;min-width:0;
+}
+.muhurat-details .interior-feature{
+ width:100%;min-height:0;padding:28px 34px;
+ background:linear-gradient(125deg,#121c26,#090e15 78%);
+}
+.muhurat-details .interior-feature>span{display:block}
+.muhurat-details .interior-feature h2{
+ max-width:960px;margin:14px 0;font-size:clamp(27px,2.8vw,38px);
+}
+.muhurat-details .interior-feature p{max-width:970px;margin:0;font-size:14px}
+.muhurat-details .muhurat-data-disclaimer{
+ margin-top:16px!important;color:#deb780!important;
+ border-left:2px solid #b78950;padding:10px 0 10px 18px;
+ background:rgba(188,141,74,.055);max-width:920px
+}
+.muhurat-details .verified-explain{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:17px;margin:0;align-items:stretch;width:100%;
+}
+.muhurat-details .verified-explain article{
+ padding:28px;min-width:0;min-height:0;overflow-wrap:break-word;
+}
+.muhurat-details .verified-explain .section-eyebrow{
+ display:block;color:#cf9f5c;font-size:10px;letter-spacing:1.5px;
+}
+.muhurat-details .verified-explain h2{
+ font-size:clamp(22px,2.1vw,30px);line-height:1.22;
+ margin:19px 0 14px;overflow-wrap:normal;
+}
+.muhurat-details .verified-explain p{font-size:13px;line-height:1.8;margin:0}
+.muhurat-details .verified-release{
+ width:100%;margin:0;min-width:0;padding:29px 34px;
+}
+.muhurat-details .verified-release h2{max-width:960px}
+.muhurat-details .verified-release p{max-width:960px}
+.muhurat-details .verified-release ul{
+ padding-left:20px;margin:18px 0 0;
+}
+.muhurat-details .verified-release li{
+ padding:5px 0;max-width:950px;line-height:1.65;
+}
+.muhurat-details .verified-release li svg{
+ display:inline-block;vertical-align:-3px;flex-shrink:0;margin-right:6px;
+ color:#d9ae69;
+}
+.muhurat-details .verified-city-grid{
+ display:grid;grid-template-columns:repeat(5,minmax(0,1fr));
+ gap:13px;margin-top:26px;
+}
+.muhurat-details .verified-city-card{
+ padding:19px;min-height:155px;min-width:0;gap:12px;
+}
+.muhurat-details .verified-city-card h2{
+ margin:5px 0;color:#f3d3a0;font-size:clamp(20px,1.7vw,29px);
+ overflow-wrap:break-word;
+}
+.muhurat-details .verified-link{font-size:11px;margin-top:auto}
+.muhurat-details .interior-links{
+ width:100%;padding:28px 34px;
+}
+.muhurat-details .interior-links a{max-width:900px}
+@media(max-width:1180px){
+ .muhurat-details .verified-city-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:900px){
+ .muhurat-details .verified-explain{grid-template-columns:1fr}
+ .muhurat-details .verified-explain article{padding:22px}
+ .muhurat-details .verified-explain h2{font-size:26px}
+ .muhurat-details .verified-city-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .muhurat-details .interior-body{padding-block:27px 65px;gap:16px}
+ .muhurat-details .interior-feature,.muhurat-details .verified-release,
+ .muhurat-details .interior-links{padding:24px}
+}
+@media(max-width:520px){
+ .muhurat-details .verified-city-grid{grid-template-columns:1fr}
+ .muhurat-details .verified-city-card{min-height:120px}
+ .muhurat-details .verified-release h2{font-size:24px}
+}
