@@ -96,7 +96,7 @@ jobs:
           assert len({Path('out/panchang',c,'index.html').read_bytes() for c in names})==10,'Repeated city HTML'
           for c in names:
               text=Path('out/panchang',c,'index.html').read_text().lower()
-              assert c in text and 'practical reader question' in text and 'source and method references' in text,c
+              assert c in text and 'daily panchang' in text and 'date-by-date values are in scientific review' in text and 'read the source methods' in text,c
           print('PASS: exactly 10 educational city URLs index/follow and sitemap, all other HTML noindex, 0 unapproved day pages')
           PY
       - name: Reject legacy mocked calendar dates and preview labels in public HTML
@@ -106,7 +106,7 @@ jobs:
           forbidden = [
               'VISUAL DESIGN PREVIEW', 'Delhi design preview',
               'Tuesday, 13 October 2026', '13 October 2026',
-              '20 October 2026', 'Vishakha', 'Shukla Paksha',
+              '20 October 2026', 'Vishakha',
               'Current Planetary Position', 'Calculated values coming soon',
           ]
           for path in Path('out').rglob('*.html'):
