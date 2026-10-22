@@ -29,10 +29,10 @@ export default async function MuhuratDetails({params}:Props){
   <div className="interior-hero" style={{backgroundImage:`linear-gradient(90deg,#080e17,rgba(6,10,16,.87),rgba(6,10,16,.12)),url('${ASSET(card.img)}')`}}>
    <div className="page-width interior-hero-content">
     <Link className="back-link" href="/muhurat/"><ArrowLeft size={15}/> All Muhurat types</Link>
-    <span className="section-eyebrow">PANCHAVANI · {guide.eyebrow}</span>
+    <p className="section-eyebrow">PANCHAVANI · {guide.eyebrow}</p>
     <h1>{card.title}</h1>
     <p>{guide.lead}</p>
-    <span className="research-note">Educational methodology · No unreviewed auspicious dates</span>
+    <span className="research-note">How the dates are evaluated · No unreviewed recommendations</span>
    </div>
   </div>
   <div className="page-width interior-body">
@@ -42,14 +42,23 @@ export default async function MuhuratDetails({params}:Props){
     <p className="muhurat-data-disclaimer">PANCHAVANI does not publish unverified auspicious dates. The method below explains what must be checked before we can show city-specific ceremony windows.</p>
    </div>
    <div className="verified-explain">
-    {guide.sections.map((section,index)=><article key={section.title}>
-      <span className="section-eyebrow">METHOD · STEP {index+1} OF 3</span>
-      <h2>{section.title}</h2><p>{section.body}</p>
-    </article>)}
+    {guide.sections.map((section,index)=>{
+      const split=section.body.indexOf('. ');
+      const overview=split<0?section.body:section.body.slice(0,split+1);
+      const details=split<0?'':section.body.slice(split+2);
+      return <article key={section.title}>
+       <span className="section-eyebrow">STEP {index+1} OF {guide.sections.length}</span>
+       <h2>{section.title}</h2><p>{overview}</p>
+       {details&&<details className="editorial-details">
+        <summary>Read the method</summary>
+        <p>{details}</p>
+       </details>}
+      </article>;
+    })}
    </div>
    <section className="verified-release">
-    <div><p className="section-eyebrow">EVIDENCE BEFORE A RECOMMENDATION</p>
-     <h2>What a real {card.title.toLowerCase()} calculation must verify</h2></div>
+    <div><p className="section-eyebrow">WHAT TO VERIFY</p>
+     <h2>Before using a {card.title.toLowerCase()} date</h2></div>
     <ul>{guide.checklist.map(text=><li key={text}>
      <CheckCircle2 size={16} aria-hidden="true"/> {text}
     </li>)}</ul>
@@ -61,7 +70,7 @@ export default async function MuhuratDetails({params}:Props){
    </section>
    <section className="verified-release">
     <div><p className="section-eyebrow">COMPARE SOURCES</p><h2>Published astronomical and rule references</h2></div>
-    <p>The following independent publications describe astronomical components or traditional selection criteria. They do not certify PANCHAVANI's provisional research results or authorize the dates on this page.</p>
+    <p>Reference methods for further reading. These do not approve PANCHAVANI’s provisional dates.</p>
     <ul>{guide.references.map(source=><li key={source.url}>
      <a href={source.url} target="_blank" rel="noopener noreferrer">{source.label} <ExternalLink size={14}/></a>
     </li>)}</ul>
