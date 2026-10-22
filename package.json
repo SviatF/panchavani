@@ -14,7 +14,7 @@
     "clean": "node scripts/clean-assets.mjs",
     "audit:preindex": "node scripts/audit-first-indexing-readiness.mjs",
     "test:preindex": "node --test scripts/test-approved-day-value-gate.mjs scripts/test-reviewed-page-generation.mjs",
-    "test:product": "node --test scripts/test-product-experience.mjs"
+    "test:product": "node --test scripts/test-product-experience.mjs scripts/test-editorial-ux.mjs"
   },
   "dependencies": {
     "next": "15.5.6",
