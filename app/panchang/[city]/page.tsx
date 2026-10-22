@@ -30,34 +30,57 @@ export default async function CityPanchang({params}:Props){
  if(!isCity(city))notFound();
  const guide=CITY_GUIDES[city];
  const releases=approvedCityDays().filter(x=>x.cityId===city).sort((a,b)=>b.date.localeCompare(a.date));
- return <div className="page-width verified-hub">
-  <Link className="back-link" href="/panchang/"><ArrowLeft size={15}/> All locations</Link>
+ return <div className="page-width verified-hub editorial-city">
+  <Link className="back-link" href="/panchang/"><ArrowLeft size={15}/> All cities</Link>
   <p className="section-eyebrow">PANCHAVANI · {guide.region.toUpperCase()}</p>
-  <h1>{guide.label} Panchang</h1><p className="verified-intro">{guide.tagline}</p>
-  <div className="verified-explain">
-   <article><BookOpen size={21}/><h2>What local dawn means</h2><p>{guide.introduction}</p></article>
-   <article><Clock3 size={21}/><h2>Why two sources can differ</h2><p>{guide.insight}</p></article>
-   <article><CalendarDays size={21}/><h2>How to check an entry</h2><p>{guide.method}</p></article>
-  </div>
-  <section className="verified-release">
-   <div><p className="section-eyebrow">PRACTICAL READER QUESTION</p><h2>{guide.question}</h2></div>
-   <p>{guide.answer}</p>
-   <div className="verified-method"><MapPin size={22}/><p>{guide.example}</p></div>
-  </section>
-  <section className="verified-release">
-   <div><p className="section-eyebrow">CHECK THE REFERENCE</p><h2>Source and method references</h2></div>
-   <p>These explain national timekeeping and astronomical calendar conventions. They do not certify an unreviewed city/day calculation or festival date.</p>
-   <ul>{guide.sources.map(source=><li key={source.url}>
-    <a href={source.url} target="_blank" rel="noopener noreferrer">{source.label} <ExternalLink size={13}/></a>
-   </li>)}</ul>
-  </section>
-  <section className="verified-release"><div><p className="section-eyebrow">REVIEWED DAILY PANCHANG</p><h2>Available dates</h2></div>
-  {releases.length?
-   <div className="verified-dates">{releases.map(day=><div key={day.date} className="verified-day-row">
-     <Link href={`/panchang/${city}/${day.date}/`} className="verified-day-link">{day.date} · {day.panchang.tithi} · {day.panchang.nakshatra}</Link>
+  <h1>{guide.label} Panchang</h1>
+  <p className="verified-intro">{guide.tagline}</p>
+  <section className="editorial-city-release" aria-labelledby="city-dates-title">
+   <div className="editorial-city-release-header">
+    <div><p className="section-eyebrow">DAILY PANCHANG</p><h2 id="city-dates-title">Choose a date</h2></div>
+    <span className={releases.length?'editorial-data-tag is-available':'editorial-data-tag'}>
+     {releases.length?`${releases.length} reviewed dates`:'No reviewed dates yet'}
+    </span>
+   </div>
+   {releases.length?
+    <div className="verified-dates">{releases.map(day=><div key={day.date} className="verified-day-row">
+     <Link href={`/panchang/${city}/${day.date}/`} className="verified-day-link">
+      {day.date} · {day.panchang.tithi} · {day.panchang.nakshatra}
+     </Link>
      <span>Sunrise {indiaTime(day.sun.sunriseUtc)} IST</span>
     </div>)}</div>:
-   <p className="verified-muted">Daily astronomical timings and ritual dates are not listed until their calculation method and observation points are independently approved. This city guide explains how to interpret and verify them.</p>}
+    <div className="editorial-empty-state">
+     <CalendarDays size={24} aria-hidden="true"/>
+     <div><h3>Date-by-date values are in scientific review</h3>
+      <p>We cannot yet show verified Tithi, Nakshatra or sunrise for a specific day in {guide.label}. Below you can read how the local calendar works and which references to compare. No dates are invented.</p>
+      <Link href="/learn/">Understand the five Angas →</Link>
+     </div>
+    </div>}
+  </section>
+  <section className="editorial-city-explainer" aria-labelledby="city-explainer-title">
+   <p className="section-eyebrow">UNDERSTANDING THE LOCAL CALENDAR</p>
+   <h2 id="city-explainer-title">What makes {guide.label} different?</h2>
+   <div className="verified-explain">
+    <article><BookOpen size={21}/><h3>Begin with sunrise</h3><p>{guide.introduction}</p></article>
+    <article><Clock3 size={21}/><h3>Compare like with like</h3><p>{guide.insight}</p></article>
+    <article><CalendarDays size={21}/><h3>Check the method</h3><p>{guide.method}</p></article>
+   </div>
+  </section>
+  <section className="editorial-city-question">
+   <p className="section-eyebrow">YOUR PRACTICAL QUESTION</p>
+   <h2>{guide.question}</h2>
+   <p>{guide.answer}</p>
+   <details className="editorial-details"><summary>See a practical comparison</summary>
+    <div className="verified-method"><MapPin size={22}/><p>{guide.example}</p></div>
+   </details>
+  </section>
+  <section className="editorial-city-sources">
+   <p className="section-eyebrow">REFERENCES</p>
+   <h2>Read the source methods</h2>
+   <p>These references help explain astronomical timekeeping. They do not independently approve any unpublished city/day, festival or Muhurat result.</p>
+   <ul>{guide.sources.map(source=><li key={source.url}>
+    <a href={source.url} target="_blank" rel="noopener noreferrer">{source.label} <ExternalLink size={14}/></a>
+   </li>)}</ul>
   </section>
  </div>;
 }
