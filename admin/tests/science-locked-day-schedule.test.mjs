@@ -34,12 +34,18 @@ test('explicit opt-in cannot bill without independent signed science secret',asy
 });
 test('D1 paid reservation claims one of three daily credits with an atomic INSERT',async()=>{
  const sqls=[],bindings=[];
- const env={
-  DB:{prepare(sql){sqls.push(sql);return {bind(...args){
-   bindings.push(args);return {run:async()=>({meta:{changes:1}})};
-  }}},
-  CANDIDATES:{put:async()=>{throw Error('Not used in reserve')}}
+ const db={
+  prepare(sql){
+   sqls.push(sql);
+   return {
+    bind(...args){
+     bindings.push(args);
+     return {run:async()=>({meta:{changes:1}})};
+    }
+   };
+  }
  };
+ const env={DB:db,CANDIDATES:{put:async()=>{throw Error('Unused R2')}}};
  const store=durableDayStore(env);
  assert.equal(await store.reserve('delhi/2026-10-21/en/'+ 'a'.repeat(64),'a'.repeat(64)),true);
  assert.match(sqls[0],/INSERT OR IGNORE INTO science_locked_editorial_once/);
@@ -52,9 +58,17 @@ test('D1 paid reservation claims one of three daily credits with an atomic INSER
 });
 test('private source retrieval is impossible for arbitrary R2 path',async()=>{
  let reads=0;
- const env={DB:{prepare(){return {bind(){return {async all(){return {
-  results:[{city_id:'delhi',local_date:'2026-10-21',source_hash:'a'.repeat(64),r2_key:'unapproved/evil.json'}]
- }}}}}}},CANDIDATES:{get(){reads++;throw Error('Must never fetch unapproved object')}}};
+ const db={
+  prepare(){
+   return {bind(){
+    return {all:async()=>({results:[{
+     city_id:'delhi',local_date:'2026-10-21',source_hash:'a'.repeat(64),
+     r2_key:'unapproved/evil.json'
+    }]})};
+   }};
+  }
+ };
+ const env={DB:db,CANDIDATES:{get(){reads++;throw Error('No unapproved R2 fetch')}}};
  await assert.rejects(loadReviewedDayPacks(env,'x'.repeat(35)),/Invalid independent reviewer R2 reference/);
  assert.equal(reads,0);
 });
