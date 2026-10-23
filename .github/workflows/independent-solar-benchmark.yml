@@ -17,10 +17,19 @@ on:
       - 'engine/fixtures/delhi-2026-10-21-independent-timings-UNAPPROVED.json'
       - 'engine/panchavani/delhi_first_release_dossier.py'
       - 'engine/tests/test_delhi_first_release_dossier.py'
+      - 'engine/panchavani/source_geo_identity.py'
+      - 'engine/tests/test_source_geo_identity.py'
+      - 'engine/panchavani/reference_accuracy.py'
+      - 'engine/panchavani/reference_coverage.py'
   pull_request:
     paths:
       - '.github/workflows/independent-solar-benchmark.yml'
       - 'engine/fixtures/delhi-2026-10-21-independent-timings-UNAPPROVED.json'
+      - 'engine/panchavani/source_geo_identity.py'
+      - 'engine/tests/test_source_geo_identity.py'
+      - 'engine/panchavani/reference_accuracy.py'
+      - 'engine/panchavani/reference_coverage.py'
+      - 'engine/panchavani/delhi_first_release_dossier.py'
 permissions:
   contents: read
 jobs:
@@ -35,12 +44,27 @@ jobs:
       - name: Test external evidence coverage safeguards
         run: |
           cd engine
+          python -m unittest discover -s tests -p 'test_source_geo_identity.py' -v
           python -m unittest discover -s tests -p 'test_delhi_first_release_dossier.py' -v
           python -m unittest discover -s tests -p 'test_reference_coverage.py' -v
           python -m unittest discover -s tests -p 'test_reference_discrepancy.py' -v
           python -m unittest discover -s tests -p 'test_lahiri_reference.py' -v
           python -m unittest discover -s tests -p 'test_lahiri_transition_sensitivity.py' -v
           python -m unittest discover -s tests -p 'test_swiss_exact_phase_roots.py' -v
+      - name: Quarantine external time samples with incorrect source city
+        run: |
+          PYTHONPATH=engine python -m panchavani.source_geo_identity \
+            --references engine/fixtures/delhi-2026-10-21-independent-timings-UNAPPROVED.json \
+            --out engine/artifacts/delhi-external-geoname-quarantine-UNAPPROVED.json
+          python - <<'PY'
+          import json
+          report=json.load(open('engine/artifacts/delhi-external-geoname-quarantine-UNAPPROVED.json'))
+          assert report['status']=='QUARANTINED'
+          assert report['qualifiedObserverIdCount']==2
+          assert report['quarantinedObserverIdCount']==5
+          assert report['publicationAuthorized'] is False
+          print('QUARANTINED: all 5 Drik timings refer to GeoNames 934657, NOT DELHI')
+          PY
       - name: Install pinned dependencies
         run: pip install -r engine/requirements.txt
       - name: Install independent Swiss Ephemeris comparison library
@@ -127,8 +151,9 @@ jobs:
           path=Path('engine/artifacts/delhi-first-day-dossier-UNAPPROVED.json')
           d=json.loads(path.read_text())
           assert d['cityId']=='delhi' and d['date']=='2026-10-21'
-          assert d['status']=='HUMAN_REVIEW_REQUIRED'
-          assert d['readinessForHumanFactCheck'] is True
+          assert d['status']=='QUARANTINED_LOCATION_MISMATCH'
+          assert d['readinessForHumanFactCheck'] is False
+          assert d['sourceLocationQuarantinedCount']==5
           assert d['publicPagesCreated']==0
           assert d['publicationAuthorized'] is False
           assert d['indexingAuthorized'] is False
@@ -146,20 +171,23 @@ jobs:
           report=json.loads(p.read_text())
           coverage=json.loads(pathlib.Path('engine/artifacts/delhi-2026-10-21-coverage-UNAPPROVED.json').read_text())
           assert coverage['hasAllTenCityEventGroups'] is False
-          assert coverage['sampleCountsByEvent']['tithi']==1
-          assert coverage['sampleCountsByEvent']['karana']==2
-          assert coverage['sampleCountsByEvent']['nakshatra']==1
-          assert coverage['sampleCountsByEvent']['yoga']==1
+          assert coverage['sampleCountsByEvent']['tithi']==0
+          assert coverage['sampleCountsByEvent']['karana']==0
+          assert coverage['sampleCountsByEvent']['nakshatra']==0
+          assert coverage['sampleCountsByEvent']['yoga']==0
           assert coverage['publicationAuthorized'] is False
+          assert coverage['quarantinedObservationCount']==5
           triage=json.loads(pathlib.Path('engine/artifacts/delhi-2026-10-21-discrepancy-triage-UNAPPROVED.json').read_text())
           assert triage['sampleCount']==7
           assert triage['overallMethodAccuracyCertified'] is False
           assert triage['publicationAuthorized'] is False
           assert report['sampleCount']==7
-          print('OBSERVED NUMERICAL ERRORS (research-only):')
+          assert report['sourceLocationQuarantinedCount']==5
+          assert report['sourceLocationQualifiedCount']==2
+          print('RAW NUMERICAL ERRORS - 5 of 7 source locations QUARANTINED, NOT SCIENTIFICALLY COMPARABLE:')
           for item in report['comparisons']:
             print(f"{item['cityId']} {item['localDate']} {item['kind']}: model={item['calculatedUtc']} reference={item['referenceUtc']} signed_error_seconds={item['signedErrorSeconds']} abs_error_seconds={item['absoluteErrorSeconds']} reference_resolution_seconds={item['referencePrecisionSeconds']}")
-          for kind, metrics in report['metricsByKind'].items():
+          for kind, metrics in report['metricsByKindQualifiedSourceOnly'].items():
             print(f"AGGREGATE {kind}: {metrics}")
           assert report['coverageCityDays']==1
           assert set(report['metricsByKind'])=={'sunrise','sunset','tithi','karana','nakshatra','yoga'}
@@ -179,6 +207,7 @@ jobs:
         with:
           name: delhi-solar-reference-benchmark-UNAPPROVED
           path: |
+            engine/artifacts/delhi-external-geoname-quarantine-UNAPPROVED.json
             engine/artifacts/delhi-2026-10-21-reference-errors-UNAPPROVED.json
             engine/artifacts/delhi-first-day-dossier-UNAPPROVED.json
             engine/artifacts/delhi-first-day-review-checklist-UNAPPROVED.md
