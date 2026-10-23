@@ -4,7 +4,7 @@
  * D1 insertion does NOT equal scientific verification: HMAC checked at usage.
  */
 import {runGroundedDayBatch} from './grounded-day-runner.mjs';
-import {verifySciencePack,canonical} from './grounded-day-editorial.mjs';
+import {verifySciencePack} from './grounded-day-editorial.mjs';
 
 const CREATE_FACTS=`CREATE TABLE IF NOT EXISTS science_approved_day_sources (
   city_id TEXT NOT NULL,
@@ -99,6 +99,28 @@ export function durableDayStore(env){
   }
  };
 }
+export async function recentGroundedDayCorpus(env){
+ const rows=(await env.DB.prepare(
+  "SELECT city_id,local_date,r2_key FROM science_locked_editorial_once "+
+  "WHERE state='stored' AND r2_key IS NOT NULL "+
+  "ORDER BY created_at DESC LIMIT 100").all()).results||[];
+ const existing=[];
+ for(const item of rows){
+  if(typeof item.r2_key!=='string'||
+     !item.r2_key.startsWith('unapproved/grounded-day/'))throw Error('Corrupt private editorial reference');
+  const obj=await env.CANDIDATES.get(item.r2_key);
+  if(!obj)throw Error('Previous private draft missing; cannot check distinctiveness');
+  const raw=await obj.text();
+  if(raw.length>35000)throw Error('Prior AI draft exceeds safe limit');
+  const record=JSON.parse(raw);
+  if(record.cityId!==item.city_id||record.date!==item.local_date||
+     record.publicationAuthorized!==false||record.indexingAuthorized!==false)
+    throw Error('Previous editorial artifact identity invalid');
+  if(record.editorial&&record.reviewStatus==='NEEDS_HUMAN_EDITOR_REVIEW')
+    existing.push({cityId:record.cityId,date:record.date,draft:record.editorial});
+ }
+ return existing;
+}
 export async function autoGroundedDaily(env,transport=fetch){
  if(env?.AUTO_FACTUAL_DAILY_EDITORIAL_ENABLED!=='true')
   return {status:'disabled-opt-in',attempted:0,publicationAuthorized:false};
@@ -109,7 +131,11 @@ export async function autoGroundedDaily(env,transport=fetch){
    "SELECT COUNT(*) AS n FROM science_locked_editorial_once "+
    "WHERE created_at >= strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 day')"
  ).first();
- const attempted=Number(row?.n||0);
+ const cityHub=await env.DB.prepare(
+   "SELECT COUNT(*) AS n FROM editorial_one_shot WHERE requested_by=? "+
+   "AND created_at >= strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 day')"
+ ).bind('panchavani-cron@internal').first();
+ const attempted=Number(row?.n||0)+Number(cityHub?.n||0);
  const room=Math.max(0,3-attempted);
  if(room===0)return {status:'daily-paid-attempt-cap',attempted:0,publicationAuthorized:false};
  const signed=await loadReviewedDayPacks(env,env.PANCHAVANI_SCIENCE_APPROVAL_SECRET,{limit:room});
@@ -117,7 +143,7 @@ export async function autoGroundedDaily(env,transport=fetch){
  const result=await runGroundedDayBatch({
   packs:signed,scientificApprovalSecret:env.PANCHAVANI_SCIENCE_APPROVAL_SECRET,
   apiKey:env.DEEPSEEK_API_KEY,maxRequests:room,
-  store:durableDayStore(env),existing:[],transport
+  store:durableDayStore(env),existing:await recentGroundedDayCorpus(env),transport
  });
  return {status:'private-draft-run',attempted:result.attempted,generated:result.generated,
   rejected:result.rejected,publicationAuthorized:false};
