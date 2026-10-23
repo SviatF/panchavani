@@ -25,9 +25,9 @@ function sample(cityId='delhi',date='2026-10-21'){
       [{name:p[kind],startUtc:start,endUtc:end}]])),
    cityFacts:[
      {id:'city-geo-source',cityId,statement:'The selected reference location is the observer point for the local sunrise used on this specific calendar day, with geodata supplied by an independent geographic source.',
-      sourceUrl:'https://example.org/geographic-reference',sourceReferenceIds:['synthetic-source-1']},
+      sourceUrl:'https://www.nplindia.org/clockcode/html/',sourceReferenceIds:['synthetic-source-1']},
      {id:'city-method-source',cityId,statement:'This city date must be read using the stated sunrise convention and an accurately converted India Standard Time clock, with separate civil and solar-day boundaries.',
-      sourceUrl:'https://example.org/calendar-method',sourceReferenceIds:['synthetic-source-2']}
+      sourceUrl:'https://www.timeanddate.com/sun/india/new-delhi',sourceReferenceIds:['synthetic-source-2']}
    ],festivalApproved:false,vratApproved:false,muhuratApproved:false,
    publicationAuthorized:false,indexingAuthorized:false,
    approval:{algorithm:'HMAC-SHA256',signature:'0'.repeat(64)}};
