@@ -35,7 +35,8 @@ def inputs():
        "benchmark":{"artifactType":"PANCHAVANI_REFERENCE_ACCURACY_BENCHMARK",
                     "status":"UNAPPROVED_COMPARISON","scientificApproval":False,
                     "publicationAuthorized":False,"indexingAuthorized":False,
-                    "sampleCount":7,"comparisons":refs},
+                    "sampleCount":7,"sourceLocationQualifiedCount":2,
+                    "sourceLocationQuarantinedCount":5,"comparisons":refs},
        "coverage":{"artifactType":"PANCHAVANI_REFERENCE_EVIDENCE_COVERAGE",
                    "hasAllTenCityEventGroups":False,"publicationAuthorized":False},
        "triage":{"artifactType":"PANCHAVANI_REFERENCE_DISCREPANCY_TRIAGE",
@@ -55,10 +56,12 @@ def inputs():
 class DelhiFirstDayReviewTests(unittest.TestCase):
     def test_complete_private_dossier(self):
         report=make_dossier(**inputs())
-        self.assertTrue(report["readinessForHumanFactCheck"])
+        self.assertFalse(report["readinessForHumanFactCheck"])
+        self.assertEqual(report["status"],"QUARANTINED_LOCATION_MISMATCH")
+        self.assertEqual(report["sourceLocationQuarantinedCount"],5)
         self.assertEqual(len(report["independentPublisherMeasurements"]),7)
         self.assertEqual(report["panchang"]["tithi"],"Dashami")
-        self.assertTrue(all(x["dateAndCityInUri"] for x in report["sourceIdentityChecks"]))
+        self.assertEqual(sum(x["dateAndCityInUri"] for x in report["sourceIdentityChecks"]),2)
         self.assertFalse(report["scientificApproval"])
         self.assertFalse(report["publicationAuthorized"])
         self.assertFalse(report["indexingAuthorized"])
@@ -66,12 +69,17 @@ class DelhiFirstDayReviewTests(unittest.TestCase):
         self.assertIn("No public daily URL",markdown(report))
     def test_undated_or_wrong_city_external_page_is_rejected(self):
         for altered in (DRIK.replace("&date=21%2F10%2F2026",""),
-                        DRIK.replace("934657","9999"),
                         DRIK.replace("21%2F10%2F2026","22%2F10%2F2026")):
             data=inputs()
             data["benchmark"]["comparisons"][2]["sourceUrl"]=altered
             with self.subTest(altered=altered),self.assertRaises(ValueError):
                 make_dossier(**data)
+    def test_non_delhi_observer_remains_quarantined(self):
+        from panchavani.source_geo_identity import classify_external_source
+        output=classify_external_source("Drik Panchang",DRIK,"delhi","2026-10-21")
+        self.assertFalse(output["sourceLocationQualifiedForDelhi"])
+        self.assertEqual(output["status"],"QUARANTINED_NON_DELHI_GEONAME")
+
     def test_forged_approval_fails_closed(self):
         for component,field in (("batch","publicationAuthorized"),
                                 ("benchmark","scientificApproval"),
