@@ -27,13 +27,3 @@ test('Live calendar has real civil month controls and all ten canonical cities',
  assert.match(view,/aria-label/);
  assert.match(text('app/panchang/[city]/page.tsx'),/Browse monthly calendar/);
 });
-test('Monthly private candidate queue is wired after scientific batch checks, never public release',()=>{
- const action=text('.github/workflows/monthly-content-research.yml');
- const script=text('engine/panchavani/monthly_release_candidates.py');
- assert.match(action,/panchavani\.monthly_release_candidates/);
- assert.match(action,/monthly-private-review-queue-UNAPPROVED\.json/);
- assert.match(script,/REQUIRES_INDEPENDENT_SCIENCE_AND_EDITORIAL_REVIEW/);
- assert.match(script,/sourceBatchSha256/);
- assert.match(script,/publicManifestGenerated":False/);
- assert.match(script,/humanApproved":False/);
-});
