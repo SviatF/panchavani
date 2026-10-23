@@ -21,6 +21,7 @@ def assess_coverage(report:dict)->dict:
     coverage={city:{event:0 for event in EVENTS} for city in CITIES}
     dates=set()
     precision_counts={"upToMinuteOrCoarser":0,"FinerThanOneMinute":0}
+    invalid_geography=[]
     for x in comparisons:
         city=x.get("cityId")
         event=x.get("kind")
@@ -33,8 +34,12 @@ def assess_coverage(report:dict)->dict:
         duration=x.get("referencePrecisionSeconds")
         if type(duration) not in (int,float) or not 0<duration<=3600:
             raise ValueError("Unstated reference resolution")
-        coverage[city][event]+=1
-        dates.add((city,x.get("localDate")))
+        if x.get("sourceLocationQualifiedForDelhi") is True:
+            coverage[city][event]+=1
+            dates.add((city,x.get("localDate")))
+        else:
+            invalid_geography.append({"cityId":city,"kind":event,
+                                      "reason":x.get("sourceLocationStatus","NO_SOURCE_IDENTITY_PROOF")})
         precision_counts["upToMinuteOrCoarser" if duration>=60 else "FinerThanOneMinute"]+=1
     counts={event:sum(coverage[city][event] for city in CITIES) for event in EVENTS}
     missing=[{"cityId":city,"missingKinds":[event for event in EVENTS if coverage[city][event]==0]}
@@ -43,6 +48,8 @@ def assess_coverage(report:dict)->dict:
             "status":"INCOMPLETE_SCIENTIFIC_EVIDENCE",
             "cityCoverage":coverage,"sampleCountsByEvent":counts,
             "cityDaysCovered":len(dates),"missingCityEventGroups":missing,
+            "quarantinedObservationCount":len(invalid_geography),
+            "quarantinedObservations":invalid_geography,
             "sourcePrecisionCounts":precision_counts,
             "hasAllTenCityEventGroups":not missing,
             "independentScientificApproval":False,
