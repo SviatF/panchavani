@@ -4,6 +4,8 @@ import type {Metadata} from 'next';
 import {ArrowRight,ArrowLeft,BookOpen,Check,Compass,Info} from 'lucide-react';
 import {ASSET,sectionData} from '@/lib/site';
 import {sectionExperience} from '@/lib/section-experience';
+import {CalendarExplorer} from '@/components/calendar-explorer';
+import {approvedCityDays} from '@/lib/public-panchang';
 
 type Section=keyof typeof sectionExperience;
 type Props={params:Promise<{section:string}>};
@@ -29,6 +31,10 @@ export default async function SectionPage({params}:Props){
  if(!isSection(section))notFound();
  const config=sectionData[section];
  const content=sectionExperience[section];
+ const istParts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit'}).formatToParts(new Date());
+ const year=istParts.find(x=>x.type==='year')?.value;
+ const month=istParts.find(x=>x.type==='month')?.value;
+ const initialMonth=year+'-'+month;
  return <div className="interior-page editorial-hub">
   <header className="interior-hero" style={{
    backgroundImage:`linear-gradient(90deg,rgba(5,9,15,.96),rgba(7,10,15,.82) 47%,rgba(7,10,15,.32)),url('${ASSET(config.image)}')`
@@ -43,6 +49,7 @@ export default async function SectionPage({params}:Props){
   </header>
   <div className="page-width editorial-layout">
    <div className="editorial-main">
+    {section==='calendar'&&<CalendarExplorer allApproved={approvedCityDays()} initialMonth={initialMonth}/>}
     <section className="editorial-intro-block" aria-labelledby="reading-question">
      <p className="section-eyebrow">START HERE</p>
      <h2 id="reading-question">{content.question}</h2>

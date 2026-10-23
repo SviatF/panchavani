@@ -37,7 +37,7 @@ export default async function CityPanchang({params}:Props){
   <p className="verified-intro">{guide.tagline}</p>
   <section className="editorial-city-release" aria-labelledby="city-dates-title">
    <div className="editorial-city-release-header">
-    <div><p className="section-eyebrow">DAILY PANCHANG</p><h2 id="city-dates-title">Choose a date</h2></div>
+    <div><p className="section-eyebrow">DAILY PANCHANG</p><h2 id="city-dates-title">Choose a date</h2><Link href="/calendar/" className="editorial-cal-link">Browse monthly calendar →</Link></div>
     <span className={releases.length?'editorial-data-tag is-available':'editorial-data-tag'}>
      {releases.length?`${releases.length} reviewed dates`:'No reviewed dates yet'}
     </span>
