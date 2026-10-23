@@ -10,7 +10,7 @@ import argparse
 import json
 from datetime import datetime
 from pathlib import Path
-from .first_six_limb_pilot import KINDS,TEN_CITY_IDS,verify_six_limb_record
+from .first_six_limb_pilot import KINDS,TEN_CITY_IDS,verify_six_limb_record,verify_batch
 from .monthly_content_pipeline import batch_starts,month_days
 from .validation_matrix import cross_city_utc_invariance
 
