@@ -179,6 +179,7 @@ const baseWorker = {
       research:result.queue?.status,queued:result.queue?.queued||0,
       ingest:result.ingest?.status,ingested:result.ingest?.stored||0,
       editorial:result.draft?.status,attempted:result.draft?.attempted||0,
+      signedDaily:result.daily?.status||'disabled',dailyAttempts:result.daily?.attempted||0,
       forensicsStatus:forensics.status,
       unresolvedCityCount:forensics.unresolvedCityCount??null,
       publishingAuthorized:false

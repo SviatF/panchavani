@@ -67,10 +67,18 @@ export function durableDayStore(env){
    const [city,day,language,hash,...extra]=key.split('/');
    if(extra.length||!isDate(day)||language!=='en'||!isSha(hash)||
       hash!==sourceHash)throw Error('Invalid paid one-shot reserve key');
+   // Concurrency-safe paid-call budget: atomically claim one out of three
+   // rolling-24h slots IN THE SAME INSERT. A preflight COUNT is insufficient
+   // under overlapping scheduled Worker invocations.
    const inserted=await env.DB.prepare(
     "INSERT OR IGNORE INTO science_locked_editorial_once "+
     "(city_id,local_date,language,source_hash,token,state) "+
-    "VALUES (?,?,?,?,?,'reserved')").bind(city,day,language,hash,crypto.randomUUID()).run();
+    "SELECT ?,?,?,?,?,'reserved' WHERE "+
+    "(SELECT COUNT(*) FROM science_locked_editorial_once "+
+    " WHERE created_at >= strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 day')) + "+
+    "(SELECT COUNT(*) FROM editorial_one_shot WHERE requested_by=? "+
+    " AND created_at >= strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 day')) < 3"
+   ).bind(city,day,language,hash,crypto.randomUUID(),'panchavani-cron@internal').run();
    return inserted.meta?.changes===1;
   },
   async save(key,result){
@@ -103,7 +111,7 @@ export async function recentGroundedDayCorpus(env){
  const rows=(await env.DB.prepare(
   "SELECT city_id,local_date,r2_key FROM science_locked_editorial_once "+
   "WHERE state='stored' AND r2_key IS NOT NULL "+
-  "ORDER BY created_at DESC LIMIT 100").all()).results||[];
+  "ORDER BY created_at DESC LIMIT 300").all()).results||[];
  const existing=[];
  for(const item of rows){
   if(typeof item.r2_key!=='string'||
@@ -116,7 +124,7 @@ export async function recentGroundedDayCorpus(env){
   if(record.cityId!==item.city_id||record.date!==item.local_date||
      record.publicationAuthorized!==false||record.indexingAuthorized!==false)
     throw Error('Previous editorial artifact identity invalid');
-  if(record.editorial&&record.reviewStatus==='NEEDS_HUMAN_EDITOR_REVIEW')
+  if(record.editorial&&['NEEDS_HUMAN_EDITOR_REVIEW','REJECTED_EDITORIAL_DRAFT'].includes(record.reviewStatus))
     existing.push({cityId:record.cityId,date:record.date,draft:record.editorial});
  }
  return existing;
