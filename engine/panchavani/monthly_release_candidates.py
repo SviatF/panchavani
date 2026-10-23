@@ -81,7 +81,8 @@ def build_review_queue(report:dict, inputs:list[tuple[str,dict,str,dict,str]])->
         packet,batch_sha,qa_sha,max_error=original[(city,day)]
         row=synopsis[(city,day)]
         if (row["sunrisePanchang"]!=packet["panchangAtSunrise"]
-            or row["modeledSunriseIST"].split("+")[0][:16]==""
+            or not isinstance(row["modeledSunriseIST"],str)
+            or len(row["modeledSunriseIST"])<20
             or row["scienceMethodVerified"] is not False
             or row["publicReaderValueReviewPassed"] is not False
             or row["publicationAuthorized"] is not False):
