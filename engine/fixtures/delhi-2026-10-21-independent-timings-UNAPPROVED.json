@@ -43,7 +43,7 @@
       "precisionSeconds": 60,
       "source": {
         "provider": "Drik Panchang",
-        "url": "https://www.drikpanchang.com/panchang/day-panchang.html?geoname-id=934657",
+        "url": "https://www.drikpanchang.com/panchang/day-panchang.html?geoname-id=934657&date=21%2F10%2F2026&time-format=24plushour",
         "method": "New Delhi day Panchang, October 21 2026, Lahiri-type publisher convention not independently matched to project research ayanamsha; source displays local end time rounded to minute; Dashami ends 14:11 IST",
         "retrievedAt": "2026-10-20T22:30:00Z"
       }
@@ -58,7 +58,7 @@
       "precisionSeconds": 60,
       "source": {
         "provider": "Drik Panchang",
-        "url": "https://www.drikpanchang.com/panchang/day-panchang.html?geoname-id=934657",
+        "url": "https://www.drikpanchang.com/panchang/day-panchang.html?geoname-id=934657&date=21%2F10%2F2026&time-format=24plushour",
         "method": "New Delhi day Panchang, October 21 2026, Lahiri-type publisher convention not independently matched to project research ayanamsha; source displays local end time rounded to minute; Garaja ends 14:11 IST",
         "retrievedAt": "2026-10-20T22:30:00Z"
       }
@@ -73,7 +73,7 @@
       "precisionSeconds": 60,
       "source": {
         "provider": "Drik Panchang",
-        "url": "https://www.drikpanchang.com/panchang/day-panchang.html?geoname-id=934657",
+        "url": "https://www.drikpanchang.com/panchang/day-panchang.html?geoname-id=934657&date=21%2F10%2F2026&time-format=24plushour",
         "method": "New Delhi day Panchang, October 21 2026, Lahiri-type publisher convention not independently matched to project research ayanamsha; source displays local end time rounded to minute; Dhanishtha ends 19:47 IST",
         "retrievedAt": "2026-10-20T22:30:00Z"
       }
@@ -88,7 +88,7 @@
       "precisionSeconds": 60,
       "source": {
         "provider": "Drik Panchang",
-        "url": "https://www.drikpanchang.com/panchang/day-panchang.html?geoname-id=934657",
+        "url": "https://www.drikpanchang.com/panchang/day-panchang.html?geoname-id=934657&date=21%2F10%2F2026&time-format=24plushour",
         "method": "New Delhi day Panchang, October 21 2026, Lahiri-type publisher convention not independently matched to project research ayanamsha; source displays local end time rounded to minute; Ganda ends at 00:33 IST October 22",
         "retrievedAt": "2026-10-20T22:30:00Z"
       }
@@ -103,7 +103,7 @@
       "precisionSeconds": 60,
       "source": {
         "provider": "Drik Panchang",
-        "url": "https://www.drikpanchang.com/panchang/day-panchang.html?geoname-id=934657",
+        "url": "https://www.drikpanchang.com/panchang/day-panchang.html?geoname-id=934657&date=21%2F10%2F2026&time-format=24plushour",
         "method": "New Delhi day Panchang, October 21 2026, Lahiri-type publisher convention not independently matched to project research ayanamsha; source displays local end time rounded to minute; Vanija ends at 02:35 IST October 22",
         "retrievedAt": "2026-10-20T22:30:00Z"
       }
