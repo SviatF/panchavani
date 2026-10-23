@@ -14,8 +14,12 @@ on:
       - '.github/workflows/monthly-content-research.yml'
       - 'engine/panchavani/monthly_content_pipeline.py'
       - 'engine/tests/test_monthly_content_pipeline.py'
+      - 'engine/panchavani/monthly_science_continuity.py'
+      - 'engine/tests/test_monthly_science_continuity.py'
       - 'engine/panchavani/monthly_release_candidates.py'
       - 'engine/tests/test_monthly_release_candidates.py'
+      - 'engine/panchavani/monthly_science_continuity.py'
+      - 'engine/tests/test_monthly_science_continuity.py'
   pull_request:
     paths:
       - '.github/workflows/monthly-content-research.yml'
@@ -40,6 +44,7 @@ jobs:
           cd engine
           python -m unittest discover -s tests -p 'test_monthly_content_pipeline.py' -v
           python -m unittest discover -s tests -p 'test_monthly_release_candidates.py' -v
+          python -m unittest discover -s tests -p 'test_monthly_science_continuity.py' -v
           python -m unittest discover -s tests -p 'test_ten_city_six_limb_research.py' -v
           python -m unittest discover -s tests -p 'test_swiss_exact_phase_roots.py' -v
           python -m unittest discover -s tests -p 'test_nightly_accuracy_gate.py' -v
@@ -121,6 +126,14 @@ jobs:
             --batches-dir engine/artifacts/monthly-batches \
             --out engine/artifacts/monthly-content-UNAPPROVED.json \
             --briefs-dir engine/artifacts/monthly-private-briefs
+      - name: Check complete month cross-cohort geography, dawns and lunar layers
+        env:
+          RESEARCH_MONTH: ${{ steps.month.outputs.value }}
+        run: |
+          PYTHONPATH=engine python -m panchavani.monthly_science_continuity \
+            --month "$RESEARCH_MONTH" \
+            --batches-dir engine/artifacts/monthly-batches \
+            --out engine/artifacts/monthly-continuity-UNAPPROVED.json
       - name: Build private review-ready shapes from immutable JPL packets (NEVER approved)
         run: |
           PYTHONPATH=engine python -m panchavani.monthly_release_candidates \
@@ -148,6 +161,13 @@ jobs:
           queue=json.loads((root/'monthly-private-review-queue-UNAPPROVED.json').read_text())
           assert queue['cityDays']==10*count and len(queue['reviewCandidates'])==10*count
           assert queue['eligibilityForPublicRelease']==0 and queue['publicManifestGenerated'] is False
+          audit=json.loads((root/'monthly-continuity-UNAPPROVED.json').read_text())
+          assert audit==queue['fullMonthStructuralAudit']
+          assert audit['checkedCityDays']==10*count
+          assert audit['checkedNeighboringSolarDays']==10*(count-1)
+          assert audit['checkedAdjacentFourLimbBoundaries']==40*(count-1)
+          assert audit['scientificApproval'] is False
+          assert audit['publicationAuthorized'] is False
           assert queue['publicationAuthorized'] is False and queue['indexingAuthorized'] is False
           assert all(row['humanApproved'] is False and row['publicApprovedRecord'] is False for row in queue['reviewCandidates'])
           for key in ('publicationAuthorized','indexingAuthorized','modelInvocationAuthorized','scientificApproval','muhuratRecommendationsAuthorized'):
@@ -185,6 +205,7 @@ jobs:
           path: |
             engine/artifacts/monthly-content-UNAPPROVED.json
             engine/artifacts/monthly-private-review-queue-UNAPPROVED.json
+            engine/artifacts/monthly-continuity-UNAPPROVED.json
             engine/artifacts/monthly-private-briefs/
             engine/artifacts/monthly-qa/
           retention-days: 30
