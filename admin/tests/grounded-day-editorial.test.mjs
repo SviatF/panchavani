@@ -56,7 +56,7 @@ test('cryptographic independent scientific permission is necessary and immutable
  assert.deepEqual(factpackIssues(a),[]);
  await assert.doesNotReject(()=>verifySciencePack(a,SECRET));
  await assert.rejects(()=>verifySciencePack(a,'wrong-secret-which-is-long-but-cannot-pass-signature'),/signature mismatch/);
- a.sun.sunriseUtc='2026-10-21T00:56:00Z';
+ a.cityFacts[0].statement+=' Additional signed-only note.';
  await assert.rejects(()=>verifySciencePack(a,SECRET),/signature mismatch/);
 });
 test('rejects fake astronomical release, missing origin and broken phases',()=>{
