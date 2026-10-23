@@ -14,6 +14,8 @@ on:
       - '.github/workflows/monthly-content-research.yml'
       - 'engine/panchavani/monthly_content_pipeline.py'
       - 'engine/tests/test_monthly_content_pipeline.py'
+      - 'engine/panchavani/monthly_release_candidates.py'
+      - 'engine/tests/test_monthly_release_candidates.py'
   pull_request:
     paths:
       - '.github/workflows/monthly-content-research.yml'
@@ -37,6 +39,7 @@ jobs:
         run: |
           cd engine
           python -m unittest discover -s tests -p 'test_monthly_content_pipeline.py' -v
+          python -m unittest discover -s tests -p 'test_monthly_release_candidates.py' -v
           python -m unittest discover -s tests -p 'test_ten_city_six_limb_research.py' -v
           python -m unittest discover -s tests -p 'test_swiss_exact_phase_roots.py' -v
           python -m unittest discover -s tests -p 'test_nightly_accuracy_gate.py' -v
@@ -118,6 +121,13 @@ jobs:
             --batches-dir engine/artifacts/monthly-batches \
             --out engine/artifacts/monthly-content-UNAPPROVED.json \
             --briefs-dir engine/artifacts/monthly-private-briefs
+      - name: Build private review-ready shapes from immutable JPL packets (NEVER approved)
+        run: |
+          PYTHONPATH=engine python -m panchavani.monthly_release_candidates \
+            --month-report engine/artifacts/monthly-content-UNAPPROVED.json \
+            --batches-dir engine/artifacts/monthly-batches \
+            --qa-dir engine/artifacts/monthly-qa \
+            --out engine/artifacts/monthly-private-review-queue-UNAPPROVED.json
       - name: Enforce complete coverage, independent numerical gate and zero SEO publication
         env:
           RESEARCH_MONTH: ${{ steps.month.outputs.value }}
@@ -135,6 +145,11 @@ jobs:
           assert report['sourceBatches'] and len(report['sourceBatches'])==(count+1)//2
           assert report['eligibleIndexableUrls']==0 and report['publicPagesCreated']==0
           assert report['aiDraftsCreated']==0 and report['approvedClaimsForDeepSeek']==[]
+          queue=json.loads((root/'monthly-private-review-queue-UNAPPROVED.json').read_text())
+          assert queue['cityDays']==10*count and len(queue['reviewCandidates'])==10*count
+          assert queue['eligibilityForPublicRelease']==0 and queue['publicManifestGenerated'] is False
+          assert queue['publicationAuthorized'] is False and queue['indexingAuthorized'] is False
+          assert all(row['humanApproved'] is False and row['publicApprovedRecord'] is False for row in queue['reviewCandidates'])
           for key in ('publicationAuthorized','indexingAuthorized','modelInvocationAuthorized','scientificApproval','muhuratRecommendationsAuthorized'):
               assert report[key] is False,key
           for row in report['records']:
@@ -169,6 +184,7 @@ jobs:
           name: panchavani-next-month-content-UNAPPROVED
           path: |
             engine/artifacts/monthly-content-UNAPPROVED.json
+            engine/artifacts/monthly-private-review-queue-UNAPPROVED.json
             engine/artifacts/monthly-private-briefs/
             engine/artifacts/monthly-qa/
           retention-days: 30
