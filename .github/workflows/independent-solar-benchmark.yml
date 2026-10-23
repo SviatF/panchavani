@@ -15,6 +15,8 @@ on:
       - 'engine/panchavani/reference_discrepancy.py'
       - 'engine/tests/test_reference_discrepancy.py'
       - 'engine/fixtures/delhi-2026-10-21-independent-timings-UNAPPROVED.json'
+      - 'engine/panchavani/delhi_first_release_dossier.py'
+      - 'engine/tests/test_delhi_first_release_dossier.py'
   pull_request:
     paths:
       - '.github/workflows/independent-solar-benchmark.yml'
@@ -33,6 +35,7 @@ jobs:
       - name: Test external evidence coverage safeguards
         run: |
           cd engine
+          python -m unittest discover -s tests -p 'test_delhi_first_release_dossier.py' -v
           python -m unittest discover -s tests -p 'test_reference_coverage.py' -v
           python -m unittest discover -s tests -p 'test_reference_discrepancy.py' -v
           python -m unittest discover -s tests -p 'test_lahiri_reference.py' -v
@@ -106,6 +109,35 @@ jobs:
           PYTHONPATH=engine python -m panchavani.reference_discrepancy \
             --benchmark engine/artifacts/delhi-2026-10-21-reference-errors-UNAPPROVED.json \
             --out engine/artifacts/delhi-2026-10-21-discrepancy-triage-UNAPPROVED.json
+      - name: Build first independent Delhi day reviewer dossier (NOT PUBLIC)
+        run: |
+          PYTHONPATH=engine python -m panchavani.delhi_first_release_dossier \
+            --batch engine/artifacts/solar-benchmark-source-UNAPPROVED.json \
+            --benchmark engine/artifacts/delhi-2026-10-21-reference-errors-UNAPPROVED.json \
+            --coverage engine/artifacts/delhi-2026-10-21-coverage-UNAPPROVED.json \
+            --triage engine/artifacts/delhi-2026-10-21-discrepancy-triage-UNAPPROVED.json \
+            --swiss engine/artifacts/swiss-exact-sidereal-roots-UNAPPROVED.json \
+            --out-json engine/artifacts/delhi-first-day-dossier-UNAPPROVED.json \
+            --out-md engine/artifacts/delhi-first-day-review-checklist-UNAPPROVED.md
+      - name: Verify review evidence never escapes into public publication
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          path=Path('engine/artifacts/delhi-first-day-dossier-UNAPPROVED.json')
+          d=json.loads(path.read_text())
+          assert d['cityId']=='delhi' and d['date']=='2026-10-21'
+          assert d['status']=='HUMAN_REVIEW_REQUIRED'
+          assert d['readinessForHumanFactCheck'] is True
+          assert d['publicPagesCreated']==0
+          assert d['publicationAuthorized'] is False
+          assert d['indexingAuthorized'] is False
+          assert d['scientificApproval'] is False
+          assert d['approvedClaimsForDeepSeek']==[]
+          assert len(d['independentPublisherMeasurements'])==7
+          assert d['unresolvedBlockers']
+          print('Delhi evidence dossier ready for independent human review, not public release')
+          PY
       - name: Assert expected provenance and fail-closed status
         run: |
           python - <<'PY'
@@ -148,6 +180,8 @@ jobs:
           name: delhi-solar-reference-benchmark-UNAPPROVED
           path: |
             engine/artifacts/delhi-2026-10-21-reference-errors-UNAPPROVED.json
+            engine/artifacts/delhi-first-day-dossier-UNAPPROVED.json
+            engine/artifacts/delhi-first-day-review-checklist-UNAPPROVED.md
             engine/artifacts/delhi-2026-10-21-coverage-UNAPPROVED.json
             engine/artifacts/delhi-2026-10-21-discrepancy-triage-UNAPPROVED.json
             engine/artifacts/lahiri-independent-comparison-UNAPPROVED.json
