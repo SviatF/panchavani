@@ -119,6 +119,9 @@ def audit_from_batches(month:str,batches:list[dict])->dict:
             or batch.get("cityCount")!=len(TEN_CITY_IDS)
             or len(batch.get("records",[]))!=2*len(TEN_CITY_IDS)):
             raise ValueError("Untrusted batch source")
+        checked=verify_batch(batch["records"],TEN_CITY_IDS)
+        if checked["localDateFrom"]!=start:
+            raise ValueError("Reordered or mislabeled two-day cohort: "+start)
         for x in batch["records"]:
             if x.get("localDate","").startswith(month+"-"):
                 rows.append(x)
