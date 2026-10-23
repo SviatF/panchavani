@@ -11,6 +11,7 @@ import json
 from pathlib import Path
 from .monthly_content_pipeline import batch_starts, month_days, ARTIFACT, FAIL_CLOSED
 from .first_six_limb_pilot import TEN_CITY_IDS, KINDS, verify_batch, verify_six_limb_record
+from .monthly_science_continuity import audit_full_month
 
 def sha_bytes(content:bytes)->str:
     return hashlib.sha256(content).hexdigest()
@@ -82,6 +83,7 @@ def build_review_queue(report:dict, inputs:list[tuple[str,dict,str,dict,str]])->
     synopsis={(x["cityId"],x["localDate"]):x for x in report["records"]}
     if set(synopsis)!=expected:
         raise ValueError("Monthly synopsis fails coverage")
+    integrity=audit_full_month(month,[record[0] for record in original.values()])
     queue=[]
     for city,day in sorted(expected):
         packet,batch_sha,qa_sha,max_error=original[(city,day)]
@@ -117,6 +119,7 @@ def build_review_queue(report:dict, inputs:list[tuple[str,dict,str,dict,str]])->
         "status":"UNAPPROVED_RESEARCH_ONLY",
         "month":month,"cityCount":10,"cityDays":len(queue),
         "reviewCandidates":queue,
+        "fullMonthStructuralAudit":integrity,
         "eligibilityForPublicRelease":0,"deepseekReady":False,
         "independentScientificApproval":False,
         "publicManifestGenerated":False,
