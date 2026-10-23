@@ -8,7 +8,8 @@ def report():
             "muhuratRecommendationsAuthorized":False,"sampleCount":2,
             "comparisons":[
                 {"cityId":"delhi","localDate":"2026-10-21","kind":kind,
-                 "referencePrecisionSeconds":60,"independentlyVerified":False}
+                 "referencePrecisionSeconds":60,"independentlyVerified":False,
+                 "sourceLocationQualifiedForDelhi":True}
                 for kind in ("sunrise","sunset")]}
 
 class CoverageTests(unittest.TestCase):
