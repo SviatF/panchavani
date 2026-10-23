@@ -63,6 +63,12 @@ def build_review_queue(report:dict, inputs:list[tuple[str,dict,str,dict,str]])->
             raise ValueError("QA artifact SHA-256 missing")
         for packet in batch["records"]:
             verify_six_limb_record(packet,TEN_CITY_IDS)
+            if (packet.get("methodology",{}).get("siderealMethodIndependentlyCalibrated") is not False
+                or packet.get("cityReference",{}).get("coordinatesVerified") is not False
+                or not isinstance(packet.get("blockers"),list)
+                or not packet["blockers"]
+                or not all(isinstance(reason,str) and len(reason)>=12 for reason in packet["blockers"])):
+                raise ValueError("Candidate must retain real unresolved science and location blockers")
             day=packet["localDate"]
             if not day.startswith(month+"-"):
                 continue
