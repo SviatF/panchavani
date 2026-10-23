@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse,hashlib,json
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import urlsplit,parse_qs
+from .source_geo_identity import classify_external_source
 from zoneinfo import ZoneInfo
 
 DAY="2026-10-21"
@@ -22,23 +22,13 @@ def _hash(v):
         separators=(",",":")).encode()).hexdigest()
 
 def check_reference_origin(item):
-    """Explicit source city/date URI, not a browser-cookie dependent Today view."""
-    p=urlsplit(item["sourceUrl"])
-    q=parse_qs(p.query)
-    _ok(p.scheme=="https","Source URLs require HTTPS")
-    if item["sourceProvider"]=="Drik Panchang":
-        _ok(p.netloc=="www.drikpanchang.com"
-            and p.path=="/panchang/day-panchang.html"
-            and q.get("date")==["21/10/2026"]
-            and q.get("geoname-id")==["934657"],
-            "Drik URI must pin Delhi location and 21 October 2026")
-    elif item["sourceProvider"]=="Timeanddate":
-        _ok(p.netloc=="www.timeanddate.com" and p.path=="/sun/india/new-delhi"
-            and q.get("month")==["10"] and q.get("year")==["2026"],
-            "Timeanddate URI must specify New Delhi October 2026")
-    else:raise ValueError("Unrecognised source provider")
-    return {"provider":item["sourceProvider"],"uri":item["sourceUrl"],
-            "dateAndCityInUri":True,"publisherConventionVerified":False}
+    result=classify_external_source(item['sourceProvider'],item['sourceUrl'],
+                                    item['cityId'],item['localDate'])
+    return {'provider':item['sourceProvider'],'uri':item['sourceUrl'],
+            'dateAndCityInUri':result['sourceLocationQualifiedForDelhi'],
+            'sourceLocationQualifiedForDelhi':result['sourceLocationQualifiedForDelhi'],
+            'sourceLocationStatus':result['status'],
+            'publisherConventionVerified':False}
 
 def make_dossier(batch,benchmark,coverage,triage,swiss):
     _ok(batch.get("artifactType")=="PANCHAVANI_TEN_CITY_SIX_LIMB_RESEARCH_BATCH"
@@ -94,6 +84,12 @@ def make_dossier(batch,benchmark,coverage,triage,swiss):
     _ok(all(x.get("referencePrecisionSeconds")==60 for x in refs),
         "Source minute-level display precision lost")
     provenance=[check_reference_origin(x) for x in refs]
+    qualified=[x for x in provenance if x['sourceLocationQualifiedForDelhi']]
+    quarantined=[x for x in provenance if not x['sourceLocationQualifiedForDelhi']]
+    _ok(len(quarantined)==benchmark.get('sourceLocationQuarantinedCount'),
+        'Source geolocation quarantine count does not match benchmark')
+    _ok(len(qualified)==benchmark.get('sourceLocationQualifiedCount'),
+        'Qualified source count does not match benchmark')
     _ok(coverage.get("artifactType")=="PANCHAVANI_REFERENCE_EVIDENCE_COVERAGE"
         and coverage.get("hasAllTenCityEventGroups") is False
         and coverage.get("publicationAuthorized") is False,
@@ -116,21 +112,26 @@ def make_dossier(batch,benchmark,coverage,triage,swiss):
         and all(x["independentTimingAgreementApproved"] is False for x in swiss_checks),
         "Both unapproved Swiss phase crossing checks required")
     pending=list(dict.fromkeys(record["blockers"]+[
+        "CRITICAL: Drik GeoNames ID 934657 is not Delhi; recapture all affected limb timestamps from a verified Delhi source.",
         "Resolve external clock-time precision and source observer convention",
         "Reconcile coordinates, elevation, refraction and Lahiri definition",
         "Record named independent scientific and editorial sign-offs",
         "Festival, Vrat and Muhurat traditions remain separately unapproved"]))
     return {
         "artifactType":"PANCHAVANI_DELHI_FIRST_DAY_EVIDENCE_DOSSIER",
-        "status":"HUMAN_REVIEW_REQUIRED","cityId":"delhi","date":DAY,
+        "status":"QUARANTINED_LOCATION_MISMATCH" if quarantined else "HUMAN_REVIEW_REQUIRED",
+        "sourceLocationQuarantinedCount":len(quarantined),
+        "sourceLocationQualifiedCount":len(qualified),
+        "cityId":"delhi","date":DAY,
         "sourceResearchSha256":_hash(record),
         "benchmarkSha256":_hash(benchmark),
         "sun":sun,"panchang":limbs,"phaseCrossings":sorted(edges,key=lambda x:x["modelUtc"]),
         "independentPublisherMeasurements":refs,"sourceIdentityChecks":provenance,
+        "sourceQualifiedPublisherMeasurements":[r for r,p in zip(refs,provenance) if p["sourceLocationQualifiedForDelhi"]],
         "swissResearchCrossings":swiss_checks,
         "maximumSwissDiscrepancySeconds":max(x["absoluteDifferenceSeconds"] for x in swiss_checks),
         "unresolvedBlockers":pending,"independentReviewer":None,"editorialReviewer":None,
-        "readinessForHumanFactCheck":True,"scientificApproval":False,
+        "readinessForHumanFactCheck":not bool(quarantined),"scientificApproval":False,
         "ritualEligibilityApproved":False,"publicationAuthorized":False,
         "muhuratRecommendationsAuthorized":False,"indexingAuthorized":False,
         "approvedClaimsForDeepSeek":[],"publicPagesCreated":0
@@ -139,7 +140,7 @@ def make_dossier(batch,benchmark,coverage,triage,swiss):
 def markdown(report):
     p=report["panchang"]
     lines=["# Delhi Panchang — 21 October 2026","",
-        "**PRIVATE INDEPENDENT REVIEW · NOT APPROVED FOR INDEXING OR CALENDAR ADVICE**","",
+        "**PRIVATE GEO-QUARANTINED RESEARCH · NO DELHI SCIENCE APPROVAL · DO NOT PUBLISH**","",
         "## Modeled Panchang at local sunrise","",
         "| Element | Research result |","|---|---|"]
     lines += [f"| {name.title()} | {p[name]} |" for name in
@@ -157,7 +158,7 @@ def markdown(report):
         "|---|---|---|---|---:|"]
     lines += [f"| {x['kind']} | {x['sourceProvider']} | {x['referenceUtc']} | {x['calculatedUtc']} | {x['absoluteErrorSeconds']} |"
               for x in report["independentPublisherMeasurements"]]
-    lines += ["","## Source URLs (date pinned, actual observer convention not yet approved)",""]
+    lines += ["","## Source URLs (5 Drik entries have the WRONG GEO ID; quarantine required)",""]
     lines += [f"- [{x['provider']}]({x['uri']})" for x in
               {x["uri"]:x for x in report["sourceIdentityChecks"]}.values()]
     lines += ["","## Outstanding reviews",""]

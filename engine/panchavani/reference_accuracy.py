@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from statistics import mean
 from .sourced_muhurat_rules import validate_research_grid
+from .source_geo_identity import classify_external_source
 
 KINDS = {"sunrise", "sunset", "following-sunrise", "tithi", "karana", "nakshatra", "yoga"}
 LIMBS = {"tithi", "karana", "nakshatra", "yoga"}
@@ -53,6 +54,7 @@ def benchmark(grid, references):
              "No finite reference sample cohort")
     output=[]
     groups=defaultdict(list)
+    qualified_groups=defaultdict(list)
     seen=set()
     for index,sample in enumerate(samples):
         _require(isinstance(sample,dict),"Invalid reference row")
@@ -103,6 +105,13 @@ def benchmark(grid, references):
         seen.add(identity)
         delta=(calculated-reference).total_seconds()
         _require(math.isfinite(delta),"Non-finite reference delta")
+        if source["provider"] in ("Drik Panchang","Timeanddate"):
+            identity_geo=classify_external_source(source["provider"],source["url"],city,day)
+            source_ok=identity_geo["sourceLocationQualifiedForDelhi"]
+            source_status=identity_geo["status"]
+        else:
+            source_ok=False
+            source_status="UNMAPPED_EXTERNAL_SOURCE_NOT_EVIDENCE"
         result={"cityId":city,"localDate":day,"kind":kind,
                 "eventKey":event_key if kind in LIMBS else None,
                 "expectedNumber":sample.get("expectedNumber") if kind in LIMBS else None,
@@ -113,9 +122,12 @@ def benchmark(grid, references):
                 "absoluteErrorSeconds":round(abs(delta),6),
                 "referencePrecisionSeconds":precision,
                 "withinDisplayPrecision":abs(delta)<=precision,
+                "sourceLocationQualifiedForDelhi":source_ok,
+                "sourceLocationStatus":source_status,
                 "independentlyVerified":False}
         output.append(result)
         groups[kind].append(abs(delta))
+        if source_ok:qualified_groups[kind].append(abs(delta))
     return {"artifactType":"PANCHAVANI_REFERENCE_ACCURACY_BENCHMARK",
             "schemaVersion":1,"status":"UNAPPROVED_COMPARISON",
             "gridSourceBatchSha256":grid["sourceBatchSha256"],
@@ -123,11 +135,15 @@ def benchmark(grid, references):
                  separators=(",",":"),ensure_ascii=False).encode()).hexdigest(),
             "sampleCount":len(output),"coverageCityDays":len({(r["cityId"],r["localDate"]) for r in output}),
             "metricsByKind":{k:_metrics(v) for k,v in sorted(groups.items())},
+            "metricsByKindQualifiedSourceOnly":{k:_metrics(v) for k,v in sorted(qualified_groups.items())},
+            "sourceLocationQualifiedCount":sum(x["sourceLocationQualifiedForDelhi"] for x in output),
+            "sourceLocationQuarantinedCount":sum(not x["sourceLocationQualifiedForDelhi"] for x in output),
+            "invalidReferenceEventsExcludedFromCertification":True,
             "comparisons":output,
             "scientificApproval":False,"muhuratRecommendationsAuthorized":False,
             "approvedClaimsForDeepSeek":[],"publicationAuthorized":False,
             "indexingAuthorized":False,
-            "note":"Measurement only. This cannot validate astronomical convention, rule eligibility, or external provider authenticity."}
+            "note":"Raw numerical comparison may include quarantined non-Delhi source records. Only source-location-qualified metrics can be used in future scientific review; no method certification is provided."}
 
 def main():
     parser=argparse.ArgumentParser()

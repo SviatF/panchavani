@@ -5,7 +5,7 @@
   "scientificApproval": false,
   "publicationAuthorized": false,
   "indexingAuthorized": false,
-  "captureNote": "New Delhi 2026-10-21: two Timeanddate solar observations and five Drik Panchang limb-end observations, all displayed at minute precision, with independently unvalidated ayanamsha/observer convention.",
+  "captureNote": "CRITICAL GEO QUARANTINE: Five legacy Drik reference observations point to GeoNames 934657 (Camp Sonah, Mauritius), NOT Delhi. Previous city/date labels and reference timing residuals are scientifically nonqualifying. Keep original timestamps only as a forensic record. Delhi GeoNames ID 1273294; New Delhi 1261481. Recollect actual Delhi-source timings independently before approval.",
   "samples": [
     {
       "cityId": "delhi",
@@ -17,7 +17,8 @@
         "provider": "Timeanddate",
         "url": "https://www.timeanddate.com/sun/india/new-delhi?month=10&year=2026",
         "method": "Published New Delhi sunrise at 06:25 IST, refracted apparent solar horizon; original display to minute",
-        "retrievedAt": "2026-10-20T22:30:00Z"
+        "retrievedAt": "2026-10-20T22:30:00Z",
+        "locationStatus": "NAMED_NEW_DELHI_METHOD_UNREVIEWED"
       }
     },
     {
@@ -30,7 +31,8 @@
         "provider": "Timeanddate",
         "url": "https://www.timeanddate.com/sun/india/new-delhi?month=10&year=2026",
         "method": "Published New Delhi sunset at 17:45 IST, refracted apparent solar horizon; original display to minute",
-        "retrievedAt": "2026-10-20T22:30:00Z"
+        "retrievedAt": "2026-10-20T22:30:00Z",
+        "locationStatus": "NAMED_NEW_DELHI_METHOD_UNREVIEWED"
       }
     },
     {
@@ -44,8 +46,9 @@
       "source": {
         "provider": "Drik Panchang",
         "url": "https://www.drikpanchang.com/panchang/day-panchang.html?geoname-id=934657&date=21%2F10%2F2026&time-format=24plushour",
-        "method": "New Delhi day Panchang, October 21 2026, Lahiri-type publisher convention not independently matched to project research ayanamsha; source displays local end time rounded to minute; Dashami ends 14:11 IST",
-        "retrievedAt": "2026-10-20T22:30:00Z"
+        "method": "LEGACY CAPTURE CLAIMED DELHI BUT URL GEO ID 934657 IS NOT DELHI. UNQUALIFIED FOR SCIENTIFIC COMPARISON. Historical claimed timing: New Delhi day Panchang, October 21 2026, Lahiri-type publisher convention not independently matched to project research ayanamsha; source displays local end time rounded to minute; Dashami ends 14:11 IST",
+        "retrievedAt": "2026-10-20T22:30:00Z",
+        "locationStatus": "QUARANTINED_NON_DELHI_ID"
       }
     },
     {
@@ -59,8 +62,9 @@
       "source": {
         "provider": "Drik Panchang",
         "url": "https://www.drikpanchang.com/panchang/day-panchang.html?geoname-id=934657&date=21%2F10%2F2026&time-format=24plushour",
-        "method": "New Delhi day Panchang, October 21 2026, Lahiri-type publisher convention not independently matched to project research ayanamsha; source displays local end time rounded to minute; Garaja ends 14:11 IST",
-        "retrievedAt": "2026-10-20T22:30:00Z"
+        "method": "LEGACY CAPTURE CLAIMED DELHI BUT URL GEO ID 934657 IS NOT DELHI. UNQUALIFIED FOR SCIENTIFIC COMPARISON. Historical claimed timing: New Delhi day Panchang, October 21 2026, Lahiri-type publisher convention not independently matched to project research ayanamsha; source displays local end time rounded to minute; Garaja ends 14:11 IST",
+        "retrievedAt": "2026-10-20T22:30:00Z",
+        "locationStatus": "QUARANTINED_NON_DELHI_ID"
       }
     },
     {
@@ -74,8 +78,9 @@
       "source": {
         "provider": "Drik Panchang",
         "url": "https://www.drikpanchang.com/panchang/day-panchang.html?geoname-id=934657&date=21%2F10%2F2026&time-format=24plushour",
-        "method": "New Delhi day Panchang, October 21 2026, Lahiri-type publisher convention not independently matched to project research ayanamsha; source displays local end time rounded to minute; Dhanishtha ends 19:47 IST",
-        "retrievedAt": "2026-10-20T22:30:00Z"
+        "method": "LEGACY CAPTURE CLAIMED DELHI BUT URL GEO ID 934657 IS NOT DELHI. UNQUALIFIED FOR SCIENTIFIC COMPARISON. Historical claimed timing: New Delhi day Panchang, October 21 2026, Lahiri-type publisher convention not independently matched to project research ayanamsha; source displays local end time rounded to minute; Dhanishtha ends 19:47 IST",
+        "retrievedAt": "2026-10-20T22:30:00Z",
+        "locationStatus": "QUARANTINED_NON_DELHI_ID"
       }
     },
     {
@@ -89,8 +94,9 @@
       "source": {
         "provider": "Drik Panchang",
         "url": "https://www.drikpanchang.com/panchang/day-panchang.html?geoname-id=934657&date=21%2F10%2F2026&time-format=24plushour",
-        "method": "New Delhi day Panchang, October 21 2026, Lahiri-type publisher convention not independently matched to project research ayanamsha; source displays local end time rounded to minute; Ganda ends at 00:33 IST October 22",
-        "retrievedAt": "2026-10-20T22:30:00Z"
+        "method": "LEGACY CAPTURE CLAIMED DELHI BUT URL GEO ID 934657 IS NOT DELHI. UNQUALIFIED FOR SCIENTIFIC COMPARISON. Historical claimed timing: New Delhi day Panchang, October 21 2026, Lahiri-type publisher convention not independently matched to project research ayanamsha; source displays local end time rounded to minute; Ganda ends at 00:33 IST October 22",
+        "retrievedAt": "2026-10-20T22:30:00Z",
+        "locationStatus": "QUARANTINED_NON_DELHI_ID"
       }
     },
     {
@@ -104,9 +110,16 @@
       "source": {
         "provider": "Drik Panchang",
         "url": "https://www.drikpanchang.com/panchang/day-panchang.html?geoname-id=934657&date=21%2F10%2F2026&time-format=24plushour",
-        "method": "New Delhi day Panchang, October 21 2026, Lahiri-type publisher convention not independently matched to project research ayanamsha; source displays local end time rounded to minute; Vanija ends at 02:35 IST October 22",
-        "retrievedAt": "2026-10-20T22:30:00Z"
+        "method": "LEGACY CAPTURE CLAIMED DELHI BUT URL GEO ID 934657 IS NOT DELHI. UNQUALIFIED FOR SCIENTIFIC COMPARISON. Historical claimed timing: New Delhi day Panchang, October 21 2026, Lahiri-type publisher convention not independently matched to project research ayanamsha; source displays local end time rounded to minute; Vanija ends at 02:35 IST October 22",
+        "retrievedAt": "2026-10-20T22:30:00Z",
+        "locationStatus": "QUARANTINED_NON_DELHI_ID"
       }
     }
+  ],
+  "sourceLocationValidation": "QUARANTINED_5_OF_7_WRONG_GEONAME",
+  "locationEvidence": [
+    "https://www.drikpanchang.com/location/panchang-location-details.html?geoname-id=1273294",
+    "https://www.geonames.org/1261481/new-delhi.html",
+    "https://www.geonames.org/934657/"
   ]
 }
