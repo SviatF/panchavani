@@ -81,13 +81,13 @@ function issues(pack){
  if(!Array.isArray(facts)||facts.length<2||new Set(facts.map(x=>x?.id)).size!==facts.length||
     facts.some(x=>!object(x)||!text(x.id)||!text(x.statement)||
       x.statement.length<50||x.cityId!==pack.cityId||!url(x.sourceUrl)||
-      /(?:example\.com|localhost|127\.0\.0\.1)/.test(x.sourceUrl)||
+      /(?:example\.(?:com|org|net)|localhost|127\.0\.0\.1)/.test(x.sourceUrl)||
       !Array.isArray(x.sourceReferenceIds)||x.sourceReferenceIds.length<1))
     bad.push("missing-grounded-city-facts");
  if(pack.festivalApproved!==false||pack.vratApproved!==false||
     pack.muhuratApproved!==false||pack.publicationAuthorized!==false||
     pack.indexingAuthorized!==false||!object(pack.approval)||
-    !sha(pack.approval.signature))
+    !sha(pack.approval.signature)||pack.approval.algorithm!=="HMAC-SHA256")
     bad.push("incorrect-release-or-authenticity-claims");
  return [...new Set(bad)];
 }
