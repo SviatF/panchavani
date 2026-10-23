@@ -36,7 +36,7 @@ test('D1 paid reservation claims one of three daily credits with an atomic INSER
  const sqls=[],bindings=[];
  const env={
   DB:{prepare(sql){sqls.push(sql);return {bind(...args){
-   bindings.push(args);return {async run(){return {meta:{changes:1}}}};};
+   bindings.push(args);return {run:async()=>({meta:{changes:1}})};
   }}},
   CANDIDATES:{put:async()=>{throw Error('Not used in reserve')}}
  };
