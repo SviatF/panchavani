@@ -80,3 +80,22 @@ def audit_reference_fixture(fixture:dict)->dict:
             "independentScienceApproved":False,"publicationAuthorized":False,
             "indexingAuthorized":False,
             "requiredRemediation":"Recapture limb transition times from correctly pinned Delhi/New Delhi source before interpreting minute discrepancies."}
+
+def main():
+    import argparse,json
+    from pathlib import Path
+    parser=argparse.ArgumentParser()
+    parser.add_argument("--references",type=Path,required=True)
+    parser.add_argument("--out",type=Path,required=True)
+    args=parser.parse_args()
+    report=audit_reference_fixture(json.loads(args.references.read_text()))
+    args.out.parent.mkdir(parents=True,exist_ok=True)
+    with args.out.open("x",encoding="utf-8") as out:
+        json.dump(report,out,indent=2,ensure_ascii=False)
+        out.write("\n")
+    print("EXTERNAL SOURCE LOCATION AUDIT:",report["status"])
+    print("GEO-ID QUARANTINED:",report["quarantinedObserverIdCount"])
+    print("DELHI PANCHANG PUBLISHING AUTHORIZED:",report["publicationAuthorized"])
+
+if __name__=="__main__":
+    main()
