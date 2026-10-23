@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {webcrypto} from 'node:crypto';
+import {runGroundedDayBatch} from '../src/grounded-day-runner.mjs';
 import {
  canonical,verifySciencePack,factpackIssues,scienceFacts,editorialPrompt,
  auditProse,buildPrivateDraft,similarity
@@ -120,4 +121,90 @@ test('recognizes city-swapped articles and identical city/date duplicate',()=>{
     draft:prose('Mumbai')}]).includes('near-duplicate-narration-across-city-days'));
  assert.ok(auditProse(draft,p,[{cityId:'delhi',date:'2026-10-21',
     draft:prose()}]).includes('duplicate-city-day-generation'));
+});
+
+test('fact-locked daily runner enforces zero default spending, one-shot and human review',async()=>{
+ const pack=await sign(sample());
+ const slots=new Map(),transportCalls=[];
+ const store={
+  async reserve(key){if(slots.has(key))return false;slots.set(key,{reserved:true});return true;},
+  async save(key,result){if(!slots.get(key)?.reserved)throw Error('Unreserved');slots.set(key,result);}
+ };
+ const transport=async (url,options)=>{
+  transportCalls.push({url,body:JSON.parse(options.body)});
+  return {ok:true,status:200,text:async()=>JSON.stringify({model:'deepseek-chat',
+    choices:[{finish_reason:'stop',message:{content:JSON.stringify(prose())}}],
+    usage:{prompt_tokens:300,completion_tokens:200}})};
+ };
+ const skipped=await runGroundedDayBatch({
+  packs:[pack],scientificApprovalSecret:SECRET,apiKey:'test-api-key-synthetic',
+  store,transport
+ });
+ assert.equal(skipped.attempted,0);
+ assert.equal(skipped.skippedBudget,1);
+ assert.equal(transportCalls.length,0);
+ const output=await runGroundedDayBatch({
+  packs:[pack],scientificApprovalSecret:SECRET,apiKey:'test-api-key-synthetic',
+  maxRequests:1,store,transport
+ });
+ assert.equal(output.attempted,1);
+ assert.equal(output.generated,1);
+ assert.equal(transportCalls.length,1);
+ assert.equal(transportCalls[0].body.response_format.type,'json_object');
+ assert.equal(transportCalls[0].body.stream,false);
+ assert.ok([...slots.values()].some(x=>x.reviewStatus==='NEEDS_HUMAN_EDITOR_REVIEW'));
+ assert.ok([...slots.values()].every(x=>x.publicationAuthorized===false));
+ const repeat=await runGroundedDayBatch({
+  packs:[pack],scientificApprovalSecret:SECRET,apiKey:'test-api-key-synthetic',
+  maxRequests:1,store,transport
+ });
+ assert.equal(repeat.skippedOneShot,1);
+ assert.equal(transportCalls.length,1);
+});
+test('invalid science evidence never calls paid model or durable slot',async()=>{
+ const pack=await sign(sample());
+ pack.sun.sunsetUtc='2026-10-21T12:30:00Z';
+ let calls=0;
+ const store={reserve:async()=>{calls++;return true;},save:async()=>{}};
+ await assert.rejects(runGroundedDayBatch({
+  packs:[pack],scientificApprovalSecret:SECRET,maxRequests:1,
+  apiKey:'test-api-key-synthetic',store,
+  transport:async()=>{calls++;throw Error('must not happen');}
+ }));
+ assert.equal(calls,0);
+});
+test('hallucinated numeric DeepSeek response is one-shot rejected and never published',async()=>{
+ const pack=await sign(sample());
+ const store={
+  seen:false,saved:null,
+  async reserve(){if(this.seen)return false;this.seen=true;return true;},
+  async save(_key,value){this.saved=value;}
+ };
+ const out=await runGroundedDayBatch({
+  packs:[pack],scientificApprovalSecret:SECRET,apiKey:'test-api-key-synthetic',
+  maxRequests:1,store,
+  transport:async()=>({ok:true,text:async()=>JSON.stringify({
+   choices:[{finish_reason:'stop',message:{content:JSON.stringify({
+     ...prose(),localExplanation:prose().localExplanation+' At 07:31 it changes.'
+   })}}]})})
+ });
+ assert.equal(out.rejected,1);
+ assert.equal(store.saved.reviewStatus,'REJECTED_EDITORIAL_DRAFT');
+ assert.ok(store.saved.qualityIssues.includes('ai-cannot-supply-dates-or-numbers'));
+ assert.equal(store.saved.publicationAuthorized,false);
+});
+test('source event outline changes with signed astronomical transition data',()=>{
+ const first=sample();
+ const second=sample();
+ // Split one verified Yoga interval at midnight, retaining continuity.
+ second.transitions.yoga=[
+  {name:'Ganda',startUtc:'2026-10-21T00:55:00Z',endUtc:'2026-10-21T16:00:00Z'},
+  {name:'Vriddhi',startUtc:'2026-10-21T16:00:00Z',endUtc:'2026-10-22T00:55:00Z'}
+ ];
+ assert.deepEqual(factpackIssues(second),[]);
+ const a=editorialPrompt(first)[1].content;
+ const b=editorialPrompt(second)[1].content;
+ assert.notEqual(a,b);
+ assert.match(b,/between sunset and the following sunrise/);
+ assert.ok(!b.includes('16:00'));
 });
