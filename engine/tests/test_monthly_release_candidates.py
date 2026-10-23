@@ -15,6 +15,8 @@ def cohort_data():
     summaries=[]
     for start in batch_starts(MONTH):
         batch=ten_city_research_batch(date.fromisoformat(start))
+        for item in batch['records']:
+            item['blockers']=['Scientific calendar conventions remain independently unverified']
         data=json.dumps(batch,sort_keys=True).encode()
         sha=hashlib.sha256(data).hexdigest()
         qa={
