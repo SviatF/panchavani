@@ -130,9 +130,21 @@ export function editorialPrompt(pack){
  const facts=scienceFacts(pack);
  // Do NOT send numeric timings or lunar labels: deterministic presentation owns
  // these fields. The model receives only a topical angle and cited city facts.
+ const outline=facts.events.map((event,index)=>({
+  sequence:index+1,component:event.kind,
+  solarPeriod:Date.parse(event.timeUtc)<Date.parse(pack.sun.sunsetUtc)?
+    "between sunrise and sunset":"between sunset and the following sunrise"
+ }));
+ const byKind=Object.fromEntries(KINDS.map(k=>[k,outline.filter(x=>x.component===k).length]));
  const background={
   city:facts.city,cityId:pack.cityId,intent:"daily-panchang",
-  specificQuestion:"How should a reader interpret this city's sunrise-based calendar day?",
+  specificQuestion:"Which of this day's four lunar components changes relative to the city's solar day, and how should a reader check it?",
+  dayPattern:{
+   sequenceOfVerifiedLimbTransitions:outline,
+   componentTransitionCounts:byKind,
+   transitionCount:outline.length,
+   firstChangedComponent:outline[0]?.component||"none during this solar day"
+  },
   sourceFacts:facts.references,
   allowedFactIds:facts.references.map(x=>x.id)
  };
@@ -145,7 +157,7 @@ export function editorialPrompt(pack){
    "name, festival day, fasting date, ceremony advice, invented quotation, source URL "+
    "or uncited local custom. Numerical astronomical values are injected by code "+
    "after generation. Restrict factual geography/local claims to sourceFacts. "+
-   "Use the city name in localExplanation. Address how readers compare a local "+
+   "Use this day's verified dayPattern for a distinct practical explanation and question. Never infer a missing transition. Use the city name in localExplanation. Address how readers compare a local "+
    "sunrise to a known astronomical transition without claiming one causes "+
    "another. Write a focused practical question and answer. "+
    "Opening/localExplanation/readerAnswer should be different paragraphs "+
