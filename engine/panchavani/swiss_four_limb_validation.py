@@ -10,7 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
-from datetime import datetime,timedelta
+from datetime import datetime,timedelta,timezone
 from pathlib import Path
 from .first_six_limb_pilot import KINDS,TEN_CITY_IDS,verify_batch
 from .swiss_exact_phase_roots import utc,solve as solve_sidereal,signed_phase_error
@@ -18,10 +18,17 @@ from .swiss_exact_phase_roots import utc,solve as solve_sidereal,signed_phase_er
 WIDTH={"tithi":12.0,"karana":6.0,"nakshatra":360/27,"yoga":360/27}
 REQUIRED_EPH=("sepl_18.se1","semo_18.se1")
 
+def as_utc(value):
+    if isinstance(value,datetime):
+        if value.utcoffset() is None:
+            raise ValueError("Offset-aware datetime required")
+        return value.astimezone(timezone.utc)
+    return utc(value)
+
 def tropical_phase(swe,instant,kind):
     if kind not in ("tithi","karana"):
         raise ValueError("Swiss tropical elongation is only for Tithi and Karana")
-    t=utc(instant)
+    t=as_utc(instant)
     h=t.hour+t.minute/60+t.second/3600+t.microsecond/3.6e9
     jd=swe.julday(t.year,t.month,t.day,h)
     flags=swe.FLG_SWIEPH
@@ -39,7 +46,7 @@ def solve_tropical(swe,approx,kind,ending_number):
     if type(ending_number) is not int or not 1<=ending_number<=maximum:
         raise ValueError("Invalid lunar phase ending number")
     target=(ending_number%maximum)*width
-    lo,hi=utc(approx)-timedelta(hours=2),utc(approx)+timedelta(hours=2)
+    lo,hi=as_utc(approx)-timedelta(hours=2),as_utc(approx)+timedelta(hours=2)
     f=lambda timestamp:signed_phase_error(tropical_phase(swe,timestamp,kind),target)
     left,right=f(lo),f(hi)
     if not(-10<left<0<right<10):
