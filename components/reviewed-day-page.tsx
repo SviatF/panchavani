@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import {isIndexableApprovedCityDay} from '@/lib/seo-release-manifest';
 import {notFound} from 'next/navigation';
 import type {Metadata} from 'next';
 import {ArrowLeft,CalendarDays,Clock3,ShieldCheck} from 'lucide-react';
@@ -22,8 +23,8 @@ export function reviewedDayMetadata(city:string,date:string):Metadata{
   title:title(name,date),
   description:`Reviewed ${name} Panchang for ${date}: sunrise ${indiaTime(approved.sun.sunriseUtc)} IST, Tithi ${approved.panchang.tithi}, Nakshatra ${approved.panchang.nakshatra} and local calendar context.`,
   alternates:{canonical:`https://panchavani.com/panchang/${city}/${date}/`},
-  // Indexing requires the independent per-page SEO release manifest.
-  robots:{index:false,follow:false}
+  // SEO has a distinct per-URL reviewer and immutable release SHA.
+  robots:{index:isIndexableApprovedCityDay(city,date),follow:isIndexableApprovedCityDay(city,date)}
  };
 }
 export function ReviewedDayPage({city,date}:{city:string;date:string}){
