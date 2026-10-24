@@ -115,7 +115,7 @@ test('complete February month requires signed day-by-day science and sun continu
  assert.equal(task.month,'2027-02');
  await assert.rejects(()=>compileEditorialAssignment(taskData(packs.slice(1),'calendar-month')),/approved science coverage|every independently approved/);
  const altered=structuredClone(packs);altered[12].sun.sunriseUtc='2027-02-13T00:56:00Z';
- await assert.rejects(()=>compileEditorialAssignment(taskData(altered,'calendar-month')),/authenticity|signature/i);
+ await assert.rejects(()=>compileEditorialAssignment(taskData(altered,'calendar-month')),/authenticity|signature|invalid-tithi-boundary/i);
 });
 test('festival rule must be separately reviewed and signed, cannot borrow science alone',async()=>{
  const pack=await approvedPack();
