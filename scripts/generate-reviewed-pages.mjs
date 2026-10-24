@@ -6,10 +6,12 @@ import {readFile,writeFile,rm,mkdir} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import path from 'node:path';
 import {assessFirstRelease} from './approved-day-value-gate.mjs';
+import {validateSeoDayRelease} from '../lib/seo-day-release-policy.mjs';
 
 const root=process.cwd();
 const file=path.join(root,'data','approved-panchang.json');
 const manifest=path.join(root,'app','panchang','.generated-reviewed-day-paths.json');
+const seoManifest=path.join(root,'data','approved-seo-days.json');
 const validDay=value=>typeof value==='string'&&/^20\d{2}-\d{2}-\d{2}$/.test(value)&&
  !Number.isNaN(Date.parse(value+'T12:00:00Z'))&&
  new Date(value+'T12:00:00Z').toISOString().slice(0,10)===value;
@@ -32,6 +34,12 @@ if(payload.records.length){
   throw Error('City/day evidence and uniqueness gate failed: '+
    JSON.stringify(quality.rows.filter(x=>x.issues.length)));
 }
+// The daily SEO allowlist is separately approved, not inferred from data.
+const seo=JSON.parse(await readFile(seoManifest,'utf8'));
+const indexable=validateSeoDayRelease(
+ seo,payload.records,process.env.PANCHAVANI_APPROVED_SEO_RELEASE_SHA256
+);
+console.log('PANCHAVANI independently approved SEO day URLs:',indexable.length);
 const next=new Set();
 for(const record of payload.records){
  if(!safePair(record?.cityId,record?.date)||record?.status!=='approved')

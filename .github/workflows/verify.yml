@@ -58,7 +58,14 @@ jobs:
           from xml.etree import ElementTree
           import json
           names=('delhi','mumbai','kolkata','chennai','bengaluru','hyderabad','ahmedabad','pune','jaipur','varanasi')
-          expected={'https://panchavani.com/panchang/'+city+'/' for city in names}
+          city_urls={'https://panchavani.com/panchang/'+city+'/' for city in names}
+          seo=json.loads(Path('data/approved-seo-days.json').read_text())
+          permit=seo['records']
+          day_paths={'panchang/'+x['cityId']+'/'+x['date']+'/index.html' for x in permit}
+          day_urls={'https://panchavani.com/panchang/'+x['cityId']+'/'+x['date']+'/' for x in permit}
+          assert len(day_paths)==len(permit), 'Duplicate SEO permits'
+          assert seo['releaseStatus']==('HUMAN_APPROVED_DAILY_SEO_PER_URL' if permit else 'NO_APPROVED_DAY_SEO_ROUTES')
+          expected=city_urls|day_urls
           routes=list(Path('out').rglob('*.html'))
           assert routes, 'No static HTML built'
           class Meta(HTMLParser):
@@ -76,15 +83,18 @@ jobs:
           for path in routes:
               p=Meta();p.feed(path.read_text(encoding='utf-8'))
               rel=path.relative_to('out').as_posix()
-              expected_index=rel in {'panchang/'+city+'/index.html' for city in names}
-              if expected_index:
-                  city=rel.split('/')[1]
-                  assert p.canonical==['https://panchavani.com/panchang/'+city+'/'],(rel,p.canonical)
+              is_city=rel in {'panchang/'+city+'/index.html' for city in names}
+              is_day=rel in day_paths
+              if is_city or is_day:
+                  parts=rel.split('/')
+                  uri='https://panchavani.com/'+('/'.join(parts[:-1]))+'/'
+                  assert p.canonical==[uri],(rel,p.canonical)
                   assert len(p.robots)==1 and 'noindex' not in p.robots[0].lower() and 'index' in p.robots[0].lower(),(rel,p.robots)
-                  indexable.add('https://panchavani.com/panchang/'+city+'/')
+                  indexable.add(uri)
               else:
                   assert p.robots and all('noindex' in x.lower() for x in p.robots),(rel,p.robots)
-                  assert not (rel.startswith('panchang/') and rel.count('/')>2), 'Unreviewed daily calendar page leaked: '+rel
+                  if rel.startswith('panchang/') and rel.count('/')>2:
+                      assert not is_day,'Unexpected indexable reviewed-day route'
           assert indexable==expected,(indexable,expected)
           root=ElementTree.parse('out/sitemap.xml').getroot()
           urls={n.text for n in root.iter() if n.tag.endswith('}loc') or n.tag=='loc'}
@@ -92,12 +102,17 @@ jobs:
           assert len(list(root.iter()))>=10
           assert 'sitemap.xml' in Path('out/robots.txt').read_text().lower()
           bundle=json.loads(Path('data/approved-panchang.json').read_text())
-          assert bundle['records']==[] and bundle['releaseStatus']=='NO_APPROVED_RECORDS'
+          if not bundle['records']:
+              assert bundle['releaseStatus']=='NO_APPROVED_RECORDS'
+          approved_pairs={(x['cityId'],x['date']) for x in bundle['records']}
+          assert all((x['cityId'],x['date']) in approved_pairs for x in permit)
           assert len({Path('out/panchang',c,'index.html').read_bytes() for c in names})==10,'Repeated city HTML'
           for c in names:
               text=Path('out/panchang',c,'index.html').read_text().lower()
-              assert c in text and 'daily panchang' in text and 'date-by-date values are in scientific review' in text and 'read the source methods' in text,c
-          print('PASS: exactly 10 educational city URLs index/follow and sitemap, all other HTML noindex, 0 unapproved day pages')
+              assert c in text and 'daily panchang' in text and 'read the source methods' in text,c
+              if not any(r['cityId']==c for r in bundle['records']):
+                  assert 'date-by-date values are in scientific review' in text,c
+          print('PASS: 10 city guides +',len(day_urls),'independently approved day URLs; all other HTML noindex')
           PY
       - name: Reject legacy mocked calendar dates and preview labels in public HTML
         run: |

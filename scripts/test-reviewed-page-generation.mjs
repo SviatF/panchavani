@@ -12,6 +12,7 @@ const digest=raw=>createHash('sha256').update(JSON.stringify(raw)).digest('hex')
 async function temporary(){
  const dir=await mkdtemp(path.join(tmpdir(),'panchavani-reviewed-routes-'));
  await mkdir(path.join(dir,'data'),{recursive:true});
+ await writeFile(path.join(dir,'data','approved-seo-days.json'),JSON.stringify({schemaVersion:1,releaseStatus:'NO_APPROVED_DAY_SEO_ROUTES',records:[]})+'\n');
  await mkdir(path.join(dir,'app','panchang'),{recursive:true});
  return dir;
 }
