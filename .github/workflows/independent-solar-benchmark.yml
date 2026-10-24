@@ -17,6 +17,10 @@ on:
       - 'engine/fixtures/delhi-2026-10-21-independent-timings-UNAPPROVED.json'
       - 'engine/panchavani/delhi_first_release_dossier.py'
       - 'engine/tests/test_delhi_first_release_dossier.py'
+      - 'engine/panchavani/delhi_reference_recovery.py'
+      - 'engine/panchavani/swiss_four_limb_validation.py'
+      - 'engine/tests/test_delhi_reference_recovery.py'
+      - 'engine/fixtures/delhi-2026-10-21-tithi-recapture-UNAPPROVED.json'
       - 'engine/panchavani/source_geo_identity.py'
       - 'engine/tests/test_source_geo_identity.py'
       - 'engine/panchavani/reference_accuracy.py'
@@ -44,6 +48,7 @@ jobs:
       - name: Test external evidence coverage safeguards
         run: |
           cd engine
+          python -m unittest discover -s tests -p 'test_delhi_reference_recovery.py' -v
           python -m unittest discover -s tests -p 'test_source_geo_identity.py' -v
           python -m unittest discover -s tests -p 'test_delhi_first_release_dossier.py' -v
           python -m unittest discover -s tests -p 'test_reference_coverage.py' -v
@@ -117,6 +122,45 @@ jobs:
           PYTHONPATH=engine python -m panchavani.swiss_exact_phase_roots \
             --grid engine/artifacts/solar-benchmark-grid-UNAPPROVED.json \
             --out engine/artifacts/swiss-exact-sidereal-roots-UNAPPROVED.json
+      - name: Independently compare JPL and Swiss Tithi, Karana, Nakshatra, Yoga
+        env:
+          PANCHAVANI_SWISS_EPHE_PATH: /tmp/swiss-ephe
+        run: |
+          PYTHONPATH=engine python -m panchavani.swiss_four_limb_validation \
+            --cities delhi --batch engine/artifacts/solar-benchmark-source-UNAPPROVED.json \
+            --out engine/artifacts/delhi-swiss-all-limbs-UNAPPROVED.json
+      - name: Recover ONE correctly localized Delhi Tithi publisher event
+        run: |
+          PYTHONPATH=engine python -m panchavani.delhi_reference_recovery \
+            --batch engine/artifacts/solar-benchmark-source-UNAPPROVED.json \
+            --observation engine/fixtures/delhi-2026-10-21-tithi-recapture-UNAPPROVED.json \
+            --out engine/artifacts/delhi-tithi-recovery-UNAPPROVED.json
+      - name: Verify independent evidence remains private and not certified
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          base=Path('engine/artifacts')
+          a=json.loads((base/'delhi-swiss-all-limbs-UNAPPROVED.json').read_text())
+          b=json.loads((base/'delhi-tithi-recovery-UNAPPROVED.json').read_text())
+          assert set(a['byKind'])=={'tithi','karana','nakshatra','yoga'}
+          assert a['checkedCityIds']==['delhi'] and a['checkedCityDays']==2
+          assert a['comparisonCount']>0
+          assert a['scientificApproval'] is False
+          assert a['publicationAuthorized'] is False
+          assert a['indexingAuthorized'] is False
+          assert a['approvedClaimsForDeepSeek']==[]
+          assert b['sourceGeoNamesId']=='1261481'
+          assert b['correctLocationPublisherEventCount']==1
+          assert b['originalQuarantinedReferenceCount']==5
+          assert b['remainingUnrecoveredLimbEventCount']==4
+          assert b['sourceReadoutIndependentlySigned'] is False
+          assert b['scientificApproval'] is False
+          assert b['publicationAuthorized'] is False
+          print('SWISS four-layer research diff (not methodology certification)',a['byKind'])
+          print('NEW independent publisher tithi candidate vs JPL (seconds)',b['signedJplMinusPublisherSeconds'])
+          print('NO PUBLIC RELEASE, NO DEEPSEEK FACT CLAIMS')
+          PY
       - name: Compare independently documented solar readings
         run: |
           PYTHONPATH=engine python -m panchavani.reference_accuracy \
@@ -207,6 +251,8 @@ jobs:
         with:
           name: delhi-solar-reference-benchmark-UNAPPROVED
           path: |
+            engine/artifacts/delhi-swiss-all-limbs-UNAPPROVED.json
+            engine/artifacts/delhi-tithi-recovery-UNAPPROVED.json
             engine/artifacts/delhi-external-geoname-quarantine-UNAPPROVED.json
             engine/artifacts/delhi-2026-10-21-reference-errors-UNAPPROVED.json
             engine/artifacts/delhi-first-day-dossier-UNAPPROVED.json
