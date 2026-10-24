@@ -55,8 +55,8 @@ def solve_tropical(swe,approx,kind,ending_number):
     return final
 
 def compare_batch(batch,scope="delhi",swe=None):
-    if not isinstance(batch,dict) or (
-       batch.get("artifactType")!="PANCHAVANI_TEN_CITY_SIX_LIMB_RESEARCH_BATCH") or
+    if (not isinstance(batch,dict) or
+       batch.get("artifactType")!="PANCHAVANI_TEN_CITY_SIX_LIMB_RESEARCH_BATCH" or
        batch.get("scientificApproval") is not False or
        batch.get("publicationAuthorized") is not False or
        batch.get("indexingAuthorized") is not False or
