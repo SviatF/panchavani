@@ -1,0 +1,107 @@
+name: PANCHAVANI controlled 25-city JPL expansion (RESEARCH ONLY)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/expansion-25-city-research.yml'
+      - 'engine/panchavani/first_six_limb_pilot.py'
+      - 'engine/tests/test_twentyfive_city_research.py'
+      - 'engine/catalog/cities.v1.json'
+  workflow_dispatch:
+    inputs:
+      start:
+        description: India-local first research date YYYY-MM-DD
+        type: string
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  scope-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify 25-city scope, no publication, no duplicate dates
+        run: |
+          cd engine
+          python -m unittest discover -s tests -p 'test_twentyfive_city_research.py' -v
+          python -m unittest discover -s tests -p 'test_ten_city_six_limb_research.py' -v
+  private-25-city-research:
+    if: github.event_name == 'workflow_dispatch'
+    needs: scope-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate explicit date and strictly private cohort
+        id: day
+        env:
+          REQUESTED_START: ${{ inputs.start }}
+        run: |
+          python - <<'PY'
+          import os
+          from datetime import date
+          requested=os.environ['REQUESTED_START']
+          day=date.fromisoformat(requested)
+          assert 2020<=day.year<=2099,'Unsupported research date'
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+              f.write('start='+day.isoformat()+'\n')
+          PY
+      - name: Install exact JPL calculation library
+        run: pip install -r engine/requirements.txt
+      - name: Download hash-pinned NASA/JPL DE440s
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --max-time 240 --silent --show-error \
+            https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp \
+            --output /tmp/de440s.bsp
+          echo 'c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2  /tmp/de440s.bsp' | sha256sum --check
+      - name: Compute complete 25-city two-day JPL research, never approve
+        run: |
+          PYTHONPATH=engine python -m panchavani.first_six_limb_pilot \
+            --cities twentyfive --start "${{ steps.day.outputs.start }}" \
+            --ephemeris /tmp/de440s.bsp \
+            --out engine/artifacts/25-city-research-UNAPPROVED.json
+      - name: Assert publication and DeepSeek remain prohibited
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          file=Path('engine/artifacts/25-city-research-UNAPPROVED.json')
+          data=json.loads(file.read_text())
+          assert data['artifactType']=='PANCHAVANI_25_CITY_SIX_LIMB_RESEARCH_BATCH'
+          assert data['status']=='UNAPPROVED_RESEARCH'
+          assert data['cityCount']==25 and len(data['records'])==50
+          assert len(set(x['cityId'] for x in data['records']))==25
+          assert data['scientificApproval'] is False
+          assert data['publicationAuthorized'] is False
+          assert data['indexingAuthorized'] is False
+          assert data['approvedClaimsForDeepSeek']==[]
+          assert all(x['cityReference']['coordinatesVerified'] is False for x in data['records'])
+          assert all(x['scientificApproval'] is False and x['publicReleaseAllowed'] is False
+                     and x['indexingAuthorized'] is False and
+                     x['paidGenerationAuthorized'] is False
+                     and x['approvedClaimsForDeepSeek']==[] for x in data['records'])
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as summary:
+              summary.write('## PANCHAVANI 25-city expansion research\n\n')
+              summary.write('**50 local day records across 25 cities. ALL UNAPPROVED.**\n\n')
+              summary.write('This verifies within-model structure, not independent Lahiri, geolocation, sunrise/horizon or ritual accuracy.\n')
+              summary.write('No SEO page, DeepSeek billable generation or scientific certification was authorized.\n')
+          print('UNAPPROVED 25-CITY SCIENCE CANDIDATES:',len(data['records']))
+          PY
+      - name: Save private sample for geolocation and independent reviewer team
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 25-city-two-day-research-UNAPPROVED
+          path: engine/artifacts/25-city-research-UNAPPROVED.json
+          if-no-files-found: warn
+          retention-days: 14
