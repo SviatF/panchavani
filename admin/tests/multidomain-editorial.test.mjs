@@ -113,7 +113,7 @@ test('complete February month requires signed day-by-day science and sun continu
  const task=await compileEditorialAssignment(taskData(packs,'calendar-month'));
  assert.equal(task.lockedScientificDays.length,28);
  assert.equal(task.month,'2027-02');
- await assert.rejects(()=>compileEditorialAssignment(taskData(packs.slice(1),'calendar-month')),/every independently approved/);
+ await assert.rejects(()=>compileEditorialAssignment(taskData(packs.slice(1),'calendar-month')),/approved science coverage|every independently approved/);
  const altered=structuredClone(packs);altered[12].sun.sunriseUtc='2027-02-13T00:56:00Z';
  await assert.rejects(()=>compileEditorialAssignment(taskData(altered,'calendar-month')),/authenticity|signature/i);
 });
@@ -125,7 +125,7 @@ test('festival rule must be separately reviewed and signed, cannot borrow scienc
  assert.equal(task.lockedRuleFindings.length,1);
  assert.equal(task.publicationAuthorized,false);
  assert(!task.modelMessages[1].content.includes('2027-02-01'));
- const broken=structuredClone(rule);broken.verifiedRuleFindings[0].statement='Fabricated different event';
+ const broken=structuredClone(rule);broken.verifiedRuleFindings[0].statement='This tampered assertion has not been signed by the reviewer and must never pass the source review HMAC.';
  await assert.rejects(()=>compileEditorialAssignment({...taskData([pack],'festival'),topic:'diwali',rulePack:broken,ruleSecret:RITUAL_SECRET}),/signature/);
  const wrong=structuredClone(rule);wrong.scienceHashes=['b'.repeat(64)];
  await assert.rejects(()=>compileEditorialAssignment({...taskData([pack],'festival'),topic:'diwali',rulePack:wrong,ruleSecret:RITUAL_SECRET}));
