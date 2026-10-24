@@ -6,11 +6,14 @@
  * The public sitemap and per-page index/follow derive from this ONE file.
  */
 import guides from '@/data/city-guides.json';
+import seoDays from '@/data/approved-seo-days.json';
+import {approvedCityDays} from '@/lib/public-panchang';
+import {validateSeoDayRelease} from '@/lib/seo-day-release-policy.mjs';
 
 export type ApprovedSeoRoute={
  path:string;
  lastModified:string;
- kind:'educational-evergreen-city-guide';
+ kind:'educational-evergreen-city-guide'|'approved-daily-panchang';
  sourceIds:string[];
 };
 export const FIRST_TEN_CITY_GUIDE_IDS=[
@@ -45,7 +48,13 @@ const approved=FIRST_TEN_CITY_GUIDE_IDS.map(city=>{
   sourceIds:guide.sources.map(s=>s.url)
  });
 });
+export function approvedDailySeoRoutes():ReadonlyArray<ApprovedSeoRoute>{
+ return validateSeoDayRelease(seoDays,approvedCityDays(),process.env.PANCHAVANI_APPROVED_SEO_RELEASE_SHA256);
+}
 export function approvedSeoRoutes():ReadonlyArray<ApprovedSeoRoute>{
- return approved;
+ return [...approved,...approvedDailySeoRoutes()];
+}
+export function isIndexableApprovedCityDay(city:string,date:string):boolean{
+ return approvedDailySeoRoutes().some(x=>x.path==='/panchang/'+city+'/'+date+'/');
 }
 export function isReleasedEvergreenCity(id:string):boolean{return allowed.has(id)}
