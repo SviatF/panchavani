@@ -60,7 +60,7 @@ class SwissAllFourTests(unittest.TestCase):
  class Stub:
   FLG_SWIEPH=2; FLG_MOSEPH=4; FLG_SIDEREAL=64; MOON=1; SUN=0
   SIDM_LAHIRI=1
-  def julday(self,y,m,d,h):return h
+  def julday(self,y,m,d,h):return (datetime(y,m,d,tzinfo=timezone.utc)-datetime(2026,10,21,tzinfo=timezone.utc)).total_seconds()/3600+h
   def calc_ut(self,h,body,flag):return (([12+h] if body==self.MOON else [0]),self.FLG_SWIEPH)
   def set_ephe_path(self,path):pass
   def set_sid_mode(self,*args):pass
