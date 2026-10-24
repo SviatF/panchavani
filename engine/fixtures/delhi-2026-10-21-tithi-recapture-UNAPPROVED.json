@@ -1,0 +1,23 @@
+{
+  "artifactType": "PANCHAVANI_DELHI_SOURCE_RECAPTURE_CANDIDATE",
+  "schemaVersion": 1,
+  "status": "WEB_RENDERED_RESEARCH_UNAPPROVED",
+  "cityId": "delhi",
+  "localDate": "2026-10-21",
+  "sourceUrl": "https://www.drikpanchang.com/festivals/vijayadashami/vijayadashami-date-time.html?geoname-id=1261481&year=2026",
+  "sourceDisplayedCity": "New Delhi, India",
+  "observedSourceHeading": "2026 Vijayadashami, Dussehra date and Puja time for New Delhi, NCT, India",
+  "eventKind": "tithi",
+  "eventKey": "end",
+  "eventName": "Dashami",
+  "expectedEndingNumber": 10,
+  "sourceLocalTime": "2026-10-21T14:11:00+05:30",
+  "referencePrecisionSeconds": 60,
+  "provenanceNote": "Explicit New Delhi GeoNames 1261481 on Drik Panchang festival-specific page; public page states Dashami Tithi Ends at 02:11 PM Oct 21 2026. Observed publicly on 2026-10-24. Not independently archived/signed and publisher observer coordinates and calculation convention are not verified. This is a single recovery candidate, not a 5-event replacement or release approval.",
+  "sourceReadoutIndependentlySigned": false,
+  "publisherCoordinatesVerified": false,
+  "methodConventionReconciled": false,
+  "scientificApproval": false,
+  "publicationAuthorized": false,
+  "indexingAuthorized": false
+}
