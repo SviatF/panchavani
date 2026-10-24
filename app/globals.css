@@ -526,6 +526,28 @@
 .calendar-cell.is-reviewed>span{color:#f0d0a0}
 .calendar-cell small{display:flex;align-items:center;gap:4px;margin-top:auto;
  font-size:10px;color:#afd5af}
+.calendar-day-select{font:inherit;text-align:left;cursor:pointer;transition:background .2s,border-color .2s}
+.calendar-day-select:hover,.calendar-day-select.is-focused{background:#1b2428;border-color:rgba(225,181,110,.68)}
+.calendar-day-select.is-focused strong{color:#f9d795}
+.calendar-local-context{margin-top:18px;padding:clamp(19px,2.5vw,30px);
+ background:linear-gradient(133deg,#191916,#0d161c 70%);border:1px solid rgba(229,180,102,.34);
+ border-radius:12px;color:#c8cdd0}
+.calendar-local-context .section-eyebrow{font-size:10px;letter-spacing:2px;color:#e1bc80}
+.calendar-local-context h3{font:normal clamp(23px,2.5vw,33px)/1.23 var(--font-serif);
+ color:#f2d9aa;margin:13px 0 15px}
+.calendar-local-context p{font-size:13px;line-height:1.8;max-width:950px}
+.calendar-local-context .calendar-local-lead{font-size:14px;color:#e1e0da}
+.calendar-local-question{border-left:2px solid #b18751;padding:2px 0 2px 17px;margin:19px 0}
+.calendar-local-question strong{color:#eed2a4;font-size:14px}
+.calendar-local-question p{margin-bottom:2px}
+.calendar-day-uncertainty{display:flex;align-items:flex-start;gap:8px;
+ border-top:1px solid #5a564a8c;padding-top:14px;color:#c5b694}
+.calendar-day-uncertainty svg{flex:none;color:#deb978;margin-top:4px}
+.calendar-source-links{display:flex;flex-wrap:wrap;gap:11px 23px;padding-top:13px;margin-top:13px;
+ border-top:1px solid #5a564a8c}
+.calendar-source-links a{display:inline-flex;align-items:center;gap:7px;font-size:12px;
+ color:#e3bb82;text-decoration:underline;text-decoration-color:#6b563b;text-underline-offset:4px}
+.calendar-source-links a:hover{color:#ffe5b8}
 .calendar-legend{display:flex;gap:20px;flex-wrap:wrap;margin-top:15px}
 .calendar-legend>span{display:flex;align-items:center;gap:8px;font-size:11px;color:#afb9c0}
 .calendar-key{display:inline-block;width:11px;height:11px;border-radius:3px;
