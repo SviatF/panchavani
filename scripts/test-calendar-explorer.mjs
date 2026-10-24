@@ -27,3 +27,25 @@ test('Live calendar has real civil month controls and all ten canonical cities',
  assert.match(view,/aria-label/);
  assert.match(text('app/panchang/[city]/page.tsx'),/Browse monthly calendar/);
 });
+
+test('Unreviewed dates are useful, selectable civil dates with city-specific sourced guidance, not false data',()=>{
+ const view=text('components/calendar-explorer.tsx');
+ const guide=JSON.parse(text('data/city-guides.json'));
+ assert.match(view,/setFocusedDate\(cell\.date\)/);
+ assert.match(view,/focusedDay===cell\.date/);
+ assert.match(view,/localGuide\.question/);
+ assert.match(view,/localGuide\.answer/);
+ assert.match(view,/localGuide\.example/);
+ assert.match(view,/localGuide\.sources\.map/);
+ assert.match(view,/timeZone:'UTC',weekday:'long'/);
+ assert.match(view,/not yet independently released/);
+ assert.match(view,/if\(!cell\.reviewed\)return <button type="button"/);
+ assert.doesNotMatch(view,/mock[A-Z]|fakeSunrise|modelledResearchOutput/i);
+ const questions=new Set(Object.values(guide).map(g=>g.question.trim().toLowerCase()));
+ assert.equal(questions.size,10,'ten cities need genuinely distinct editorial questions');
+ for(const [city,g] of Object.entries(guide)){
+  assert.ok(g.introduction.length>180,city);
+  assert.ok(g.example.length>180,city);
+  assert.ok(g.sources.length>=2,city);
+ }
+});
