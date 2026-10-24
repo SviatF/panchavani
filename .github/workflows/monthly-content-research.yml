@@ -17,6 +17,8 @@ on:
       - 'engine/panchavani/monthly_science_continuity.py'
       - 'engine/tests/test_monthly_science_continuity.py'
       - 'engine/panchavani/monthly_release_candidates.py'
+      - 'engine/panchavani/multidomain_content_pipeline.py'
+      - 'engine/tests/test_multidomain_content_pipeline.py'
       - 'engine/tests/test_monthly_release_candidates.py'
       - 'engine/panchavani/monthly_science_continuity.py'
       - 'engine/tests/test_monthly_science_continuity.py'
@@ -25,6 +27,8 @@ on:
       - '.github/workflows/monthly-content-research.yml'
       - 'engine/panchavani/monthly_content_pipeline.py'
       - 'engine/tests/test_monthly_content_pipeline.py'
+      - 'engine/panchavani/multidomain_content_pipeline.py'
+      - 'engine/tests/test_multidomain_content_pipeline.py'
 permissions:
   contents: read
 concurrency:
@@ -44,6 +48,7 @@ jobs:
           cd engine
           python -m unittest discover -s tests -p 'test_monthly_content_pipeline.py' -v
           python -m unittest discover -s tests -p 'test_monthly_release_candidates.py' -v
+          python -m unittest discover -s tests -p 'test_multidomain_content_pipeline.py' -v
           python -m unittest discover -s tests -p 'test_monthly_science_continuity.py' -v
           python -m unittest discover -s tests -p 'test_ten_city_six_limb_research.py' -v
           python -m unittest discover -s tests -p 'test_swiss_exact_phase_roots.py' -v
@@ -141,6 +146,11 @@ jobs:
             --batches-dir engine/artifacts/monthly-batches \
             --qa-dir engine/artifacts/monthly-qa \
             --out engine/artifacts/monthly-private-review-queue-UNAPPROVED.json
+      - name: Build city-by-date-by-intent content inventory for DeepSeek editorial planning (PRIVATE)
+        run: |
+          PYTHONPATH=engine python -m panchavani.multidomain_content_pipeline \
+            --queue engine/artifacts/monthly-private-review-queue-UNAPPROVED.json \
+            --out engine/artifacts/multidomain-content-inventory-UNAPPROVED.json
       - name: Enforce complete coverage, independent numerical gate and zero SEO publication
         env:
           RESEARCH_MONTH: ${{ steps.month.outputs.value }}
@@ -178,6 +188,20 @@ jobs:
               file=root/'monthly-private-briefs'/row['dayBriefPath']
               assert hashlib.sha256(file.read_bytes()).hexdigest()==row['dayBriefSha256']
               assert "UNAPPROVED" in file.read_text()
+          inventory=json.loads((root/'multidomain-content-inventory-UNAPPROVED.json').read_text())
+          assert inventory['month']==month and inventory['cityCount']==10
+          assert inventory['dailyJobs']==10*count and inventory['monthlyJobs']==10
+          assert inventory['ritualResearchTopics']==80
+          assert inventory['totalTopics']==10*count+90
+          assert inventory['billableDeepSeekRequests']==0
+          assert inventory['seoRoutesAdded']==0 and inventory['publicPagesCreated']==0
+          assert inventory['publicationAuthorized'] is False
+          assert inventory['modelInvocationAuthorized'] is False
+          assert inventory['approvedClaimsForDeepSeek']==[]
+          assert all(item['publicationAuthorized'] is False
+                     and item['indexingAuthorized'] is False
+                     and item['paidGenerationAuthorized'] is False
+                     for item in inventory['jobs'])
           max_error=0
           for source in report['sourceBatches']:
               d=source['startDate']
@@ -205,6 +229,7 @@ jobs:
           path: |
             engine/artifacts/monthly-content-UNAPPROVED.json
             engine/artifacts/monthly-private-review-queue-UNAPPROVED.json
+            engine/artifacts/multidomain-content-inventory-UNAPPROVED.json
             engine/artifacts/monthly-continuity-UNAPPROVED.json
             engine/artifacts/monthly-private-briefs/
             engine/artifacts/monthly-qa/
