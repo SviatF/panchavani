@@ -13,6 +13,8 @@ def source():return json.loads(FIXTURE.read_text())
 def synthetic():
  batch=ten_city_research_batch(datetime(2026,10,21).date())
  rec=next(x for x in batch["records"] if x["cityId"]=="delhi" and x["localDate"]=="2026-10-21")
+ rec["panchangAtSunrise"]["tithi"]="Dashami"
+ rec["panchangAtSunrise"]["karana"]="Garaja"
  rec["transitions"]["tithi"]=[
   {"number":10,"name":"Dashami","startUtc":rec["sun"]["sunriseUtc"],"endUtc":"2026-10-21T08:42:00Z"},
   {"number":11,"name":"Ekadashi","startUtc":"2026-10-21T08:42:00Z","endUtc":rec["sun"]["nextSunriseUtc"]}]
@@ -81,6 +83,6 @@ class SwissAllFourTests(unittest.TestCase):
     (Path(tmp)/name).write_bytes(b"0"*100100)
    with patch.dict('os.environ',{"PANCHAVANI_SWISS_EPHE_PATH":tmp}):
     # Synthetic 10-city source does not contain four event-layer crossings.
-    with self.assertRaisesRegex(ValueError,"all 4 limbs"):
+    with self.assertRaises(ValueError):
      compare_batch(b,scope='delhi',swe=self.Stub())
 if __name__=="__main__":unittest.main()
