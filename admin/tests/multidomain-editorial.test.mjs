@@ -55,8 +55,11 @@ async function approvedPack(city='delhi',date='2027-02-01',digit='a'){
 async function approvedMonth(){
  const out=[];
  for(let day=1;day<=28;day++){
-  const chars='0123456789abcdefghijklmnopqr'.split('');
-  out.push(await approvedPack('delhi',iso(2027,2,day),chars[day]));
+  const pack=await approvedPack('delhi',iso(2027,2,day));
+  pack.sourceRecordHash=day.toString(16).padStart(64,'0');
+  const copy=structuredClone(pack);copy.approval={algorithm:'HMAC-SHA256'};
+  pack.approval.signature=await signature(copy,SECRET);
+  out.push(pack);
  }
  return out;
 }
