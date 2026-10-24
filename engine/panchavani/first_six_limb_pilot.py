@@ -29,6 +29,15 @@ TEN_CITY_IDS = ("delhi","mumbai","kolkata","chennai","bengaluru",
                 "hyderabad","ahmedabad","pune","jaipur","varanasi")
 assert len(TEN_CITY_IDS)==len(set(TEN_CITY_IDS))==10
 assert set(TEN_CITY_IDS)<=set(RESEARCH_CITIES)
+# Research-only expansion: 10 current QA cities + 15 provisional catalog sites.
+# Order is stable and derived from the versioned, SHA-pinned 25-city registry.
+RESEARCH_25_CITY_IDS = TEN_CITY_IDS + tuple(
+    city for city in RESEARCH_CITIES if city not in TEN_CITY_IDS)
+assert len(RESEARCH_25_CITY_IDS)==len(set(RESEARCH_25_CITY_IDS))==25
+assert set(RESEARCH_25_CITY_IDS)==set(RESEARCH_CITIES)
+assert all(not RESEARCH_CITIES[city].coordinates_verified and
+           not RESEARCH_CITIES[city].publishing_approved
+           for city in RESEARCH_25_CITY_IDS)
 KINDS = ("tithi", "karana", "nakshatra", "yoga")
 VERSION = "first-six-limb-provenance-v1"
 MAX_GRID_DRIFT_S = 1.0
@@ -215,7 +224,7 @@ def build_day(adapter, sidereal, city_id: str, day: date, allowed_cities=PILOT) 
 
 
 def verify_batch(packets: list[dict], allowed_cities=PILOT) -> dict:
-    if tuple(allowed_cities) not in (PILOT,TEN_CITY_IDS):
+    if tuple(allowed_cities) not in (PILOT,TEN_CITY_IDS,RESEARCH_25_CITY_IDS):
         raise ValueError("Unsupported or unreviewed research cohort")
     if len(packets)!=2*len(allowed_cities):
         raise ValueError("Exactly scoped cities x 2 local days required")
@@ -227,7 +236,7 @@ def verify_batch(packets: list[dict], allowed_cities=PILOT) -> dict:
     following_date=(start+timedelta(days=1)).isoformat()
     if {(x["cityId"],x["localDate"]) for x in packets}!={ 
         (c,d) for c in allowed_cities for d in (first_date,following_date)}:
-        raise ValueError("Exactly 3 cities x 2 CONTIGUOUS local days required")
+        raise ValueError("Exactly scoped cities x 2 CONTIGUOUS local days required")
     for packet in packets:
         verify_six_limb_record(packet,allowed_cities)
     same_date={}
@@ -261,7 +270,7 @@ def verify_batch(packets: list[dict], allowed_cities=PILOT) -> dict:
 
 def build_pilot(ephemeris: Path, out: Path, start:date=date(2026,10,16),allowed_cities=PILOT):
     if tuple(allowed_cities) not in (PILOT,TEN_CITY_IDS):
-        raise ValueError("Only explicitly scoped 3-city or 10-city research cohorts supported")
+        raise ValueError("Only explicitly scoped 3, 10 or 25 city research cohorts supported")
     if out.exists():
         raise ValueError("Refusing to overwrite a prior immutable science packet")
     if digest(ephemeris)!=JPL_DE440S_SHA:
@@ -272,8 +281,11 @@ def build_pilot(ephemeris: Path, out: Path, start:date=date(2026,10,16),allowed_
              for d in (0,1) for c in allowed_cities]
     checks=verify_batch(packets,allowed_cities)
     result={
-        "artifactType":("PANCHAVANI_FIRST_SIX_LIMB_SCIENCE_BATCH" if allowed_cities==PILOT
-                        else "PANCHAVANI_TEN_CITY_SIX_LIMB_RESEARCH_BATCH"),
+        "artifactType":("PANCHAVANI_FIRST_SIX_LIMB_SCIENCE_BATCH"
+                        if tuple(allowed_cities)==PILOT
+                        else "PANCHAVANI_TEN_CITY_SIX_LIMB_RESEARCH_BATCH"
+                        if tuple(allowed_cities)==TEN_CITY_IDS
+                        else "PANCHAVANI_25_CITY_SIX_LIMB_RESEARCH_BATCH"),
         "schemaVersion":1,"status":"UNAPPROVED_RESEARCH",
         "scienceChecks":checks,
         "kernelSha256":JPL_DE440S_SHA,"cityCatalogSha256":CATALOG_SHA256,
@@ -295,12 +307,12 @@ def main():
     p.add_argument("--out",type=Path,required=True)
     p.add_argument("--start",type=date.fromisoformat,default=date(2026,10,16),
                    help="India local date of first 3-city research day")
-    p.add_argument("--cities",choices=("pilot","ten"),default="pilot",
-                   help="3 historical pilot cities or 10 current SEO research city cohort")
+    p.add_argument("--cities",choices=("pilot","ten","twentyfive"),default="pilot",
+                   help="3 legacy, 10 current, or 25 strictly private research sites")
     a=p.parse_args()
     if a.start.year<2000 or a.start.year>2099:
         p.error("Outside approved historical/future ephemeris pilot interval")
-    scope=TEN_CITY_IDS if a.cities=="ten" else PILOT
+    scope={"pilot":PILOT,"ten":TEN_CITY_IDS,"twentyfive":RESEARCH_25_CITY_IDS}[a.cities]
     packet=build_pilot(a.ephemeris,a.out,a.start,scope)
     print("SIX-LIMB UNAPPROVED research",packet["scienceChecks"])
     print("DeepSeek approved claims:",len(packet["approvedClaimsForDeepSeek"]))
