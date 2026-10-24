@@ -4,6 +4,7 @@ import {useMemo,useState} from 'react';
 import {ArrowLeft,ArrowRight,CalendarDays,CheckCircle2,MapPin,ShieldAlert,Sun} from 'lucide-react';
 import {CITY_OPTIONS,useResearchCity} from '@/components/city-selection';
 import type {ApprovedCityDay} from '@/lib/public-panchang';
+import guides from '@/data/city-guides.json';
 
 export type CalendarDay={date:string;day:number;inMonth:true;reviewed:ApprovedCityDay|null};
 export type CalendarCell=CalendarDay|null;
@@ -36,6 +37,7 @@ export function CalendarExplorer({allApproved,initialMonth}:{
 }){
  const {cityId,setCityId}=useResearchCity();
  const [month,setMonth]=useState(initialMonth);
+ const [focusedDate,setFocusedDate]=useState<string|null>(null);
  const firstAllowed=monthShift(initialMonth,-12);
  const lastAllowed=monthShift(initialMonth,18);
  const days=useMemo(()=>monthCells(month,allApproved.filter(x=>x.cityId===cityId)),[month,allApproved,cityId]);
@@ -43,16 +45,21 @@ export function CalendarExplorer({allApproved,initialMonth}:{
  const label=new Intl.DateTimeFormat('en-IN',{month:'long',year:'numeric',timeZone:'UTC'})
    .format(new Date(month+'-01T12:00:00Z'));
  const selected=CITY_OPTIONS.find(x=>x.id===cityId)??CITY_OPTIONS[0];
+ const localGuide=guides[cityId as keyof typeof guides]??guides.delhi;
+ const focusedDay=focusedDate?.startsWith(month+'-')?focusedDate:null;
+ const civilDate=focusedDay?new Intl.DateTimeFormat('en-IN',{
+   timeZone:'UTC',weekday:'long',day:'numeric',month:'long',year:'numeric'
+ }).format(new Date(focusedDay+'T12:00:00Z')):null;
  const move=(step:number)=>{
   const target=monthShift(month,step);
-  if(target>=firstAllowed&&target<=lastAllowed)setMonth(target);
+  if(target>=firstAllowed&&target<=lastAllowed){setMonth(target);setFocusedDate(null);}
  };
  return <section className="calendar-explorer" aria-labelledby="calendar-explorer-heading">
   <div className="calendar-explorer-heading">
    <div>
     <p className="section-eyebrow">CITY · MONTH · DATE</p>
     <h2 id="calendar-explorer-heading">Explore the calendar</h2>
-    <p>Select a location and month. Verified day entries open a full Panchang; unreviewed days show no invented calculations.</p>
+    <p>Choose a city, explore its calendar and read practical local context. Verified dates will open full scientific Panchang values as they are independently released.</p>
    </div>
    <span className="calendar-count"><CheckCircle2 size={15}/>{published} verified days</span>
   </div>
@@ -60,7 +67,7 @@ export function CalendarExplorer({allApproved,initialMonth}:{
    <label className="calendar-city-label"><MapPin size={16}/> City
     <select value={cityId} onChange={e=>{
       const next=CITY_OPTIONS.find(x=>x.id===e.target.value);
-      if(next)setCityId(next.id);
+      if(next){setCityId(next.id);setFocusedDate(null);}
     }} aria-label="Choose Panchang city">
       {CITY_OPTIONS.map(x=><option key={x.id} value={x.id}>{x.label} · {x.region}</option>)}
     </select>
@@ -77,9 +84,12 @@ export function CalendarExplorer({allApproved,initialMonth}:{
     {weekDays.map(day=><span key={day} className="calendar-weekday">{day}</span>)}
     {days.map((cell,i)=>{
       if(!cell)return <span aria-hidden="true" className="calendar-blank" key={'blank-'+i}/>;
-      if(!cell.reviewed)return <div className="calendar-cell is-unreviewed" key={cell.date}
-        aria-label={`${cell.date}: independently reviewed Panchang unavailable`}>
-       <strong>{cell.day}</strong><span>Not yet reviewed</span></div>;
+      if(!cell.reviewed)return <button type="button"
+        className={`calendar-cell is-unreviewed calendar-day-select${focusedDay===cell.date?' is-focused':''}`}
+        key={cell.date} onClick={()=>setFocusedDate(cell.date)}
+        aria-pressed={focusedDay===cell.date}
+        aria-label={`Explore ${cell.date} in ${selected.label}: civil date only; Panchang values pending review`}>
+       <strong>{cell.day}</strong><span>Explore date</span></button>;
       return <Link className="calendar-cell is-reviewed" key={cell.date}
         href={`/panchang/${cityId}/${cell.date}/`}
         aria-label={`Open verified ${selected.label} Panchang on ${cell.date}`}>
@@ -89,6 +99,24 @@ export function CalendarExplorer({allApproved,initialMonth}:{
       </Link>;
     })}
   </div>
+  <section className="calendar-local-context" aria-live="polite">
+   <p className="section-eyebrow">CITY-BASED READING GUIDE · {selected.region.toUpperCase()}</p>
+   <h3>{civilDate?civilDate+' · '+selected.label:selected.label+' in '+label}</h3>
+   <p className="calendar-local-lead">{localGuide.introduction}</p>
+   <div className="calendar-local-question">
+    <strong>{localGuide.question}</strong>
+    <p>{localGuide.answer}</p>
+   </div>
+   <p>{localGuide.example}</p>
+   {civilDate&&<p className="calendar-day-uncertainty">
+    <ShieldAlert size={15} aria-hidden="true"/> Gregorian weekday and date are known; lunar Panchang, fasting, festival and Muhurat conclusions for this day are not yet independently released.
+   </p>}
+   <div className="calendar-source-links">
+    {localGuide.sources.map(source=><a href={source.url} key={source.url}
+       target="_blank" rel="noopener noreferrer">{source.label} <ArrowRight size={12}/></a>)}
+    <Link href={`/panchang/${cityId}/`}>Read full {selected.label} guide <ArrowRight size={13}/></Link>
+   </div>
+  </section>
   <div className="calendar-legend">
     <span><i className="calendar-key is-reviewed"/> Reviewed data</span>
     <span><i className="calendar-key"/> Not yet verified</span>
