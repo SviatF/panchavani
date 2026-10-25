@@ -47,6 +47,11 @@ jobs:
         run: |
           echo 'BLOCKED: GitHub Actions is missing Cloudflare credentials. The Admin Worker was NOT deployed.' >&2
           exit 1
+      - name: Apply strictly additive private D1 review and editorial migrations
+        if: github.ref == 'refs/heads/main' && steps.auth.outputs.ready == 'true'
+        run: |
+          cd admin
+          npx wrangler d1 migrations apply panchavani-private --remote --config wrangler.jsonc
       - name: Deploy ONLY protected private Admin Worker to existing Cloudflare account
         id: deploy
         if: github.ref == 'refs/heads/main' && steps.auth.outputs.ready == 'true'
