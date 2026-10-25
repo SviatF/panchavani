@@ -170,16 +170,18 @@ def assert_release():
     assert len(parts)==4
     record=science[(parts[1],parts[2])]
     rendered=unescape(markup)
-    assert record["editorial"]["body"][:80] in rendered or record["editorial"]["readerQuestion"] in rendered,\\
-      "Science-reviewed day content must actually be rendered: "+rel
+    assert (
+     record["editorial"]["body"][:80] in rendered or
+     record["editorial"]["readerQuestion"] in rendered
+    ),"Science-reviewed day content must actually be rendered: "+rel
    else:
     p="/"+"/".join(parts[:-1])+"/"
     assert p in topical,"Missing independently approved topical reference"
     article=topical[p]
-    assert article["editorial"]["headline"] in unescape(markup),\\
-      "Human-approved city/topic title was not actually rendered: "+rel
-    assert article["editorial"]["sections"][0]["body"][:65] in unescape(markup),\\
-      "Reviewed topic article lacks actual approved prose: "+rel
+    assert article["editorial"]["headline"] in unescape(markup),(
+     "Human-approved city/topic title was not actually rendered: "+rel)
+    assert article["editorial"]["sections"][0]["body"][:65] in unescape(markup),(
+     "Reviewed topic article lacks actual approved prose: "+rel)
    actual.add(rel)
   else:
    assert all("noindex" in value for value in normalized),(rel,normalized)
