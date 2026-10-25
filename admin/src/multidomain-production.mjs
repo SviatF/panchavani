@@ -99,8 +99,20 @@ export async function loadScienceForJob(env,job,secret){
   days=Array.from({length:new Date(Date.UTC(year,m,0)).getUTCDate()},
    (_,i)=>month+'-'+String(i+1).padStart(2,'0'));
  }else{
-  if(!DAY.test(date||'')||!date.startsWith(month+'-'))throw Error('Exact research day required');
-  days=[date];
+  if(RITUAL.has(intent)&&Array.isArray(job.dates)){
+   if(job.dates.length<1||job.dates.length>31||new Set(job.dates).size!==job.dates.length||
+      job.dates.some(d=>!DAY.test(d)||!d.startsWith(month+'-')))
+     throw Error('Ritual requires contiguous source dates within a single month');
+   days=[...job.dates].sort();
+   for(let i=1;i<days.length;i++){
+    const prior=new Date(days[i-1]+'T12:00:00Z').getTime();
+    if(new Date(days[i]+'T12:00:00Z').getTime()!==prior+86400000)
+     throw Error('Ritual source day range is not continuous');
+   }
+  }else{
+   if(!DAY.test(date||'')||!date.startsWith(month+'-'))throw Error('Exact research day required');
+   days=[date];
+  }
  }
  return loadSignedScience(env,cityId,days,secret);
 }
@@ -129,8 +141,8 @@ export async function importSignedRitualRules(env,rule,packs,actor){
  await env.CANDIDATES.put(key,raw,{httpMetadata:{contentType:'application/json'},
   customMetadata:{status:'private-reviewed-ritual-draft-only'}});
  const row=await env.DB.prepare(
-  "INSERT OR IGNORE INTO independently_reviewed_rule_sources (city_id,intent,topic,science_hashes_sha,source_sha,r2_key,state) VALUES (?,?,?,?,?,?,'approved_for_draft')"
- ).bind(rule.cityId,rule.intent,rule.topic,hashes,content,key).run();
+  "INSERT OR IGNORE INTO independently_reviewed_rule_sources (city_id,intent,topic,science_hashes_sha,science_dates_json,source_sha,r2_key,state) VALUES (?,?,?,?,?, ?,?,'approved_for_draft')"
+ ).bind(rule.cityId,rule.intent,rule.topic,hashes,JSON.stringify(science.map(p=>p.date).sort()),content,key).run();
  return {status:row.meta?.changes===1?'imported':'existing',publicRelease:false};
 }
 export async function loadRuleForJob(env,job,packs){
