@@ -30,9 +30,9 @@
   "vars": {
     "AUTO_RESEARCH_IMPORT_ENABLED": "true",
     "AUTO_PRIVATE_FORENSICS_ENABLED": "true",
-    "AUTO_EDITORIAL_ENABLED": "true",
+    "AUTO_EDITORIAL_ENABLED": "false",
     "AUTO_FACTUAL_DAILY_EDITORIAL_ENABLED": "false",
-    "AUTO_MULTI_INTENT_EDITORIAL_ENABLED": "false",
+    "AUTO_MULTI_INTENT_EDITORIAL_ENABLED": "true",
     "AUTO_EDITORIAL_CITY_IDS": "delhi,mumbai,kolkata,chennai,bengaluru,hyderabad,ahmedabad,pune,jaipur,varanasi"
   }
 }
