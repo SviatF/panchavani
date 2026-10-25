@@ -4,6 +4,8 @@ on:
     branches: [main]
     paths:
       - 'admin/**'
+      - '.github/scripts/cloudflare_d1_preflight.py'
+      - '.github/scripts/test_cloudflare_d1_preflight.py'
       - '.github/workflows/deploy-private-admin.yml'
   pull_request:
     paths:
@@ -27,6 +29,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Test fail-closed Cloudflare API preflight locally (no network)
+        run: python3 -m unittest discover -s .github/scripts -p 'test_cloudflare_d1_preflight.py' -v
       - name: Private Admin full tests and dry-run before deploying anything
         run: |
           cd admin
@@ -47,6 +51,11 @@ jobs:
         run: |
           echo 'BLOCKED: GitHub Actions is missing Cloudflare credentials. The Admin Worker was NOT deployed.' >&2
           exit 1
+      - name: Validate Cloudflare token and exact D1 ownership before any migration
+        if: github.ref == 'refs/heads/main' && steps.auth.outputs.ready == 'true'
+        env:
+          PANCHAVANI_R2_ACCOUNT_ID: ${{ secrets.PANCHAVANI_R2_ACCOUNT_ID }}
+        run: python3 .github/scripts/cloudflare_d1_preflight.py
       - name: Apply strictly additive private D1 review and editorial migrations
         if: github.ref == 'refs/heads/main' && steps.auth.outputs.ready == 'true'
         run: |
