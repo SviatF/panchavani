@@ -6,8 +6,14 @@ import {topicPath,validateTopicContent,validateTopicSeo} from '../lib/topic-rele
 const SHA=o=>createHash('sha256').update(JSON.stringify(o)).digest('hex');
 const MONTH='2027-02';
 function days(n=28,cityId='delhi'){
- return Array.from({length:n},(_,i)=>({cityId,date:MONTH+'-'+String(i+1).padStart(2,'0'),
-  status:'approved',sourceRecordHash:(i+1).toString(16).padStart(64,'0')}));
+ return Array.from({length:n},(_,i)=>{
+  const date=MONTH+'-'+String(i+1).padStart(2,'0');
+  const next=new Date(Date.parse(date+'T12:00:00Z')+86400000).toISOString().slice(0,10);
+  return {cityId,date,status:'approved',
+    sourceRecordHash:(i+1).toString(16).padStart(64,'0'),
+    releaseEvidence:{approvedAt:'2027-03-01T12:00:00Z'},
+    sun:{sunriseUtc:date+'T00:55:00Z',nextSunriseUtc:next+'T00:55:00Z'}};
+ });
 }
 const textCity='For Delhi, a reader needs the precise selected observer reference and the named lunar-day rule, not the label for a nearby default city.';
 const textMethod='The local reference point is essential to the sunrise boundary; solar-day labels can differ while a geocentric phase transition is shared between observer locations. Compare the independently reviewed evidence instead of assigning the same conclusion to every state in India.';
