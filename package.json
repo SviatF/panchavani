@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "predev": "node scripts/sync-assets.mjs && node scripts/generate-reviewed-pages.mjs",
+    "predev": "node scripts/sync-assets.mjs && node scripts/generate-reviewed-pages.mjs && node scripts/generate-topic-pages.mjs",
     "dev": "next dev",
     "prebuild": "node scripts/sync-assets.mjs && node scripts/generate-reviewed-pages.mjs",
     "build": "next build",
