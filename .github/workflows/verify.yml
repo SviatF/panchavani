@@ -9,6 +9,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 12
+    env:
+      PANCHAVANI_APPROVED_RELEASE_SHA256: ${{ secrets.PANCHAVANI_APPROVED_RELEASE_SHA256 }}
+      PANCHAVANI_APPROVED_SEO_RELEASE_SHA256: ${{ secrets.PANCHAVANI_APPROVED_SEO_RELEASE_SHA256 }}
     steps:
       - name: Check out project and original generated WebP assets
         uses: actions/checkout@v4
@@ -50,7 +53,7 @@ jobs:
           test -f out/imgs/favicon_gold_frame.ico
           grep -q 'favicon_gold_frame.ico' out/index.html
           grep -qi 'noindex' out/index.html
-      - name: Verify exactly ten educational city pages indexable and all unapproved science remains noindex
+      - name: Verify 10 city guides plus only independently SEO-approved daily canonical and sitemap pages
         run: |
           python - <<'PY'
           from pathlib import Path
