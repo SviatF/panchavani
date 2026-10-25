@@ -103,6 +103,12 @@ test('one authenticated day can produce prose task but NO auto-approved page',as
  assert(!task.modelMessages[1].content.includes('Dashami'));
  assert(!task.modelMessages[1].content.includes('2027-02-01'));
  assert.equal(task.allowedFactIds.length,2);
+ assert.equal(task.verifiedSolarDayPatterns.length,1);
+ assert.equal(task.verifiedSolarDayPatterns[0].changePattern,'no-intraday-limb-boundary');
+ assert.deepEqual(task.verifiedSolarDayPatterns[0].transitionSequence,[]);
+ assert(task.modelMessages[1].content.includes('verifiedSolarDayPatterns'));
+ assert(task.modelMessages[0].content.includes('If the pattern reports no change'));
+ assert(!task.modelMessages[1].content.includes('00:55'));
  const result=privateMultiIntentDraft(task,draft());
  assert.deepEqual(result.qualityIssues,[]);
  assert.equal(result.reviewStatus,'PENDING_INDEPENDENT_EDITOR_AND_SEO');
@@ -112,6 +118,8 @@ test('complete February month requires signed day-by-day science and sun continu
  const packs=await approvedMonth();
  const task=await compileEditorialAssignment(taskData(packs,'calendar-month'));
  assert.equal(task.lockedScientificDays.length,28);
+ assert.equal(task.verifiedSolarDayPatterns.length,28);
+ assert.equal(task.verifiedSolarDayPatterns.at(-1).positionInRequestedScope,28);
  assert.equal(task.month,'2027-02');
  await assert.rejects(()=>compileEditorialAssignment(taskData(packs.slice(1),'calendar-month')),/approved science coverage|every independently approved/);
  const altered=structuredClone(packs);altered[12].sun.sunriseUtc='2027-02-13T00:56:00Z';
