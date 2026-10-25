@@ -138,3 +138,14 @@ test('release-generated routes cannot be confused with static directory or allow
   {kind:'vrat',cityId:'bogus',topic:'ekadashi',month:'2027-02'}])
   assert.throws(()=>topicPath(row));
 });
+
+test('Production and local builds always run both independent static-release generators',()=>{
+ const p=JSON.parse(readFileSync(new URL('../package.json',import.meta.url),'utf8'));
+ for(const hook of ['prebuild','predev']){
+  assert.match(p.scripts[hook],/node scripts\/generate-reviewed-pages\.mjs/);
+  assert.match(p.scripts[hook],/node scripts\/generate-topic-pages\.mjs/);
+  assert.ok(p.scripts[hook].indexOf('generate-reviewed-pages.mjs')<p.scripts[hook].indexOf('generate-topic-pages.mjs'));
+ }
+ assert.equal(JSON.parse(readFileSync(new URL('../data/approved-topic-pages.json',import.meta.url),'utf8')).records.length,0);
+ assert.equal(JSON.parse(readFileSync(new URL('../data/approved-topic-seo.json',import.meta.url),'utf8')).records.length,0);
+});
