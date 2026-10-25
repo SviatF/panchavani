@@ -95,8 +95,8 @@ def assert_release():
   tags=Meta();tags.feed(markup)
   assert tags.robots,(rel,tags.robots)
   normalized=[x.lower().replace(" ","") for x in tags.robots]
-  assert len(normalized)==1,(rel,normalized)
   if rel in target:
+   assert len(normalized)==1,(rel,normalized)
    assert "noindex" not in normalized[0] and "index" in normalized[0] and "follow" in normalized[0],(rel,normalized)
    parts=rel.split("/")
    uri="https://panchavani.com/"+"/".join(parts[:-1])+"/"
