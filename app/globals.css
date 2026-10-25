@@ -581,3 +581,56 @@
  .calendar-blank{min-height:60px}
  .calendar-weekday{font-size:9px;padding:7px 0}
 }
+
+
+/* Reviewed local-topic articles: compact editorial reading, not generic giant cards. */
+.topic-verified-page{padding-top:54px;padding-bottom:110px}
+.topic-verified-hero{max-width:1000px;padding-bottom:36px;border-bottom:1px solid var(--stroke)}
+.topic-verified-hero .section-eyebrow{margin:32px 0 18px;letter-spacing:2.3px;font-size:10px;color:#dbb475}
+.topic-verified-hero h1{font:normal clamp(48px,6.3vw,80px)/.99 var(--font-serif);letter-spacing:-1px;
+ color:#f6e6c9;margin:0 0 25px;max-width:950px}
+.topic-verified-dek{font-size:18px;line-height:1.7;color:#c7cbc9;max-width:750px}
+.topic-verified-facts{display:flex;flex-wrap:wrap;gap:12px 24px;margin-top:24px;
+ color:#d5bc8d;font-size:12px}
+.topic-verified-facts span{display:flex;align-items:center;gap:8px}
+.topic-verified-grid{display:grid;grid-template-columns:minmax(0,1fr) 320px;
+ gap:clamp(30px,6vw,92px);margin-top:45px;align-items:start}
+.topic-verified-main{min-width:0;max-width:830px}
+.topic-verified-lead{font-size:18px;line-height:1.8;color:#e6dfd3;margin:0 0 44px}
+.topic-verified-chapter{margin:0 0 46px}
+.topic-verified-chapter .section-eyebrow,.topic-verified-outcome .section-eyebrow{font-size:10px;letter-spacing:2px}
+.topic-verified-chapter h2,.topic-verified-outcome h2{font:normal clamp(30px,3.4vw,41px)/1.15 var(--font-serif);
+ color:#efce95;margin:12px 0 17px}
+.topic-verified-chapter p,.topic-verified-outcome p{font-size:14px;line-height:1.85;color:#c4c5c5}
+.topic-verified-faq{padding:21px 0;border-top:1px solid rgba(218,174,104,.22)}
+.topic-verified-faq h3{font:normal 24px/1.3 var(--font-serif);color:#efe0be;margin:0 0 10px}
+.topic-verified-faq p{margin:0}
+.topic-verified-outcome{padding:25px 27px;border:1px solid rgba(210,172,111,.37);
+ border-radius:13px;background:linear-gradient(140deg,#1b1812,#10191c);margin:0 0 46px}
+.topic-verified-tags{display:flex;gap:9px;flex-wrap:wrap;margin-top:17px}
+.topic-verified-tags span{border-radius:6px;border:1px solid #a9834d;padding:9px 12px;color:#e9cca1}
+.topic-verified-window{display:flex;gap:10px;align-items:center;padding:9px 0;color:#efd49c}
+.topic-verified-small{opacity:.87}
+.topic-verified-scroll{overflow-x:auto;border-radius:9px;border:1px solid rgba(211,167,92,.22);margin-top:18px}
+.topic-verified-table{width:100%;border-collapse:collapse;font-size:12px;min-width:650px}
+.topic-verified-table th{background:#1c1a17;color:#f0cb91;text-align:left;
+ font-size:10px;letter-spacing:.5px;white-space:nowrap}
+.topic-verified-table th,.topic-verified-table td{padding:12px;border-bottom:1px solid #44403775}
+.topic-verified-table td{color:#d2cec5}
+.topic-verified-table a{display:inline-flex;gap:7px;align-items:center;color:#e9bc81}
+.topic-verified-side-panel{padding:23px;background:#111619;
+ border:1px solid rgba(229,176,104,.22);border-radius:10px;margin-bottom:17px}
+.topic-verified-side-panel .section-eyebrow{font-size:10px;letter-spacing:1.5px}
+.topic-verified-side-panel h2{font:normal 30px/1.1 var(--font-serif);
+ color:#f1d9ad;margin:11px 0 15px}
+.topic-verified-side-panel p{font-size:12px;line-height:1.8;color:#c3c7c7}
+.topic-verified-side-panel a{display:flex;align-items:center;gap:9px;margin-top:15px;
+ font-size:12px;color:#dcb780}
+@media(max-width:980px){.topic-verified-grid{grid-template-columns:minmax(0,1fr)}
+ .topic-verified-aside{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+ .topic-verified-side-panel{margin-bottom:0}}
+@media(max-width:620px){.topic-verified-page{padding-top:25px;padding-bottom:65px}
+ .topic-verified-hero h1{font-size:clamp(40px,11vw,62px)}
+ .topic-verified-dek{font-size:15px}
+ .topic-verified-aside{display:block}.topic-verified-side-panel{margin-bottom:15px}
+ .topic-verified-outcome{padding:18px}}
