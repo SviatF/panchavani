@@ -64,14 +64,14 @@ async function fakeHandoff({tamper=false}={}){
  const raw=JSON.stringify(document);
  const hash=await digest(raw);
  const r2Key='unapproved/multidomain/'+ID+'/'+hash+'.json';
- return{env:{
-  DB:{prepare(){return{bind(){return{async first(){return{
-   id:ID,city_id:'delhi',intent:'daily-panchang',topic:'daily-panchang',
-   local_date:'2026-10-25',month:'2026-10',language:'en',
-   source_hash:SOURCE,r2_key:r2Key,state:'stored'
-  }}}}}}}},
-  CANDIDATES:{async get(){return{text:async()=>tamper?raw+' ':raw}}}
- },document};
+ const row={id:ID,city_id:'delhi',intent:'daily-panchang',
+  topic:'daily-panchang',local_date:'2026-10-25',month:'2026-10',
+  language:'en',source_hash:SOURCE,r2_key:r2Key,state:'stored'};
+ const env={
+  DB:{prepare:()=>({bind:()=>({first:async()=>row})})},
+  CANDIDATES:{get:async()=>({text:async()=>tamper?raw+' ':raw})}
+ };
+ return {env,document};
 }
 test('hash-verified draft gives human review worksheet but no auto-approval',async()=>{
  const {env}=await fakeHandoff();
