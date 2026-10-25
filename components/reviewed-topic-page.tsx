@@ -3,6 +3,7 @@ import {notFound} from 'next/navigation';
 import type {Metadata} from 'next';
 import {ArrowLeft,ArrowRight,CalendarDays,Clock3,ExternalLink,MapPin,ShieldCheck} from 'lucide-react';
 import {approvedCityDays,CITY_GUIDES,indiaTime} from '@/lib/public-panchang';
+import type {ApprovedCityDay} from '@/lib/public-panchang';
 import {publishedTopic} from '@/lib/public-topics';
 
 const byIst=(iso:string)=>new Intl.DateTimeFormat('en-IN',{
@@ -28,9 +29,10 @@ export function ReviewedTopicPage({path}:{path:string}){
  const city=CITY_GUIDES[article.cityId as keyof typeof CITY_GUIDES];
  if(!city)notFound();
  const released=approvedCityDays();
- const facts=article.sourceDays.map((ref:{date:string;sourceRecordHash:string})=>
-  released.find(x=>x.cityId===article.cityId&&x.date===ref.date&&x.sourceRecordHash===ref.sourceRecordHash)
- ).filter((x):x is NonNullable<typeof x>=>Boolean(x));
+ const sourceRefs=article.sourceDays as {date:string;sourceRecordHash:string}[];
+ const facts:ApprovedCityDay[]=sourceRefs.map(ref=>
+  released.find((x:ApprovedCityDay)=>x.cityId===article.cityId&&x.date===ref.date&&x.sourceRecordHash===ref.sourceRecordHash)
+ ).filter((x:ApprovedCityDay|undefined):x is ApprovedCityDay=>Boolean(x));
  if(facts.length!==article.sourceDays.length)notFound();
  const result=article.verifiedResult as null|{dates:string[];windows?:{
   date:string;startUtc:string;endUtc:string
