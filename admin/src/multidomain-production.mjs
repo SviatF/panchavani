@@ -250,3 +250,78 @@ export async function runApprovedEditorialJob(env,job,actor,transport=fetch){
  return {...result,scienceReviewed:true,editorialHumanReviewed:false,
   publicationAuthorized:false,indexingAuthorized:false};
 }
+
+/** Cloudflare scheduled runner: one real fact-supported DeepSeek draft per tick.
+ * No verified D1/R2 facts = no paid requests. Daily -> calendar -> expert ritual.
+ * All reservations are globally capped with the other editorial workflows.
+ */
+export async function autoMultiIntentEditorial(env,transport=fetch){
+ if(env?.AUTO_MULTI_INTENT_EDITORIAL_ENABLED!=='true')
+  return {status:'explicitly-disabled',attempted:0,publicationAuthorized:false};
+ if(!env.DB||!env.CANDIDATES||
+    !env.PANCHAVANI_SCIENCE_APPROVAL_SECRET||!env.DEEPSEEK_API_KEY)
+  return {status:'waiting-for-independent-science-and-api-credentials',
+   attempted:0,publicationAuthorized:false};
+ // Daily task: source must be independently signed in D1/R2, not JPL research.
+ const pending=(await env.DB.prepare(
+  "SELECT s.city_id,s.local_date FROM science_approved_day_sources s "+
+  "WHERE s.state='approved_for_draft' AND NOT EXISTS ("+
+  "SELECT 1 FROM editorial_multi_intent_once m WHERE m.city_id=s.city_id "+
+  "AND m.local_date=s.local_date AND m.intent='daily-panchang') "+
+  "ORDER BY s.local_date,s.city_id LIMIT 1"
+ ).all()).results||[];
+ if(pending.length){
+  const item=pending[0];
+  const result=await runApprovedEditorialJob(env,{cityId:item.city_id,
+   intent:'daily-panchang',month:item.local_date.slice(0,7),
+   date:item.local_date,topic:''},'panchavani-cron@internal',transport);
+  return {status:'source-locked-daily',attempted:result.attempted||0,
+   qualityPassed:result.generated||0,publicationAuthorized:false};
+ }
+ // Month is not treated as complete because a research bundle exists:
+ // require every calendar day to have an independent signed review in D1.
+ const cityMonths=(await env.DB.prepare(
+  "SELECT city_id,substr(local_date,1,7) AS month,COUNT(*) AS n "+
+  "FROM science_approved_day_sources WHERE state='approved_for_draft' "+
+  "GROUP BY city_id,substr(local_date,1,7) ORDER BY month,city_id LIMIT 120"
+ ).all()).results||[];
+ for(const item of cityMonths){
+  const [year,m]=item.month.split('-').map(Number);
+  if(!MONTH.test(item.month)||Number(item.n)!==
+     new Date(Date.UTC(year,m,0)).getUTCDate())continue;
+  const existing=await env.DB.prepare(
+   "SELECT 1 AS exists_record FROM editorial_multi_intent_once "+
+   "WHERE city_id=? AND month=? AND intent='calendar-month' LIMIT 1"
+  ).bind(item.city_id,item.month).first();
+  if(existing)continue;
+  const result=await runApprovedEditorialJob(env,{cityId:item.city_id,
+   intent:'calendar-month',month:item.month,date:null,topic:''},
+   'panchavani-cron@internal',transport);
+  return {status:'source-locked-monthly',attempted:result.attempted||0,
+   qualityPassed:result.generated||0,publicationAuthorized:false};
+ }
+ const rules=(await env.DB.prepare(
+  "SELECT city_id,intent,topic,science_dates_json FROM independently_reviewed_rule_sources "+
+  "WHERE state='approved_for_draft' ORDER BY created_at LIMIT 120"
+ ).all()).results||[];
+ for(const row of rules){
+  const dates=JSON.parse(row.science_dates_json);
+  if(!Array.isArray(dates)||!dates.length||dates.length>31)
+   throw Error('Invalid archived reviewed ritual day scope');
+  const localDate=dates[0],monthId=localDate.slice(0,7);
+  if(!dates.every(x=>DAY.test(x)&&x.startsWith(monthId+'-')))
+   throw Error('Reviewed ritual source crossed an unsupported month');
+  const existing=await env.DB.prepare(
+   "SELECT 1 AS exists_record FROM editorial_multi_intent_once "+
+   "WHERE city_id=? AND intent=? AND topic=? AND local_date=? AND month=? LIMIT 1"
+  ).bind(row.city_id,row.intent,row.topic,localDate,monthId).first();
+  if(existing)continue;
+  const result=await runApprovedEditorialJob(env,{cityId:row.city_id,
+   intent:row.intent,topic:row.topic,month:monthId,date:localDate,dates},
+   'panchavani-cron@internal',transport);
+  return {status:'source-locked-ritual',attempted:result.attempted||0,
+   qualityPassed:result.generated||0,publicationAuthorized:false};
+ }
+ return {status:'awaiting-independently-approved-content',
+  attempted:0,publicationAuthorized:false};
+}
