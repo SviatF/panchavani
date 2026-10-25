@@ -154,6 +154,7 @@ export async function compileEditorialAssignment({
  const sourceScope={city:CITY_NAMES[cityId],intent,language,topic:topic||intent,
    localEditorialQuestion:contextualReason,
    approvedLocalFacts:sourceFacts,
+   verifiedSolarDayPatterns,
    reviewedRuleFindings:publicClaimPermits,
    allowedFactIds:approvedFactIds,
    evidenceStatus:'SCIENCE_REVIEWED_SEPARATELY_NARRATION_UNREVIEWED',
