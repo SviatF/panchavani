@@ -77,11 +77,11 @@ export async function loadSignedScience(env,cityId,dates,secret){
   if(!row||!SHA.test(row.source_hash)||
      row.r2_key!==`science-reviewed/${cityId}/${date}/${row.source_hash}.json`)
    throw Error('Missing independently reviewed scientific day '+cityId+'/'+date);
-  const pack=await loadR2(env,row.r2_key,await sha(await (async()=>{ // storage digest, not scientific record digest
-   const file=await env.CANDIDATES.get(row.r2_key);
-   if(!file)throw Error('Signed source file missing');
-   return file.text();
-  })()));
+  const signedFile=await env.CANDIDATES.get(row.r2_key);
+  if(!signedFile)throw Error('Signed science source missing from R2');
+  const signedRaw=await signedFile.text();
+  if(signedRaw.length>MAX_SOURCE)throw Error('Oversized reviewer-signed source file');
+  const pack=JSON.parse(signedRaw);
   if(pack.cityId!==cityId||pack.date!==date||pack.sourceRecordHash!==row.source_hash)
    throw Error('Signed science file identity mismatch');
   await verifySciencePack(pack,secret);
