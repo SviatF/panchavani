@@ -10,6 +10,8 @@ on:
   pull_request:
     paths:
       - 'admin/**'
+      - '.github/scripts/cloudflare_d1_preflight.py'
+      - '.github/scripts/test_cloudflare_d1_preflight.py'
       - '.github/workflows/deploy-private-admin.yml'
   workflow_dispatch:
 permissions:
