@@ -183,6 +183,7 @@ const baseWorker = {
       ingest:result.ingest?.status,ingested:result.ingest?.stored||0,
       editorial:result.draft?.status,attempted:result.draft?.attempted||0,
       signedDaily:result.daily?.status||'disabled',dailyAttempts:result.daily?.attempted||0,
+      sourceLockedMultiIntent:result.multiIntent?.status||'disabled',multiIntentAttempts:result.multiIntent?.attempted||0,
       forensicsStatus:forensics.status,
       unresolvedCityCount:forensics.unresolvedCityCount??null,
       publishingAuthorized:false
