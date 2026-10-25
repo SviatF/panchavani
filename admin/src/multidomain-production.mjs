@@ -146,7 +146,7 @@ export async function loadRuleForJob(env,job,packs){
 export function multiIntentDurableStore(env,actor){
  requirePrivate(env);
  return {
-  async reserve(key,sourceHash){
+  async reserve(key,sourceHash,task){
    if(!key.startsWith('multi-intent/')||!SHA.test(sourceHash)||!clean(actor))
     throw Error('Invalid canonical private editorial reservation identity');
    const parts=key.split('/');
@@ -155,14 +155,19 @@ export function multiIntentDurableStore(env,actor){
       !/^[a-z0-9-]{3,70}$/.test(parts[4])||parts[5]!==sourceHash||
       !['en','hi'].includes(parts[6]))
     throw Error('Malformed source-locked editorial identity');
+   if(task?.scienceHash!==sourceHash||task?.cityId!==parts[2]||
+      task?.intent!==parts[1]||task?.month!==parts[3]||
+      task?.topic!==parts[4]||task?.language!==parts[6]||
+      (task?.date!==null&&(!DAY.test(task.date)||!task.date.startsWith(parts[3]+'-'))))
+     throw Error('Private paid request does not match signed editorial task');
    const id=await sha(key);
-   const payload=[id,parts[2],parts[1],parts[4],parts[3],parts[6],sourceHash,actor];
+   const payload=[id,parts[2],parts[1],parts[4],task.date,parts[3],parts[6],sourceHash,actor];
    // Single D1 INSERT atomically checks global 24-hour paid-attempt cap
    // over all three distinct DeepSeek editorial subsystems.
    const row=await env.DB.prepare(
     "INSERT OR IGNORE INTO editorial_multi_intent_once "+
-    "(id,city_id,intent,topic,month,language,source_hash,actor,state) "+
-    "SELECT ?,?,?,?,?,?,?,?,'reserved' WHERE "+
+    "(id,city_id,intent,topic,local_date,month,language,source_hash,actor,state) "+
+    "SELECT ?,?,?,?,?,?,?,?,?,'reserved' WHERE "+
     "(SELECT COUNT(*) FROM editorial_multi_intent_once WHERE created_at >= strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 day'))+"+
     "(SELECT COUNT(*) FROM science_locked_editorial_once WHERE created_at >= strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 day'))+"+
     "(SELECT COUNT(*) FROM editorial_one_shot WHERE created_at >= strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 day')) < 3"
