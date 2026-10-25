@@ -117,6 +117,26 @@ export async function compileEditorialAssignment({
  if(unique.size<2)throw Error('At least two independent city facts required');
  const sourceFacts=[...unique.values()].slice(0,12);
  const lockedDays=sorted.map(pack=>scienceFacts(pack));
+ // Numerically derived day-pattern summary, never authored or changed by AI.
+ // Each per-city solar day is based on a different local sunrise/sunset.
+ // The model receives order/category/daylight only; page renderer retains
+ // exact source-signed UTC instants and named Anga values.
+ const verifiedSolarDayPatterns=lockedDays.map((day,index)=>{
+  const sunset=Date.parse(sorted[index].sun.sunsetUtc);
+  const sequence=day.events.map(event=>({
+   component:event.kind,
+   solarPeriod:Date.parse(event.timeUtc)<sunset?'daylight':'after-local-sunset'
+  }));
+  const counts=Object.fromEntries(['tithi','karana','nakshatra','yoga']
+   .map(kind=>[kind,sequence.filter(item=>item.component===kind).length]));
+  return {positionInRequestedScope:index+1,transitionSequence:sequence,
+   componentsChangingDuringDaylight:[...new Set(sequence.filter(
+    x=>x.solarPeriod==='daylight').map(x=>x.component))],
+   componentsChangingAfterSunset:[...new Set(sequence.filter(
+    x=>x.solarPeriod==='after-local-sunset').map(x=>x.component))],
+   perComponentTransitions:counts,
+   changePattern:sequence.length?'changes-observed':'no-intraday-limb-boundary'};
+ });
  const publicClaimPermits=rulePack?rulePack.verifiedRuleFindings.map(x=>({
    id:x.id,statement:x.statement,sourceUrl:x.sourceUrl
  })):[];
@@ -149,7 +169,13 @@ export async function compileEditorialAssignment({
    'superficial place-name substitution, generic claims, or SEO doorway copy. '+
    'Use simple Indian English or Hindi as requested. Use documented approvedLocalFacts and, when supplied, '+
    'reviewedRuleFindings only. Do not invent external sources, customs, quotations or date assignments. '+
-   'Do not output numbers, times, dates, Tithi/Karana/Nakshatra/Yoga names, activity recommendations, '+
+   'Interpret the supplied verifiedSolarDayPatterns: explain which lunar component categories change '+
+   'during daylight or after local sunset and what a reader should check, only where the pattern confirms it. '+
+   'If the pattern reports no change, do not claim an event occurred. For monthly scopes use actual variation '+
+   'across local solar days; for rituals explain only the independently reviewed rule findings. '+
+   'You may name the four component categories Tithi, Karana, Nakshatra and Yoga, but not their '+
+   'specific astronomical values. Do not output numbers, times, dates, activity recommendations, '+
+
    'calendar dates or URLs; exact factual values are rendered by code from science/rule packets, not generated. '+
    'Be explicit about a meaningful reader question and cite supported fact IDs. '+
    'If the evidence cannot support distinctive, useful local prose, emit empty prose fields for rejection. '+
@@ -165,6 +191,7 @@ export async function compileEditorialAssignment({
   date:intent==='daily-panchang'?sorted[0].date:null,
   scienceHash:sourceHash,sourceRecordHashes:sorted.map(x=>x.sourceRecordHash),
   modelMessages:messages,lockedScientificDays:lockedDays,
+  verifiedSolarDayPatterns,
   lockedRuleFindings:publicClaimPermits,
   allowedFactIds:approvedFactIds,
   publicationAuthorized:false,indexingAuthorized:false,
