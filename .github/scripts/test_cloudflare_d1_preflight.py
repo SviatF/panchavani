@@ -41,6 +41,40 @@ class PreflightTests(unittest.TestCase):
         self.assertIn("http-7403",reason)
         self.assertNotIn(ACCOUNT,reason)
         self.assertNotIn(ENV["CLOUDFLARE_API_TOKEN"],reason)
+    def test_account_owned_token_uses_account_verify_endpoint(self):
+        env={**ENV,"CLOUDFLARE_API_TOKEN":"cfat_"+"a"*45}
+        paths=[]
+        def account_token(req,timeout=20):
+            paths.append(req.full_url)
+            if req.full_url.endswith("/accounts/"+ACCOUNT+"/tokens/verify"):
+                return FakeResponse({"success":True,"result":{"status":"active"}})
+            if req.full_url.endswith("/d1/database/"+mod.DB_ID):
+                return FakeResponse({"success":True,"result":{
+                    "uuid":mod.DB_ID,"name":"panchavani-private"}})
+            raise AssertionError("Account token should not need user verify")
+        self.assertTrue(mod.preflight(env,account_token)[0])
+        self.assertFalse(any("/user/tokens/verify" in s for s in paths))
+    def test_legacy_account_token_falls_back_from_user_verify_401(self):
+        attempts=[]
+        def legacy(req,timeout=20):
+            attempts.append(req.full_url)
+            if req.full_url.endswith("/user/tokens/verify"):
+                raise urllib.error.HTTPError(req.full_url,401,"denied",{},None)
+            if req.full_url.endswith("/accounts/"+ACCOUNT+"/tokens/verify"):
+                return FakeResponse({"success":True,"result":{"status":"active"}})
+            if req.full_url.endswith("/d1/database/"+mod.DB_ID):
+                return FakeResponse({"success":True,"result":{
+                    "uuid":mod.DB_ID,"name":"panchavani-private"}})
+            raise AssertionError("Unexpected path")
+        self.assertTrue(mod.preflight(ENV,legacy)[0])
+        self.assertEqual(len(attempts),3)
+    def test_unauthorized_both_token_types_never_pass(self):
+        def denied(req,timeout=20):
+            raise urllib.error.HTTPError(req.full_url,401,"denied",{},None)
+        good,reason=mod.preflight(ENV,denied)
+        self.assertFalse(good)
+        self.assertIn("Both Cloudflare",reason)
+        self.assertNotIn(ENV["CLOUDFLARE_API_TOKEN"],reason)
     def test_mismatched_account_refused(self):
         env={**ENV,"PANCHAVANI_R2_ACCOUNT_ID":"22222222-2222-2222-2222-222222222222"}
         self.assertFalse(mod.preflight(env,fake_open)[0])
