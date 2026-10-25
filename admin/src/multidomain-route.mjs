@@ -28,8 +28,17 @@ export function validateTaskInput(body){
     (body.intent!=='calendar-month'&&
       (typeof body.date!=='string'||!date.test(body.date)||!body.date.startsWith(body.month+'-'))))
   throw Error('Invalid city/month/day/intent/topic; no paid request made');
+ let dates=null;
+ if(['festival','vrat','muhurat'].includes(body.intent)&&typeof body.dates==='string'&&body.dates.trim()){
+  dates=body.dates.split(',').map(x=>x.trim());
+  if(dates.length>31||new Set(dates).size!==dates.length||
+     dates.some(d=>!date.test(d)||!d.startsWith(body.month+'-')||
+       Number.isNaN(Date.parse(d+'T12:00:00Z'))))
+   throw Error('Invalid separate research day list for tradition');
+  if(!dates.includes(body.date))throw Error('Selected day must belong to reviewed tradition window');
+ }
  return {cityId:body.cityId,intent:body.intent,month:body.month,
-  date:body.intent==='calendar-month'?null:body.date,topic:body.topic||''};
+  date:body.intent==='calendar-month'?null:body.date,topic:body.topic||'',dates};
 }
 async function input(request){
  if(!request.headers.get('content-type')?.startsWith('application/x-www-form-urlencoded'))
@@ -69,7 +78,8 @@ function formFields(){
 <label>Intent</label><select name="intent"><option>daily-panchang</option><option>calendar-month</option><option>festival</option><option>vrat</option><option>muhurat</option></select>
 <label>Month (YYYY-MM)</label><input name="month" value="2026-10" required>
 <label>Day (YYYY-MM-DD; empty for calendar-month)</label><input name="date" value="2026-10-21">
-<label>Topic slug (ritual only)</label><input name="topic" placeholder="wedding / diwali / ekadashi">`;
+<label>Topic slug (ritual only)</label><input name="topic" placeholder="wedding / diwali / ekadashi">
+<label>Exact review days (ritual only, comma-separated; leave blank for the selected single day)</label><input name="dates" placeholder="2026-10-21,2026-10-22">`;
 }
 function render(state){
  const rows=state.drafts.map(x=>`<li><code>${escape(x.city_id)} · ${escape(x.intent)} · ${escape(x.topic)} · ${escape(x.month)}</code> — ${escape(x.state)} ${x.state==='stored'?`<a href="/editorial/multi/draft?id=${encodeURIComponent(x.id)}">Inspect private draft</a>`:''}</li>`).join('');
