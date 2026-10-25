@@ -33,6 +33,9 @@ class SchemaTests(unittest.TestCase):
   state=mod.assess(remote,reference,[{"name":mod.NAMES[0]}])
   self.assertFalse(state["pass"])
   self.assertIn("table/job_requests",state["differentDDLObjects"])
+ def test_different_sql_whitespace_is_equivalent(self):
+  self.assertEqual(mod.ddl_norm("CREATE TABLE ai (x TEXT CHECK(x='a'))"),
+                   mod.ddl_norm("CREATE TABLE ai ( x TEXT CHECK (x = 'a') )"))
  def test_missing_index_blocks(self):
   reference=mod.reference_schema()
   remote=[x for x in reference if x["name"]!="idx_auto_import_created"]

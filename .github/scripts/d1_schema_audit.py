@@ -35,7 +35,8 @@ LOCAL_SQL=(
 def ddl_norm(raw):
     """Conservative normalization: trim whitespace, preserve SQL text."""
     if not isinstance(raw,str): return ""
-    return re.sub(r"\s+"," ",raw.strip()).lower()
+    flat=re.sub(r"\s+"," ",raw.strip()).lower()
+    return re.sub(r"\s*([(),=])\s*",r"\1",flat)
 
 def reference_schema():
     db=sqlite3.connect(":memory:")
