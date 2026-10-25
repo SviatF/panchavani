@@ -225,3 +225,10 @@ systems and real candidates/drafts are observed in D1/R2.
 
 Cloudflare reference:
 https://developers.cloudflare.com/workers/configuration/cron-triggers/
+
+
+## City × month production readiness and verified editorial handoff (2026-10-25)
+
+The Access-protected `/editorial/readiness?month=YYYY-MM` and `/editorial/readiness.json?month=YYYY-MM` endpoints read actual private D1 counts per vetted pilot city. They report signed science days, private draft reservations and separately reviewed ritual-rule packs without invoking DeepSeek or changing any record. `signedDays=daysInMonth` is **not** independently verified continuity or a release decision. Production deployment requires an applied migration 0007 and working D1 binding; unavailability returns 503 rather than false zeroes.
+
+For a saved source-locked DeepSeek record, `/editorial/multi/handoff?id=<64-hex-id>` returns a **private, hash-checked JSON worksheet** containing provenance, deterministic facts, model prose and the required independent editorial/SEO review checklist. A failed or altered draft cannot be exported. Neither endpoint approves astronomy or generates public manifests; the separately authorized release SHA manifests in `data/` remain the only public build inputs. The existing separate scientific, tradition, editorial and SEO reviewers remain mandatory. Never upload the private review worksheets to the public site.

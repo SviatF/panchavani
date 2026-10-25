@@ -71,6 +71,7 @@ export function renderCommandCenter({actor,jobs,pilot,configured,pipelineReady,m
  link('/research/ingest-status','JPL import telemetry','See actual R2 manifests, D1 records, conflicts and capped imports.')+
  link('/science/overview','Science evidence gates','Track exactly why provisional astronomy cannot yet be published.')+
  link('/ai','DeepSeek editorial studio','View cached private AI drafts without spending tokens on previews.')+
+ link('/editorial/readiness','City × month release readiness','Count signed science days, unpublished DeepSeek drafts, independent ritual rules and unresolved review gates.')+
  link('/editorial/multi','City × date production studio','Import independently reviewed science, run source-locked DeepSeek for all page intents, and inspect private drafts.')+
  link('/ai/quality-report','Originality & quality','Compare existing content for overlap and repetitive wording.')+
  link('/ai/provider-status','Provider health','Read-only API balance readiness; zero completions.')+
