@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS independently_reviewed_rule_sources (
  intent TEXT NOT NULL CHECK(intent IN ('festival','vrat','muhurat')),
  topic TEXT NOT NULL,
  science_hashes_sha TEXT NOT NULL CHECK(length(science_hashes_sha)=64),
+ science_dates_json TEXT NOT NULL,
  source_sha TEXT NOT NULL CHECK(length(source_sha)=64),
  r2_key TEXT NOT NULL,
  state TEXT NOT NULL CHECK(state IN ('approved_for_draft','disabled')),
