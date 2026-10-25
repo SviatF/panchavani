@@ -9,11 +9,12 @@ import guides from '@/data/city-guides.json';
 import seoDays from '@/data/approved-seo-days.json';
 import {approvedCityDays} from '@/lib/public-panchang';
 import {validateSeoDayRelease} from '@/lib/seo-day-release-policy.mjs';
+import {approvedTopicSeoRoutes} from '@/lib/public-topics';
 
 export type ApprovedSeoRoute={
  path:string;
  lastModified:string;
- kind:'educational-evergreen-city-guide'|'approved-daily-panchang';
+ kind:'educational-evergreen-city-guide'|'approved-daily-panchang'|'approved-city-topic';
  sourceIds:string[];
 };
 export const FIRST_TEN_CITY_GUIDE_IDS=[
@@ -52,7 +53,7 @@ export function approvedDailySeoRoutes():ReadonlyArray<ApprovedSeoRoute>{
  return validateSeoDayRelease(seoDays,approvedCityDays(),process.env.PANCHAVANI_APPROVED_SEO_RELEASE_SHA256);
 }
 export function approvedSeoRoutes():ReadonlyArray<ApprovedSeoRoute>{
- return [...approved,...approvedDailySeoRoutes()];
+ return [...approved,...approvedDailySeoRoutes(),...approvedTopicSeoRoutes()];
 }
 export function isIndexableApprovedCityDay(city:string,date:string):boolean{
  return approvedDailySeoRoutes().some(x=>x.path==='/panchang/'+city+'/'+date+'/');
