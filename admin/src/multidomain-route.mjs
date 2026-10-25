@@ -5,6 +5,7 @@ import {
  importSignedScientificDay,loadScienceForJob,importSignedRitualRules,
  runApprovedEditorialJob
 } from './multidomain-production.mjs';
+import {createEditorialReviewHandoff} from './editorial-review-handoff.mjs';
 const NOINDEX={'Content-Type':'text/html; charset=utf-8',
  'Cache-Control':'private, no-store','X-Robots-Tag':'noindex,nofollow,noarchive',
  'X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY'};
@@ -82,7 +83,7 @@ function formFields(){
 <label>Exact review days (ritual only, comma-separated; leave blank for the selected single day)</label><input name="dates" placeholder="2026-10-21,2026-10-22">`;
 }
 function render(state){
- const rows=state.drafts.map(x=>`<li><code>${escape(x.city_id)} · ${escape(x.intent)} · ${escape(x.topic)} · ${escape(x.month)}</code> — ${escape(x.state)} ${x.state==='stored'?`<a href="/editorial/multi/draft?id=${encodeURIComponent(x.id)}">Inspect private draft</a>`:''}</li>`).join('');
+ const rows=state.drafts.map(x=>`<li><code>${escape(x.city_id)} · ${escape(x.intent)} · ${escape(x.topic)} · ${escape(x.month)}</code> — ${escape(x.state)} ${x.state==='stored'?`<a href="/editorial/multi/draft?id=${encodeURIComponent(x.id)}">Inspect private draft</a> · <a href="/editorial/multi/handoff?id=${encodeURIComponent(x.id)}">Export review worksheet</a>`:''}</li>`).join('');
  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PANCHAVANI · Editorial Production</title>${STYLE}</head><body>
  <a href="/">← Private Admin</a><h1>Editorial Production Control</h1>
  <p class="warning">Nothing on this screen approves astronomical methods or publishes a public page. Science imports MUST be signed by an independent reviewer; paid DeepSeek is opt-in only, maximum one attempt per submitted job and 3 total paid attempts per 24 hours.</p>
