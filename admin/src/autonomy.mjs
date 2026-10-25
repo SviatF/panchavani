@@ -7,6 +7,7 @@
 import { CITY_IDS } from './city-catalog.mjs';
 import { handleAi } from './ai-editorial.mjs';
 import {autoGroundedDaily} from './science-locked-day-storage.mjs';
+import {autoMultiIntentEditorial} from './multidomain-production.mjs';
 import { ingestNightly,ingestReadiness } from './nightly-import.mjs';
 
 export const AUTO_ACTOR='panchavani-cron@internal';
@@ -140,7 +141,7 @@ export async function autoDraftOnce(env,transport=fetch){
 export async function runAutonomy(env,now=Date.now(),transport=fetch){
   const ready=readiness(env);
   const report={status:'research-only-autonomous-pilot',indexingAuthorized:false,
-    publishingAuthorized:false,ready,ingest:null,queue:null,draft:null,daily:null};
+    publishingAuthorized:false,ready,ingest:null,queue:null,draft:null,daily:null,multiIntent:null};
   try{report.ingest=await ingestNightly(env)}
   catch{report.ingest={status:'private-import-error',stored:0}};
   if(ready.researchOperational){
@@ -149,6 +150,9 @@ export async function runAutonomy(env,now=Date.now(),transport=fetch){
   if(ready.draftOperational&&env?.AUTO_FACTUAL_DAILY_EDITORIAL_ENABLED!=='true'){
     report.draft=await autoDraftOnce(env,transport);
   }else report.draft={status:'disabled-or-replaced-by-science-locked-daily',attempted:0};
+  try{report.multiIntent=await autoMultiIntentEditorial(env,transport)}
+  catch{report.multiIntent={status:'private-multi-intent-science-or-storage-blocked',
+    attempted:0,publicationAuthorized:false}}
   try{report.daily=await autoGroundedDaily(env,transport)}
   catch{report.daily={status:'private-science-day-pipeline-error',attempted:0,publicationAuthorized:false}}
   return report;

@@ -15,7 +15,10 @@ test('Monthly calendar uses explicit reviewed data only, never provisional numer
  assert.match(view,/if\(!cell\.reviewed\)/);
  assert.match(view,/href=\{`\/panchang\/\$\{cityId\}\/\$\{cell\.date\}\/`\}/);
  assert.doesNotMatch(view,/UNAPPROVED\.json|nightly-|month.*research|mockTithi/);
- assert.equal(JSON.parse(records).records.length,0);
+ const published=JSON.parse(records);
+ assert.ok(Array.isArray(published.records));
+ assert.ok(published.records.every(x=>x.status==='approved'),
+  'Calendar must never publish unapproved science records');
 });
 test('Live calendar has real civil month controls and all ten canonical cities',()=>{
  const view=text('components/calendar-explorer.tsx');

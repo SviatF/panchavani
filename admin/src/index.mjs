@@ -22,6 +22,7 @@ import { handlePilotConflictAudit } from './pilot-conflict-audit.mjs';
 import {handleDailyForensicStatus,runDailyForensics} from './daily-forensic-automation.mjs';
 import {handleMuhuratWindowConsole} from './muhurat-window-console.mjs';
 import {handleMuhuratRulesConsole} from './muhurat-rule-console.mjs';
+import {handleMultiIntentConsole} from './multidomain-route.mjs';
 
 
 const HEADERS = {
@@ -86,6 +87,8 @@ const baseWorker = {
     // The dashboard refuses access without Cloudflare-verified identity and explicit email allowlist.
     const actor = await authenticate(ctx, env);
     if (!actor) return deny();
+    const editorialProduction=await handleMultiIntentConsole(request,env,actor,isTrustedBrowserPost);
+    if(editorialProduction)return editorialProduction;
     const sourceScreen=await handleMuhuratRulesConsole(request,env,actor);
     if(sourceScreen)return sourceScreen;
     const privateWindows=await handleMuhuratWindowConsole(request,env,actor);
@@ -180,6 +183,7 @@ const baseWorker = {
       ingest:result.ingest?.status,ingested:result.ingest?.stored||0,
       editorial:result.draft?.status,attempted:result.draft?.attempted||0,
       signedDaily:result.daily?.status||'disabled',dailyAttempts:result.daily?.attempted||0,
+      sourceLockedMultiIntent:result.multiIntent?.status||'disabled',multiIntentAttempts:result.multiIntent?.attempted||0,
       forensicsStatus:forensics.status,
       unresolvedCityCount:forensics.unresolvedCityCount??null,
       publishingAuthorized:false

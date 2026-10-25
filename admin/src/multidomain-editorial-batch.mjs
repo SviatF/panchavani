@@ -37,7 +37,7 @@ export async function runMultiIntentEditorialBatch({
   if(report.attempted>=maxRequests){report.skippedBudget++;continue;}
   const id='multi-intent/'+task.intent+'/'+task.cityId+'/'+task.month+'/'+
    task.topic+'/'+task.scienceHash+'/'+task.language;
-  const reserved=await store.reserve(id,task.scienceHash);
+  const reserved=await store.reserve(id,task.scienceHash,task);
   if(!reserved){report.skippedOneShot++;continue;}
   report.attempted++;
   let data;

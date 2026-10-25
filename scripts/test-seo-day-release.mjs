@@ -25,11 +25,17 @@ function manifest(...records){return {schemaVersion:1,
  releaseStatus:records.length?'HUMAN_APPROVED_DAILY_SEO_PER_URL':'NO_APPROVED_DAY_SEO_ROUTES',
  records};}
 const content=file=>readFileSync(new URL('../'+file,import.meta.url),'utf8');
-test('live repo still only has the initial ten city guide SEO URLs',()=>{
+test('live repo only exposes permitted city/day URLs backed by independent SEO reviews',()=>{
  const approved=JSON.parse(content('data/approved-panchang.json'));
  const release=JSON.parse(content('data/approved-seo-days.json'));
- assert.equal(approved.records.length,0);
- assert.deepEqual(validateSeoDayRelease(release,[],undefined),[]);
+ assert.ok(Array.isArray(approved.records));
+ assert.ok(Array.isArray(release.records));
+ if(!release.records.length)
+  assert.deepEqual(validateSeoDayRelease(release,approved.records,undefined),[]);
+ else {
+  const digest=process.env.PANCHAVANI_APPROVED_SEO_RELEASE_SHA256;
+  assert.equal(validateSeoDayRelease(release,approved.records,digest).length,release.records.length);
+ }
  assert.equal(seoDayPath('delhi','2026-10-21'),'/panchang/delhi/2026-10-21/');
 });
 test('a genuine independent second permission allows one date and only that date',()=>{
