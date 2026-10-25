@@ -6,6 +6,7 @@ This is a release gate, NOT a repair tool. It only reports what can safely
 be considered previously installed migration DDL.
 """
 import json
+import difflib
 import pathlib
 import re
 import sqlite3
@@ -93,10 +94,28 @@ def assess(remote,reference,journal):
         "approvalToPublish":False
     }
 
+def diagnostic_diff(remote, reference):
+    """Emit only migration-vs-remote SQL DDL from two known tables, never rows."""
+    actual={r['name']:r.get('sql','') for r in remote if r.get('type')=='table'}
+    expected={r['name']:r.get('sql','') for r in reference if r.get('type')=='table'}
+    for name in ('autonomous_ai_slots','autonomous_research_slots'):
+        if name not in actual or name not in expected: continue
+        if ddl_norm(actual[name])==ddl_norm(expected[name]): continue
+        before=expected[name].replace('(', '(\n').replace(',', ',\n').replace(')', '\n)')
+        after=actual[name].replace('(', '(\n').replace(',', ',\n').replace(')', '\n)')
+        diff=list(difflib.unified_diff(before.splitlines(),after.splitlines(),
+              fromfile='repo-migration/'+name,tofile='remote-d1-schema/'+name,
+              lineterm=''))
+        print('\n'.join(diff[:100]))
+
 def main():
     try:
-        report=assess(remote_rows(REMOTE_SQL),reference_schema(),remote_rows(JOURNAL_SQL))
+        remote=remote_rows(REMOTE_SQL)
+        reference=reference_schema()
+        report=assess(remote,reference,remote_rows(JOURNAL_SQL))
         print(json.dumps(report,sort_keys=True,indent=2))
+        if report["differentDDLObjects"]:
+            diagnostic_diff(remote,reference)
         if not report["pass"]:
             print("BLOCKED: schema differs or journal is unexpected. No modifications made.",file=sys.stderr)
             return 2
