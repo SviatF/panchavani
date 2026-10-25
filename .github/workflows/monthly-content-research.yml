@@ -221,6 +221,31 @@ jobs:
               out.write('All dates, region-specific rules, astronomy conventions and prose require independent review.\n')
           print('PASS: whole-month ten-city research corpus is complete and NOT indexable')
           PY
+      - name: Mirror complete monthly review queue to private R2 (NOT approved content)
+        id: monthly_r2
+        if: github.ref == 'refs/heads/main' && success()
+        continue-on-error: true
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.PANCHAVANI_R2_ACCOUNT_ID }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.PANCHAVANI_PRIVATE_R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.PANCHAVANI_PRIVATE_R2_SECRET_ACCESS_KEY }}
+          RESEARCH_MONTH: ${{ steps.month.outputs.value }}
+        run: |
+          set -euo pipefail
+          if test -z "$R2_ACCOUNT_ID" || test -z "$AWS_ACCESS_KEY_ID" || test -z "$AWS_SECRET_ACCESS_KEY"; then
+            echo 'BLOCKED: Missing PANCHAVANI_R2_ACCOUNT_ID or new private-bucket R2 S3 secrets.' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          key="ops/monthly-multi-intent/v1/$RESEARCH_MONTH/$GITHUB_RUN_ID"
+          for file in monthly-content-UNAPPROVED.json monthly-private-review-queue-UNAPPROVED.json multidomain-content-inventory-UNAPPROVED.json monthly-continuity-UNAPPROVED.json; do
+            aws s3 cp "engine/artifacts/$file" "s3://panchavani-research-private/$key/$file" \
+              --endpoint-url "https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com" --no-progress
+          done
+          for file in engine/artifacts/monthly-qa/*.json; do
+            aws s3 cp "$file" "s3://panchavani-research-private/$key/qa/${file##*/}" \
+              --endpoint-url "https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com" --no-progress
+          done
+          echo "PASS: private monthly review-only snapshot stored; namespace: $key. No science approval, DeepSeek calls or public pages." >> "$GITHUB_STEP_SUMMARY"
       - name: Archive research outputs on GitHub only (no Cloudflare deployment)
         if: always()
         uses: actions/upload-artifact@v4
@@ -235,3 +260,8 @@ jobs:
             engine/artifacts/monthly-qa/
           retention-days: 30
           if-no-files-found: warn
+      - name: Fail main monthly pipeline if private research delivery is unavailable
+        if: github.ref == 'refs/heads/main' && steps.monthly_r2.outcome != 'success'
+        run: |
+          echo 'BLOCKED: Month calculations passed, but private R2 delivery failed. Configure distinct bucket-scoped PANCHAVANI_PRIVATE_R2_ACCESS_KEY_ID and PANCHAVANI_PRIVATE_R2_SECRET_ACCESS_KEY secrets with Object Read/Write access to panchavani-research-private; verify Cloudflare account ID. Do not copy credentials into logs or source.' >> "$GITHUB_STEP_SUMMARY"
+          exit 1
