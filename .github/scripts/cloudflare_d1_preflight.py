@@ -40,10 +40,26 @@ def preflight(env, opener=urllib.request.urlopen):
     token = env.get("CLOUDFLARE_API_TOKEN", "").strip()
     if not UUID.fullmatch(account) or len(token) < 20:
         return False, "Missing or malformed Cloudflare account ID/API token in GitHub Actions secrets."
-    ok, detail = cloudflare_read("/user/tokens/verify", token, opener)
-    if not ok:
-        return False, "API token verification denied (" + detail + "). Rotate/re-scope CLOUDFLARE_API_TOKEN."
-    if not isinstance(detail, dict) or detail.get("status") != "active":
+    # Cloudflare has DIFFERENT verification endpoints for user-owned and
+    # account-owned tokens. A real account token can return HTTP 401 against
+    # /user/tokens/verify while remaining valid for Wrangler/D1.
+    # New cfat_ tokens prefer account verify; legacy unprefixed tokens try both.
+    account_verify = "/accounts/" + account + "/tokens/verify"
+    paths = ([account_verify, "/user/tokens/verify"] if token.startswith("cfat_")
+             else ["/user/tokens/verify", account_verify])
+    results = []
+    verified = None
+    for path in paths:
+        ok, detail = cloudflare_read(path, token, opener)
+        if ok:
+            verified = detail
+            break
+        results.append(detail)
+    if verified is None:
+        return False, ("Both Cloudflare user/account token verification endpoints denied "
+                       "the configured token (" + ", ".join(results) + "). "
+                       "Check type, account ownership, expiry and GitHub secret value.")
+    if not isinstance(verified, dict) or verified.get("status") != "active":
         return False, "Cloudflare API token is not active."
     ok, detail = cloudflare_read("/accounts/" + account + "/d1/database/" + DB_ID, token, opener)
     if not ok:
