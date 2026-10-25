@@ -11,9 +11,15 @@ on:
       - 'scripts/test-product-experience.mjs'
       - 'data/approved-panchang.json'
       - 'data/approved-seo-days.json'
+      - 'data/approved-topic-pages.json'
+      - 'data/approved-topic-seo.json'
       - 'scripts/assert_first_ten_public_release.py'
       - 'lib/seo-day-release-policy.mjs'
       - 'scripts/approved-day-value-gate.mjs'
+      - 'scripts/generate-topic-pages.mjs'
+      - 'lib/topic-release-policy.mjs'
+      - 'lib/public-topics.ts'
+      - 'components/reviewed-topic-page.tsx'
       - 'scripts/generate-reviewed-pages.mjs'
       - 'wrangler.jsonc'
       - '.github/workflows/deploy-public-ten-city.yml'
@@ -24,6 +30,8 @@ on:
       - 'lib/**'
       - 'data/city-guides.json'
       - 'data/approved-panchang.json'
+      - 'data/approved-topic-pages.json'
+      - 'data/approved-topic-seo.json'
       - 'scripts/assert_first_ten_public_release.py'
       - '.github/workflows/deploy-public-ten-city.yml'
   workflow_dispatch:
@@ -39,6 +47,8 @@ jobs:
     env:
       PANCHAVANI_APPROVED_RELEASE_SHA256: ${{ secrets.PANCHAVANI_APPROVED_RELEASE_SHA256 }}
       PANCHAVANI_APPROVED_SEO_RELEASE_SHA256: ${{ secrets.PANCHAVANI_APPROVED_SEO_RELEASE_SHA256 }}
+      PANCHAVANI_APPROVED_TOPIC_RELEASE_SHA256: ${{ secrets.PANCHAVANI_APPROVED_TOPIC_RELEASE_SHA256 }}
+      PANCHAVANI_APPROVED_TOPIC_SEO_SHA256: ${{ secrets.PANCHAVANI_APPROVED_TOPIC_SEO_SHA256 }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
@@ -54,7 +64,7 @@ jobs:
         run: npm run test:product
       - name: Build real static site
         run: npm run build
-      - name: Enforce per-city reviewed science + independent per-URL SEO allowlist before production deploy
+      - name: Validate reviewed city daily, calendar, festival, vrat and muhurat SEO releases before deploying
         run: python scripts/assert_first_ten_public_release.py
       - name: Require configured GitHub Cloudflare credentials for main deploy
         id: auth
@@ -81,7 +91,7 @@ jobs:
         run: |
           echo '## PANCHAVANI — first ten educational city URLs' >> "$GITHUB_STEP_SUMMARY"
           if test "$PUBLISHING" = true; then
-            echo 'Cloudflare Worker deployment succeeded. Ten city guides were built with index/follow and in sitemap.xml; zero unapproved day records released. A live HTTP check and Search Console submission must still follow.' >> "$GITHUB_STEP_SUMMARY"
+            echo 'Cloudflare Worker deployed a fully release-audited index/sitemap: ten guides plus any independently reviewed daily or topical URLs. Confirm live HTTP and Google Search Console separately.' >> "$GITHUB_STEP_SUMMARY"
           else
             echo 'NOT DEPLOYED. Pull request or blocked tests/credentials. Never claim Google indexing.' >> "$GITHUB_STEP_SUMMARY"
           fi
