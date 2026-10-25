@@ -23,6 +23,7 @@ import {handleDailyForensicStatus,runDailyForensics} from './daily-forensic-auto
 import {handleMuhuratWindowConsole} from './muhurat-window-console.mjs';
 import {handleMuhuratRulesConsole} from './muhurat-rule-console.mjs';
 import {handleMultiIntentConsole} from './multidomain-route.mjs';
+import {handleEditorialReadiness} from './editorial-readiness.mjs';
 
 
 const HEADERS = {
@@ -87,6 +88,8 @@ const baseWorker = {
     // The dashboard refuses access without Cloudflare-verified identity and explicit email allowlist.
     const actor = await authenticate(ctx, env);
     if (!actor) return deny();
+    const editorialReadiness=await handleEditorialReadiness(request,env,actor);
+    if(editorialReadiness)return editorialReadiness;
     const editorialProduction=await handleMultiIntentConsole(request,env,actor,isTrustedBrowserPost);
     if(editorialProduction)return editorialProduction;
     const sourceScreen=await handleMuhuratRulesConsole(request,env,actor);
