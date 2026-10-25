@@ -1,0 +1,35 @@
+name: PANCHAVANI D1 full legacy migration schema parity (READ ONLY)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/scripts/d1_schema_audit.py'
+      - '.github/scripts/test_d1_schema_audit.py'
+      - '.github/workflows/audit-private-d1-reference-schema.yml'
+permissions:
+  contents: read
+jobs:
+  compare-live-private-d1-schema:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify schema audit rejects changed constraints, missing indexes and unexpected tables
+        run: python3 -m unittest discover -s .github/scripts -p 'test_d1_schema_audit.py' -v
+      - name: Install pinned private Wrangler and verify exact account/database ownership
+        run: |
+          cd admin
+          npm install --no-audit --no-fund
+          cd ..
+          python3 .github/scripts/cloudflare_d1_preflight.py
+      - name: Compare entire private D1 DDL and indices against fresh SQLite replay, NO WRITE
+        run: |
+          python3 .github/scripts/d1_schema_audit.py
+          echo "LIVE D1 schema parity test completed; zero D1 writes, zero deployment, zero public release." >> "$GITHUB_STEP_SUMMARY"
