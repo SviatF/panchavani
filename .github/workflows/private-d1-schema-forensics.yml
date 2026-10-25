@@ -1,0 +1,44 @@
+name: PANCHAVANI private D1 schema forensics (READ ONLY)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/private-d1-schema-forensics.yml'
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Wrangler and verify read-only Cloudflare D1 account ownership
+        run: |
+          cd admin
+          npm install --no-audit --no-fund
+          cd ..
+          python3 .github/scripts/cloudflare_d1_preflight.py
+      - name: Inspect private tables and Wrangler migration journal (SELECT only)
+        run: |
+          set -euo pipefail
+          cd admin
+          echo '=== PRIVATE D1 TABLE NAMES ONLY (NO ROW DATA) ==='
+          npx wrangler d1 execute panchavani-private --remote --config wrangler.jsonc --json \
+            --command "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name;"
+          echo '=== JOB REQUESTS COLUMN NAMES ONLY (NO ROW DATA) ==='
+          npx wrangler d1 execute panchavani-private --remote --config wrangler.jsonc --json \
+            --command "SELECT name FROM pragma_table_info('job_requests') ORDER BY cid;"
+          echo '=== MIGRATION JOURNAL ENTRIES (NAMES ONLY) ==='
+          npx wrangler d1 execute panchavani-private --remote --config wrangler.jsonc --json \
+            --command "SELECT name FROM d1_migrations ORDER BY name;"
+          echo '=== MULTIDOMAIN COLUMN NAMES ONLY (NO ROW DATA) ==='
+          npx wrangler d1 execute panchavani-private --remote --config wrangler.jsonc --json \
+            --command "SELECT name FROM pragma_table_info('editorial_multi_intent_once') ORDER BY cid;"
+          echo 'Read-only snapshot completed; NO migration, D1 write or Worker deployment made.' >> "$GITHUB_STEP_SUMMARY"
