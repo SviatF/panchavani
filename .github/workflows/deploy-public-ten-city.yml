@@ -10,7 +10,9 @@ on:
       - 'data/muhurat-guides.json'
       - 'scripts/test-product-experience.mjs'
       - 'data/approved-panchang.json'
+      - 'data/approved-seo-days.json'
       - 'scripts/assert_first_ten_public_release.py'
+      - 'lib/seo-day-release-policy.mjs'
       - 'scripts/approved-day-value-gate.mjs'
       - 'scripts/generate-reviewed-pages.mjs'
       - 'wrangler.jsonc'
@@ -35,6 +37,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
+      PANCHAVANI_APPROVED_RELEASE_SHA256: ${{ secrets.PANCHAVANI_APPROVED_RELEASE_SHA256 }}
+      PANCHAVANI_APPROVED_SEO_RELEASE_SHA256: ${{ secrets.PANCHAVANI_APPROVED_SEO_RELEASE_SHA256 }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
@@ -50,7 +54,7 @@ jobs:
         run: npm run test:product
       - name: Build real static site
         run: npm run build
-      - name: Enforce 10-URL index, sitemap and full-site 404/noindex barriers before production deploy
+      - name: Enforce per-city reviewed science + independent per-URL SEO allowlist before production deploy
         run: python scripts/assert_first_ten_public_release.py
       - name: Require configured GitHub Cloudflare credentials for main deploy
         id: auth
