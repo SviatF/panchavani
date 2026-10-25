@@ -6,6 +6,7 @@ This checks static export/sitemap/robots against signed manifest *digests*.
 Real scientific and human review are prerequisites, not certified here.
 """
 from html.parser import HTMLParser
+from html import unescape
 from pathlib import Path
 from xml.etree import ElementTree
 import hashlib
@@ -80,14 +81,73 @@ def expected_daily_releases():
   expected[key]="https://panchavani.com/panchang/"+city+"/"+date+"/"
  return expected,reviewed
 
+
+def topic_path(row):
+ kind,city,slug,month=row.get("kind"),row.get("cityId"),row.get("topic"),row.get("month")
+ assert city in CITIES and re.fullmatch(r"20\\d\\d-(0[1-9]|1[0-2])",str(month))
+ assert re.fullmatch(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*",str(slug))
+ year,month_number=month.split("-")
+ mm=str(int(month_number))
+ if kind=="calendar-month":
+  assert slug=="calendar"
+  return f"/calendar/{city}/{year}/{mm}/"
+ if kind=="festival":return f"/festivals/{slug}/{year}/{city}/"
+ if kind=="vrat":return f"/vrat/{slug}/{year}/{mm}/{city}/"
+ assert kind=="muhurat"
+ return f"/muhurat/{slug}/{year}/{mm}/{city}/"
+
+def expected_topic_releases(science):
+ pages=json.loads((ROOT/"data/approved-topic-pages.json").read_text())
+ seo=json.loads((ROOT/"data/approved-topic-seo.json").read_text())
+ assert pages["schemaVersion"]==seo["schemaVersion"]==1
+ articles=pages["records"];permits=seo["records"]
+ assert isinstance(articles,list) and isinstance(permits,list)
+ if not articles:
+  assert pages["releaseStatus"]=="NO_APPROVED_TOPIC_PAGES"
+ else:
+  assert pages["releaseStatus"]=="HUMAN_APPROVED_CITY_TOPIC_CONTENT"
+  secret=os.environ.get("PANCHAVANI_APPROVED_TOPIC_RELEASE_SHA256","")
+  assert SHA.fullmatch(secret) and digest(pages)==secret,"Review topic SHA missing or invalid"
+ if not permits:
+  assert seo["releaseStatus"]=="NO_APPROVED_TOPIC_SEO_ROUTES"
+ else:
+  assert seo["releaseStatus"]=="HUMAN_APPROVED_CITY_TOPIC_SEO"
+  secret=os.environ.get("PANCHAVANI_APPROVED_TOPIC_SEO_SHA256","")
+  assert SHA.fullmatch(secret) and digest(seo)==secret,"Separate topic SEO SHA missing or invalid"
+ by_path={}
+ for a in articles:
+  p=topic_path(a)
+  assert p not in by_path and a["status"]=="human-approved" and a["publicationApproved"] is True
+  assert a["editorialReviewer"]!=a["scientificReviewer"]
+  assert isinstance(a["sourceDays"],list) and a["sourceDays"]
+  for source in a["sourceDays"]:
+   science_row=science.get((a["cityId"],source["date"]))
+   assert science_row and science_row["sourceRecordHash"]==source["sourceRecordHash"],"Unbacked topic day"
+  assert len(a["editorial"]["sections"])>=3
+  by_path[p]=a
+ expected={}
+ for row in permits:
+  p=row.get("path")
+  assert p in by_path and p not in expected,"Duplicate or unbacked topic SEO permit"
+  a=by_path[p]
+  assert row["releaseId"]==a["releaseId"]
+  assert row["indexingAuthorized"] is True and row["searchIntentReviewed"] is True
+  assert row["citySpecificValueReviewed"] is True and row["scientificSourcesReviewed"] is True
+  assert row["seoReviewer"] not in {a["scientificReviewer"],a["editorialReviewer"],(a.get("ritualReview") or {}).get("expertReviewer")}
+  assert row["sourceHashesSha256"]==digest(a["sourceDays"])
+  expected[p]=a
+ return expected
+
 def assert_release():
  assert OUT.is_dir(),"Static Next build missing"
  guides=json.loads((ROOT/"data/city-guides.json").read_text())
  assert set(guides)==set(CITIES),"Exactly ten original reviewed city guides required"
  approved,science=expected_daily_releases()
+ topical=expected_topic_releases(science)
  target={"panchang/"+city+"/index.html" for city in CITIES}
  target.update("panchang/"+city+"/"+date+"/index.html" for city,date in approved)
- expected_urls=GUIDES|set(approved.values())
+ target.update(p[1:]+"index.html" for p in topical)
+ expected_urls=GUIDES|set(approved.values())|{"https://panchavani.com"+p for p in topical}
  actual=set()
  for file in OUT.rglob("*.html"):
   rel=file.relative_to(OUT).as_posix()
@@ -106,11 +166,22 @@ def assert_release():
      assert text.lower() in markup.lower(),(rel,text)
     assert "mausam.imd.gov.in" in markup or "packolkata.imd.gov.in" in markup,rel
     assert "nplindia.res.in" in markup or "packolkata.imd.gov.in" in markup,rel
-   else:
+   elif rel.startswith("panchang/"):
     assert len(parts)==4
     record=science[(parts[1],parts[2])]
-    assert record["editorial"]["body"][:80] in markup or record["editorial"]["readerQuestion"] in markup,\
-      "Science-reviewed day content must actually be rendered: "+rel
+    rendered=unescape(markup)
+    assert (
+     record["editorial"]["body"][:80] in rendered or
+     record["editorial"]["readerQuestion"] in rendered
+    ),"Science-reviewed day content must actually be rendered: "+rel
+   else:
+    p="/"+"/".join(parts[:-1])+"/"
+    assert p in topical,"Missing independently approved topical reference"
+    article=topical[p]
+    assert article["editorial"]["headline"] in unescape(markup),(
+     "Human-approved city/topic title was not actually rendered: "+rel)
+    assert article["editorial"]["sections"][0]["body"][:65] in unescape(markup),(
+     "Reviewed topic article lacks actual approved prose: "+rel)
    actual.add(rel)
   else:
    assert all("noindex" in value for value in normalized),(rel,normalized)
@@ -122,6 +193,6 @@ def assert_release():
  assert urls==expected_urls,(urls,expected_urls)
  assert "sitemap.xml" in (OUT/"robots.txt").read_text().lower()
  assert len({(OUT/p).read_bytes() for p in target})==len(target),"Duplicated static HTML"
- print("PASS: ",len(GUIDES),"reviewed city guides +",len(approved),"independently approved SEO daily URLs")
+ print("PASS:",len(GUIDES),"city guides +",len(approved),"approved daily +",len(topical),"independent topic SEO URLs")
  print("PASS: all other pages noindex; approved science/SEO digests must match build")
 if __name__=="__main__":assert_release()
