@@ -53,7 +53,11 @@ export function approvedDailySeoRoutes():ReadonlyArray<ApprovedSeoRoute>{
  return validateSeoDayRelease(seoDays,approvedCityDays(),process.env.PANCHAVANI_APPROVED_SEO_RELEASE_SHA256);
 }
 export function approvedSeoRoutes():ReadonlyArray<ApprovedSeoRoute>{
- return [...approved,...approvedDailySeoRoutes(),...approvedTopicSeoRoutes()];
+ const topics:ApprovedSeoRoute[]=approvedTopicSeoRoutes().map(x=>({
+  path:x.path,lastModified:x.lastModified,kind:'approved-city-topic' as const,
+  sourceIds:x.sourceIds
+ }));
+ return [...approved,...approvedDailySeoRoutes(),...topics];
 }
 export function isIndexableApprovedCityDay(city:string,date:string):boolean{
  return approvedDailySeoRoutes().some(x=>x.path==='/panchang/'+city+'/'+date+'/');
