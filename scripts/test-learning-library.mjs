@@ -34,10 +34,13 @@ test('Educational examples must be explicitly fictional, never projected science
  assert.match(page,/This page does not provide verified city\/date astronomy/);
 });
 test('Each new page remains noindex and omitted from independently approved SEO routes',()=>{
- assert.match(page,/robots:\{index:false,follow:false\}/);
+ assert.match(page,/robots:\{index:isIndexableLearningGuide\(topic\),follow:isIndexableLearningGuide\(topic\)\}/);
  assert.match(page,/generateStaticParams/);
  assert.match(page,/alternates:\{canonical:/);
  for(const slug of policy)
   assert(!sitemap.includes("/learn/"+slug+"/"),slug+' cannot enter sitemap without editorial signoff');
  assert(!sitemap.includes('learningSlugs'),'Unapproved guides are forbidden from existing SEO allowlist');
+ assert.equal(manifest.releaseStatus,'NO_APPROVED_LEARNING_SEO_ROUTES');
+ assert.deepEqual(manifest.records,[]);
+ assert.match(sitemap,/approvedLearningSeoRoutes\(\)/);
 });
