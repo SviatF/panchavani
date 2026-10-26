@@ -44,7 +44,14 @@ def evaluate_research(data,adapter,model,limit=16):
             for x in events:
                 key=(kind,x["endingNumber"],x["endUtc"])
                 candidates[key]=x["endUtc"]
-    samples=sorted(candidates)[:limit]
+    kinds=("tithi","karana","nakshatra","yoga")
+    per_kind=max(1,limit//len(kinds))
+    samples=[]
+    for kind in kinds:
+        samples.extend([x for x in sorted(candidates) if x[0]==kind][:per_kind])
+    samples=samples[:limit]
+    if len({x[0] for x in samples})!=len(kinds):
+        raise ValueError("Missing independent boundary samples for one or more lunar components")
     solved=[]
     for kind,number,text in samples:
         origin=datetime.fromisoformat(text.replace("Z","+00:00"))
