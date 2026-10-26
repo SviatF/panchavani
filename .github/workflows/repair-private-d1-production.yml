@@ -1,0 +1,82 @@
+name: PANCHAVANI one-time guarded D1 repair and private Admin deploy
+on:
+  pull_request:
+    paths:
+      - '.github/scripts/d1_safe_reconcile.py'
+      - '.github/scripts/test_d1_safe_reconcile.py'
+      - '.github/workflows/repair-private-d1-production.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/scripts/d1_safe_reconcile.py'
+      - '.github/scripts/test_d1_safe_reconcile.py'
+      - '.github/workflows/repair-private-d1-production.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: panchavani-private-admin-production
+  cancel-in-progress: false
+jobs:
+  guarded-reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prove D1 repair never accepts changed DDL, unknown ledgers or unexpected indexes
+        run: |
+          python3 -m unittest discover -s .github/scripts -p 'test_d1_safe_reconcile.py' -v
+          python3 -m unittest discover -s .github/scripts -p 'test_d1_schema_audit.py' -v
+      - name: Check private Admin 177+ tests and Worker dry-run before any production write
+        run: |
+          cd admin
+          npm install --no-audit --no-fund
+          npm run check
+      - name: Confirm exact Cloudflare D1 account and API token
+        if: github.ref == 'refs/heads/main'
+        env:
+          PANCHAVANI_R2_ACCOUNT_ID: ${{ secrets.PANCHAVANI_R2_ACCOUNT_ID }}
+        run: python3 .github/scripts/cloudflare_d1_preflight.py
+      - name: Reconcile only missing D1 index and already-installed 0002–0006 ledger metadata
+        if: github.ref == 'refs/heads/main'
+        run: python3 .github/scripts/d1_safe_reconcile.py
+      - name: Apply strictly additive Multi-Intent private migration 0007 through Wrangler
+        if: github.ref == 'refs/heads/main'
+        run: |
+          cd admin
+          npx wrangler d1 migrations apply panchavani-private --remote --config wrangler.jsonc
+      - name: Verify real private Multi-Intent D1 tables and all 7 migration journal entries
+        if: github.ref == 'refs/heads/main'
+        run: |
+          python3 - <<'PY'
+          import sys
+          sys.path.insert(0,'.github/scripts')
+          from d1_schema_audit import remote_rows, NAMES
+          expected=set(['science_approved_day_sources','science_locked_editorial_once',
+                        'editorial_multi_intent_once','independently_reviewed_rule_sources'])
+          tables=remote_rows("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('science_approved_day_sources','science_locked_editorial_once','editorial_multi_intent_once','independently_reviewed_rule_sources') ORDER BY name")
+          actual={row['name'] for row in tables}
+          if actual!=expected:raise RuntimeError('Missing private D1 multi-intent tables after migration 0007')
+          journal=remote_rows("SELECT name FROM d1_migrations ORDER BY id")
+          names=[row['name'] for row in journal]
+          if names!=NAMES+['0007_multidomain_editorial.sql']:
+            raise RuntimeError('Unexpected remote D1 migration journal after 0007')
+          print('PASS: exactly 7 migrations; all four private multi-intent tables present')
+          PY
+      - name: Deploy updated Access-protected private Admin Worker
+        if: github.ref == 'refs/heads/main'
+        run: |
+          cd admin
+          npx wrangler deploy --config wrangler.jsonc
+          echo "Private Admin Worker script successfully deployed, not proof of live Access or source approvals." >> "$GITHUB_STEP_SUMMARY"
+      - name: Explicitly retain scientific and public SEO release gates
+        if: always()
+        run: |
+          echo "No public site or sitemap changes. No new research fact pack is scientifically approved by this repair." >> "$GITHUB_STEP_SUMMARY"
+          echo "No DeepSeek charge or published page has been authorized by these steps." >> "$GITHUB_STEP_SUMMARY"
