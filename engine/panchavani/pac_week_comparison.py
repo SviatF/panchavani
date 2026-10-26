@@ -36,7 +36,7 @@ def week_pac_sources(science,fixtures):
 
 def build_report(science,matched,computed):
     dates=science["localDates"]
-    status={x["gregorianDate"]:x for x in computed}
+    status={x["date"]:x for x in computed}
     if set(status)!=set(matched):raise ValueError("Missing or extra PAC computed report")
     rows=[]
     for day in dates:
