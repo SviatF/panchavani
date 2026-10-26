@@ -1,0 +1,102 @@
+/** Safe build-time research preview: separate from APPROVED publication manifests. */
+import payload from '@/data/research-panchang-pilot.json';
+
+export type ResearchTransition={
+ number:number;name:string;startUtc:string;endUtc:string
+};
+export type ResearchPilotDay={
+ cityId:'delhi';cityName:'Delhi';date:string;
+ status:'UNAPPROVED_PUBLIC_RESEARCH_PILOT';
+ titleAngle:string;editorialParagraphs:[string,string,string];
+ researchSourceRecordSha256:string;sourceKernelSha256:string;
+ solarModel:string;siderealModel:string;
+ cityReference:{
+  latitude:number;longitude:number;estimatedElevationMeters:number;
+  coordinatesVerified:false;elevationVerified:false;horizonConventionValidated:false
+ };
+ sun:{sunriseUtc:string;sunsetUtc:string;nextSunriseUtc:string};
+ panchang:Record<'tithi'|'karana'|'nakshatra'|'yoga'|'vara'|'paksha',string>;
+ transitions:Record<'tithi'|'karana'|'nakshatra'|'yoga',ResearchTransition[]>;
+ verifiedByIndependentScientist:false;recommendedForRitualDecisions:false;
+ modelNarrativeGenerated:false;humanEditorialApproved:false;indexingAuthorized:false
+};
+const SHA=/^[a-f0-9]{64}$/;
+const UTC=/^20\d\d-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z$/;
+const components=['tithi','karana','nakshatra','yoga'] as const;
+const ordered=['2026-10-27','2026-10-28','2026-10-29','2026-10-30',
+ '2026-10-31','2026-11-01','2026-11-02'];
+function object(x:unknown):x is Record<string,unknown>{
+ return x!==null&&typeof x==='object'&&!Array.isArray(x);
+}
+function check(raw:unknown):ResearchPilotDay[]{
+ if(!object(raw)||raw.artifactType!=='PANCHAVANI_7DAY_NO_INDEX_PUBLIC_RESEARCH_PREVIEW'||
+  raw.schemaVersion!==1||raw.status!=='UNAPPROVED_PUBLIC_RESEARCH_PILOT'||
+  raw.cityId!=='delhi'||raw.scopeStart!==ordered[0]||raw.scopeEnd!==ordered[6]||
+  raw.sourceApproval!==false||raw.humanEditorialApproved!==false||
+  raw.deepSeekInvocationAuthorized!==false||raw.publicationAsVerifiedPanchangAuthorized!==false||
+  raw.searchIndexingAuthorized!==false||!Array.isArray(raw.days)||raw.days.length>7)
+  throw Error('Invalid research pilot identity: no public science release is permitted');
+ if(!raw.days.length){
+  if(raw.visibleThrough!==null)return [];
+  return [];
+ }
+ if(!SHA.test(String(raw.sourceKernelSha256)))throw Error('Unpinned research ephemeris');
+ const rows:ResearchPilotDay[]=[];
+ const titles=new Set<string>();
+ for(let i=0;i<raw.days.length;i++){
+  const d=raw.days[i];
+  if(!object(d)||d.cityId!=='delhi'||d.cityName!=='Delhi'||
+     d.date!==ordered[i]||d.status!=='UNAPPROVED_PUBLIC_RESEARCH_PILOT'||
+     d.verifiedByIndependentScientist!==false||
+     d.recommendedForRitualDecisions!==false||
+     d.modelNarrativeGenerated!==false||
+     d.humanEditorialApproved!==false||d.indexingAuthorized!==false||
+     !SHA.test(String(d.researchSourceRecordSha256))||
+     d.sourceKernelSha256!==raw.sourceKernelSha256||
+     typeof d.titleAngle!=='string'||d.titleAngle.length<18||titles.has(d.titleAngle)||
+     !Array.isArray(d.editorialParagraphs)||d.editorialParagraphs.length!==3||
+     d.editorialParagraphs.some((x:unknown)=>typeof x!=='string'||x.length<190)||
+     !object(d.cityReference)||d.cityReference.coordinatesVerified!==false||
+     d.cityReference.elevationVerified!==false||
+     d.cityReference.horizonConventionValidated!==false||
+     !object(d.sun)||!object(d.panchang)||!object(d.transitions))
+     throw Error('Research preview day fails scientific and editorial safety rules');
+  titles.add(d.titleAngle);
+  if(!components.every(k=>typeof d.panchang[k]==='string'&&(d.panchang[k] as string).length>2))
+   throw Error('Missing Panchang research limbs');
+  if(![d.sun.sunriseUtc,d.sun.sunsetUtc,d.sun.nextSunriseUtc].every(x=>typeof x==='string'&&UTC.test(x)))
+   throw Error('Malformed research sunrise');
+  const sunrise=Date.parse(d.sun.sunriseUtc as string);
+  const sunset=Date.parse(d.sun.sunsetUtc as string);
+  const next=Date.parse(d.sun.nextSunriseUtc as string);
+  if(!(sunrise<sunset&&sunset<next))throw Error('Bad research solar day');
+  if(i&&Date.parse(rows[i-1].sun.nextSunriseUtc)!==sunrise)
+   throw Error('Research preview sunrises are not continuous');
+  for(const k of components){
+   const events=d.transitions[k];
+   if(!Array.isArray(events)||!events.length)throw Error('Incomplete '+k+' timeline');
+   let cursor=sunrise;
+   for(const event of events){
+    if(!object(event)||typeof event.name!=='string'||!UTC.test(event.startUtc as string)||
+     !UTC.test(event.endUtc as string)||Date.parse(event.startUtc as string)!==cursor||
+     Date.parse(event.endUtc as string)<=cursor||
+     Date.parse(event.endUtc as string)>next)throw Error('Invalid '+k+' research interval');
+    cursor=Date.parse(event.endUtc as string);
+   }
+   if(cursor!==next||events[0].name!==d.panchang[k])
+    throw Error('Inconsistent '+k+' sunrise component');
+  }
+  rows.push(d as ResearchPilotDay);
+ }
+ if(raw.visibleThrough!==rows.at(-1)?.date)
+  throw Error('Preview dates extend beyond the selected daily release date');
+ return rows;
+}
+let cached:ResearchPilotDay[]|undefined;
+export function publicResearchPilotDays(){return cached??(cached=check(payload));}
+export function researchPilotDay(city:string,date:string){
+ return publicResearchPilotDays().find(d=>d.cityId===city&&d.date===date);
+}
+export const IST=(iso:string)=>new Intl.DateTimeFormat('en-IN',{
+ timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',hour12:false
+}).format(new Date(iso))+' IST';
