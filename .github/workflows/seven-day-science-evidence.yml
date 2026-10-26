@@ -15,12 +15,16 @@ on:
       - 'engine/panchavani/seven_day_science_pilot.py'
       - 'engine/research_external/seven_day_swiss_comparison.py'
       - 'engine/tests/test_seven_day_science_pilot.py'
+      - 'engine/panchavani/science_factpack_handoff.py'
+      - 'engine/tests/test_science_factpack_handoff.py'
       - '.github/workflows/seven-day-science-evidence.yml'
   pull_request:
     paths:
       - 'engine/panchavani/seven_day_science_pilot.py'
       - 'engine/research_external/seven_day_swiss_comparison.py'
       - 'engine/tests/test_seven_day_science_pilot.py'
+      - 'engine/panchavani/science_factpack_handoff.py'
+      - 'engine/tests/test_science_factpack_handoff.py'
       - '.github/workflows/seven-day-science-evidence.yml'
 permissions:
   contents: read
@@ -37,6 +41,7 @@ jobs:
         run: |
           PYTHONPATH=engine python -m unittest discover -s engine/tests -p 'test_seven_day_science_pilot.py' -v
           PYTHONPATH=engine python -m unittest discover -s engine/tests -p 'test_first_six_limb_pilot.py' -v
+          PYTHONPATH=engine python -m unittest discover -s engine/tests -p 'test_science_factpack_handoff.py' -v
       - name: Install pinned runtime Skyfield and isolated test-only Swiss comparator
         run: |
           python -m pip install -r engine/requirements.txt
@@ -83,6 +88,42 @@ jobs:
             --ephemeris /tmp/de440s.bsp \
             --science engine/artifacts/pilot-21citydays-JPL-UNAPPROVED.json \
             --out engine/artifacts/pilot-21citydays-SWISS-UNAPPROVED.json
+      - name: Generate 21 unsigned, SHA-linked science factpack review packets (never self-sign)
+        run: |
+          PYTHONPATH=engine python -m panchavani.science_factpack_handoff \
+            --jpl engine/artifacts/pilot-21citydays-JPL-UNAPPROVED.json \
+            --swiss engine/artifacts/pilot-21citydays-SWISS-UNAPPROVED.json \
+            --outdir engine/artifacts/pilot-21citydays-review-packets-UNAPPROVED
+      - name: Reject missing, mutable or spoofed science signatures in review packet bundle
+        run: |
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          root=Path('engine/artifacts/pilot-21citydays-review-packets-UNAPPROVED')
+          manifest=json.loads((root/'manifest-UNAPPROVED.json').read_text())
+          assert manifest['count']==21
+          assert manifest['independentScientificApproval'] is False
+          assert manifest['modelInvocationAuthorized'] is False
+          assert manifest['indexingAuthorized'] is False
+          assert len(manifest['records'])==21
+          seen=set()
+          for entry in manifest['records']:
+              path=root/entry['filename']
+              raw=path.read_bytes()
+              assert hashlib.sha256(raw).hexdigest()==entry['sha256']
+              r=json.loads(raw)
+              key=(r['cityId'],r['localDate'])
+              assert key not in seen
+              seen.add(key)
+              fact=r['unapprovedFactpackTemplate']
+              assert fact['status']!='SCIENCE_APPROVED_WITH_EVIDENCE'
+              assert fact['scienceReview'] is None and fact['approval'] is None
+              assert r['scienceReviewSigned'] is False
+              assert r['approvedClaimsForDeepSeek']==[]
+              assert r['modelInvocationAuthorized'] is False
+              assert r['indexingAuthorized'] is False
+          print('PASS:',len(seen),'unsigned factpack review candidates, zero model/public authority')
+          PY
       - name: Assert provenance, full coverage, cross-software evidence and no scientific or SEO approval
         run: |
           python - <<'PY'
@@ -125,5 +166,6 @@ jobs:
           path: |
             engine/artifacts/pilot-21citydays-JPL-UNAPPROVED.json
             engine/artifacts/pilot-21citydays-SWISS-UNAPPROVED.json
+            engine/artifacts/pilot-21citydays-review-packets-UNAPPROVED/
           if-no-files-found: error
           retention-days: 30
