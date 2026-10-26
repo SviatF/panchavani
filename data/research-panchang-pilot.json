@@ -1,0 +1,17 @@
+{
+  "artifactType": "PANCHAVANI_7DAY_NO_INDEX_PUBLIC_RESEARCH_PREVIEW",
+  "schemaVersion": 1,
+  "status": "UNAPPROVED_PUBLIC_RESEARCH_PILOT",
+  "cityId": "delhi",
+  "scopeStart": "2026-10-27",
+  "scopeEnd": "2026-11-02",
+  "visibleThrough": null,
+  "sourceType": "RECOMPUTED_JPL_RESEARCH_NOT_ORIGINAL_D1_R2",
+  "sourceKernelSha256": null,
+  "sourceApproval": false,
+  "humanEditorialApproved": false,
+  "deepSeekInvocationAuthorized": false,
+  "publicationAsVerifiedPanchangAuthorized": false,
+  "searchIndexingAuthorized": false,
+  "days": []
+}
