@@ -8,6 +8,9 @@ on:
       - 'lib/**'
       - 'data/city-guides.json'
       - 'data/muhurat-guides.json'
+      - 'data/approved-learning-seo.json'
+      - 'scripts/test-learning-seo-release.mjs'
+      - 'scripts/generate-learning-review-queue.mjs'
       - 'scripts/test-product-experience.mjs'
       - 'data/approved-panchang.json'
       - 'data/approved-seo-days.json'
@@ -49,6 +52,7 @@ jobs:
       PANCHAVANI_APPROVED_SEO_RELEASE_SHA256: ${{ secrets.PANCHAVANI_APPROVED_SEO_RELEASE_SHA256 }}
       PANCHAVANI_APPROVED_TOPIC_RELEASE_SHA256: ${{ secrets.PANCHAVANI_APPROVED_TOPIC_RELEASE_SHA256 }}
       PANCHAVANI_APPROVED_TOPIC_SEO_SHA256: ${{ secrets.PANCHAVANI_APPROVED_TOPIC_SEO_SHA256 }}
+      PANCHAVANI_APPROVED_LEARNING_SEO_SHA256: ${{ secrets.PANCHAVANI_APPROVED_LEARNING_SEO_SHA256 }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
@@ -62,6 +66,14 @@ jobs:
         run: npm run audit:content
       - name: Verify ten-city selection and substantive, unindexed Muhurat guides
         run: npm run test:product
+      - name: Generate exact content-hash reviewer queue (never grants SEO signoff)
+        run: npm run audit:learning -- --out /tmp/panchavani-learning-review-queue.json
+      - name: Upload private-editor review queue for 3 educational guides
+        uses: actions/upload-artifact@v4
+        with:
+          name: panchavani-learning-three-article-human-review-UNAPPROVED
+          path: /tmp/panchavani-learning-review-queue.json
+          retention-days: 30
       - name: Build real static site
         run: npm run build
       - name: Validate reviewed city daily, calendar, festival, vrat and muhurat SEO releases before deploying

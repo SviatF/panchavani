@@ -3,6 +3,7 @@ import {notFound} from 'next/navigation';
 import type {Metadata} from 'next';
 import {ArrowLeft,ArrowRight,BookOpen,Clock3,ExternalLink,Info,CheckCircle2} from 'lucide-react';
 import {learningGuides,learningSlugs,type LearningSlug} from '@/lib/learning-guides';
+import {isIndexableLearningGuide} from '@/lib/seo-release-manifest';
 
 type Props={params:Promise<{topic:string}>};
 function isTopic(v:string):v is LearningSlug{return learningSlugs.some(x=>x===v);}
@@ -15,7 +16,7 @@ export async function generateMetadata({params}:Props):Promise<Metadata>{
   title:article.title,
   description:article.description,
   alternates:{canonical:'https://panchavani.com/learn/'+topic+'/'},
-  robots:{index:false,follow:false},
+  robots:{index:isIndexableLearningGuide(topic),follow:isIndexableLearningGuide(topic)},
   openGraph:{type:'article',title:article.title,description:article.description,
    url:'https://panchavani.com/learn/'+topic+'/'}
  };
@@ -33,8 +34,8 @@ export default async function LearningArticle({params}:Props){
    <p className="learning-dek">{article.lead}</p>
    <div className="learning-disclosure"><Info size={18} aria-hidden="true"/>
     <p>Educational explainer. This page does not provide verified city/date astronomy,
-    festival dates or Muhurat recommendations. It remains outside Google indexing
-    until independent editorial approval.</p>
+    festival dates or Muhurat recommendations. Indexing is controlled separately
+    by an independently reviewed editorial and SEO release.</p>
    </div>
   </div>
   <div className="page-width learning-layout">

@@ -4,7 +4,7 @@ import type { MetadataRoute } from 'next';
 export const dynamic = 'force-static';
 import { approvedSeoRoutes } from '@/lib/seo-release-manifest';
 
-// Ten evergreen guides + separately human-reviewed per-URL day SEO permits.
+// Ten existing city guides plus strictly two-person reviewed per-URL learning, day and topic permits.
 // Research candidates, even science-approved days without SEO signoff, never enter.
 export default function sitemap(): MetadataRoute.Sitemap {
   return approvedSeoRoutes().map(item=>({
