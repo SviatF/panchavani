@@ -119,21 +119,23 @@ jobs:
           assert r['modelInvocationAuthorized'] is False
           assert r['indexingAuthorized'] is False
           assert r['approvedCitySunriseClaims']==0
+          assert type(r['sourceAndMethodDiscrepancyCount']) is int
           assert r['PACDateMatchedCount']+r['PACDateMissingCount']==7
           assert all(not x['publicApproved'] for x in r['dates'])
           if r['cohort']['localDates'][0]=='2026-10-20':
               assert r['PACDateMatchedCount']==3
               assert r['officialPublishedPhenomenaReferenced']==15
+              assert r['sourceAndMethodDiscrepancyCount']>=1
           import os
           with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:
               out.write('### Official PAC / JPL same-date central-station research (NOT APPROVED)\n\n')
               out.write('Matched PAC dates: **'+str(r['PACDateMatchedCount'])+' / 7**, unresolved source dates: **'+str(r['PACDateMissingCount'])+'**.\n\n')
-              out.write('| Date | PAC phase | JPL minus printed PAC (seconds) |\n|---|---|---:|\n')
+              out.write('| Date | PAC phase | JPL minus printed PAC (seconds) | Source/method investigation |\n|---|---|---:|---|\n')
               for row in r['dates']:
                   for delta in row.get('deltas',[]):
                       out.write('| '+row['gregorianDate']+' | '+delta['kind']+
-                                ' #'+str(delta['number'])+' | '+str(delta['computedMinusPacSeconds'])+' |\n')
-              out.write('\nCentral-station sunrise is **not** evidence of Delhi/Mumbai/Chennai sunrise. PAC transcription not independently verified. No scientific or SEO approval.\n')
+                                ' #'+str(delta['number'])+' | '+str(delta['computedMinusPacSeconds'])+' | '+('YES' if delta['requiresSourceAndMethodInvestigation'] else 'within printed minute')+' |\n')
+              out.write('\n**'+str(r['sourceAndMethodDiscrepancyCount'])+' comparisons exceed the PAC printed-minute resolution.**\n\nCentral-station sunrise is **not** evidence of Delhi/Mumbai/Chennai sunrise. PAC transcription not independently verified. No scientific or SEO approval.\n')
           PY
       - name: Build fail-closed science truth matrix for all 21 city-days
         run: |
