@@ -1,0 +1,61 @@
+name: PANCHAVANI private production editorial counters (READ ONLY)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/private-production-readiness.yml'
+permissions:
+  contents: read
+jobs:
+  private-d1-census:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install D1 CLI and verify pinned account/database authorization
+        run: |
+          cd admin
+          npm install --no-audit --no-fund
+          cd ..
+          python3 .github/scripts/cloudflare_d1_preflight.py
+      - name: Read counters for ingestion, source review and DeepSeek production without user data
+        run: |
+          python3 - <<'PY'
+          import sys, json, os
+          sys.path.insert(0,'.github/scripts')
+          from d1_schema_audit import remote_rows
+          targets={
+            'researchCandidates':('research_candidates',None),
+            'ingestStored':('automated_research_import_slots',"status='stored'"),
+            'ingestFailed':('automated_research_import_slots',"status='failed'"),
+            'independentlyApprovedDays':('science_approved_day_sources',"state='approved_for_draft'"),
+            'reviewedRitualRules':('independently_reviewed_rule_sources',"state='approved_for_draft'"),
+            'privateDeepSeekDrafts':('editorial_multi_intent_once',"state='stored'"),
+            'editorialFailed':('editorial_multi_intent_once',"state='failed'"),
+            'legacyDraftsStored':('editorial_one_shot',"status='stored'")
+          }
+          results={}
+          for key,(table,where) in targets.items():
+              q='SELECT COUNT(*) AS n FROM '+table+(' WHERE '+where if where else '')
+              rows=remote_rows(q)
+              assert len(rows)==1 and type(rows[0].get('n')) is int
+              results[key]=rows[0]['n']
+          by_city=remote_rows("SELECT city_id,COUNT(*) AS n FROM science_approved_day_sources WHERE state='approved_for_draft' GROUP BY city_id ORDER BY city_id")
+          results['scienceApprovedPerCity']={r['city_id']:r['n'] for r in by_city}
+          results['publicationAuthorization']='not-established-by-private-D1'
+          results['indexingAuthorization']='not-established-by-private-D1'
+          print(json.dumps(results,indent=2,sort_keys=True))
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:
+              out.write('## Private PANCHAVANI production counters (READ ONLY)\\n\\n')
+              out.write('| Metric | Records |\\n|---|---:|\\n')
+              for k,v in results.items():
+                  if isinstance(v,int): out.write('| '+k+' | '+str(v)+' |\\n')
+              out.write('\\nNo fact, article or SEO page is approved by this check.\\n')
+          PY
