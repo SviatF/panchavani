@@ -24,6 +24,15 @@ GitHub Action `PANCHAVANI 21-city-day JPL and independent Swiss evidence (NO APP
 
 These are two distinct sources with distinct SHA identities. Do **not** label a fresh recomputation as confirmation of original D1/R2 R2 byte authenticity or a scientifically equivalent Lahiri setup.
 
+
+### C. Reviewer-ready UNSIGNED factpack handoff
+
+The weekly workflow now builds one separately SHA-pinned JSON per city/day (21 files plus manifest) from the exact JPL recalculation plus the matching Swiss city sunrise comparison. Each candidate maps the six sunrise Panchang components, three solar timestamps, four full lunar transition sequences, the city observing-point reference, independent numerical comparison values and direct SHA-256 provenance.
+
+**Every candidate deliberately has** `status=PENDING_INDEPENDENT_SCIENTIFIC_REVIEW_NOT_APPROVED`, `scienceReview=null`, `approval=null`, `cityFacts=[]`, `modelInvocationAuthorized=false`, and `indexingAuthorized=false`. This is NOT an approved factpack and Admin will reject it if pasted into the signed science import form.
+
+A real authorized external reviewer must substantiate and populate city facts with original source URLs, reconcile the astronomy/geodata/old D1 byte-level discrepancies, document two or more actual independent comparisons, attest their identity, then authenticate an acceptable science pack separately using the existing secret-protected `verifySciencePack` contract. The system does **not** invent review signatures or call DeepSeek before that independent gate.
+
 ## Reviewer action required to move from research to factual content
 
 A qualified independent reviewer needs to inspect original independent source measurements/methodology against these diagnostic artifacts, agree the adopted observing point (lat/long/elevation, horizon/refraction) for each city, reconcile solar times and geocentric limb transitions with explicit tolerances and consistent definitions, resolve historical source SHA conflicts, and document which research values may safely be accepted.
