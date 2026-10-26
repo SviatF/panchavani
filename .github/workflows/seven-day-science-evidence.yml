@@ -17,6 +17,11 @@ on:
       - 'engine/tests/test_seven_day_science_pilot.py'
       - 'engine/panchavani/science_factpack_handoff.py'
       - 'engine/panchavani/science_truth_matrix.py'
+      - 'engine/panchavani/pac_week_comparison.py'
+      - 'engine/tests/test_pac_week_comparison.py'
+      - 'engine/fixtures/pac-2026-10-20-central-limbs-UNREVIEWED.json'
+      - 'engine/fixtures/pac-2026-10-21-central-limbs-UNREVIEWED.json'
+      - 'engine/fixtures/pac-2026-10-22-central-limbs-UNREVIEWED.json'
       - 'engine/tests/test_science_truth_matrix.py'
       - 'engine/tests/test_science_factpack_handoff.py'
       - '.github/workflows/seven-day-science-evidence.yml'
@@ -27,6 +32,11 @@ on:
       - 'engine/tests/test_seven_day_science_pilot.py'
       - 'engine/panchavani/science_factpack_handoff.py'
       - 'engine/panchavani/science_truth_matrix.py'
+      - 'engine/panchavani/pac_week_comparison.py'
+      - 'engine/tests/test_pac_week_comparison.py'
+      - 'engine/fixtures/pac-2026-10-20-central-limbs-UNREVIEWED.json'
+      - 'engine/fixtures/pac-2026-10-21-central-limbs-UNREVIEWED.json'
+      - 'engine/fixtures/pac-2026-10-22-central-limbs-UNREVIEWED.json'
       - 'engine/tests/test_science_truth_matrix.py'
       - 'engine/tests/test_science_factpack_handoff.py'
       - '.github/workflows/seven-day-science-evidence.yml'
@@ -47,6 +57,7 @@ jobs:
           PYTHONPATH=engine python -m unittest discover -s engine/tests -p 'test_first_six_limb_pilot.py' -v
           PYTHONPATH=engine python -m unittest discover -s engine/tests -p 'test_science_factpack_handoff.py' -v
           PYTHONPATH=engine python -m unittest discover -s engine/tests -p 'test_science_truth_matrix.py' -v
+          PYTHONPATH=engine python -m unittest discover -s engine/tests -p 'test_pac_week_comparison.py' -v
       - name: Install pinned runtime Skyfield and isolated test-only Swiss comparator
         run: |
           python -m pip install -r engine/requirements.txt
@@ -93,6 +104,24 @@ jobs:
             --ephemeris /tmp/de440s.bsp \
             --science engine/artifacts/pilot-21citydays-JPL-UNAPPROVED.json \
             --out engine/artifacts/pilot-21citydays-SWISS-UNAPPROVED.json
+      - name: Compare date-matched official PAC Panchang ending clocks against JPL (UNAPPROVED)
+        run: |
+          PYTHONPATH=engine python -m panchavani.pac_week_comparison \
+            --ephemeris /tmp/de440s.bsp \
+            --science engine/artifacts/pilot-21citydays-JPL-UNAPPROVED.json \
+            --fixtures engine/fixtures \
+            --out engine/artifacts/pilot-21citydays-PAC-OFFICIAL-DATE-MATCHED-UNAPPROVED.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('engine/artifacts/pilot-21citydays-PAC-OFFICIAL-DATE-MATCHED-UNAPPROVED.json').read_text())
+          assert r['scienceApproval'] is False
+          assert r['modelInvocationAuthorized'] is False
+          assert r['indexingAuthorized'] is False
+          assert r['approvedCitySunriseClaims']==0
+          assert r['PACDateMatchedCount']+r['PACDateMissingCount']==7
+          assert all(not x['publicApproved'] for x in r['dates'])
+          PY
       - name: Build fail-closed science truth matrix for all 21 city-days
         run: |
           PYTHONPATH=engine python -m panchavani.science_truth_matrix \
@@ -190,6 +219,7 @@ jobs:
             engine/artifacts/pilot-21citydays-JPL-UNAPPROVED.json
             engine/artifacts/pilot-21citydays-SWISS-UNAPPROVED.json
             engine/artifacts/pilot-21citydays-TRUTH-MATRIX-UNAPPROVED.json
+            engine/artifacts/pilot-21citydays-PAC-OFFICIAL-DATE-MATCHED-UNAPPROVED.json
             engine/artifacts/pilot-21citydays-review-packets-UNAPPROVED/
           if-no-files-found: error
           retention-days: 30
