@@ -63,6 +63,8 @@ jobs:
           git add data/research-panchang-pilot.json
           if ! git diff --cached --quiet; then
             git commit -m "science: pin seven unapproved Delhi JPL research days for staged noindex testing"
+            git fetch origin "${{ github.head_ref }}"
+            git rebase "origin/${{ github.head_ref }}"
             git push origin "HEAD:${{ github.head_ref }}"
           fi
       - uses: actions/upload-artifact@v4
