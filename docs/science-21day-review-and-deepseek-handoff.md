@@ -14,7 +14,7 @@ Three cities (Delhi, Mumbai, Chennai) across seven local India dates, initially 
 
 ### B. Recomputed JPL six-limb 21-day candidate (NOT identical historical D1/R2 bytes)
 
-GitHub Action `PANCHAVANI 21-city-day JPL and independent Swiss evidence (NO APPROVAL)`:
+GitHub Action `PANCHAVANI 21-city-day JPL and independent Swiss evidence (NO APPROVAL)` runs **automatically each Monday at 04:20 UTC**, using the previous seven fully completed India-local dates. A manual run accepts a specific first date, and push/PR runs exercise the fixed 2026-10-20 regression pilot:
 
 1. Downloads pinned NASA/JPL DE440s SPK (exact SHA).
 2. Recomputes all 21 full six-limb city/day records (Tithi, Karana, Nakshatra, Yoga, Vara, Paksha) with provisional PANCHAVANI sidereal conventions.

@@ -1,5 +1,7 @@
 name: PANCHAVANI 21-city-day JPL and independent Swiss evidence (NO APPROVAL)
 on:
+  schedule:
+    - cron: '20 04 * * 1'
   workflow_dispatch:
     inputs:
       start:
@@ -26,8 +28,6 @@ jobs:
   pilot-science-comparison:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      PILOT_START: ${{ inputs.start || '2026-10-20' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -43,6 +43,28 @@ jobs:
           echo 'pyswisseph==2.10.3.2 --hash=sha256:e00d7e08aeafe00938603bc118874b6ca7871c5aaa55aafca8fa2c6d76aff812' > /tmp/swiss-qa-only.txt
           python -m pip install --require-hashes --only-binary=:all: --no-deps -r /tmp/swiss-qa-only.txt
           python -c "import swisseph as swe; assert swe.version=='2.10.03'"
+      - name: Select the seven FULLY COMPLETED India-local civil days for scheduled reviews
+        id: week
+        env:
+          EVENT_TYPE: ${{ github.event_name }}
+          USER_DATE: ${{ inputs.start || '' }}
+        run: |
+          python - <<'PY'
+          from datetime import date,datetime,timedelta
+          from zoneinfo import ZoneInfo
+          import os
+          if os.environ['EVENT_TYPE']=='schedule':
+              # Monday IST: inspect the entire prior Monday-Sunday, never
+              # label an ongoing day a completed source.
+              start=datetime.now(ZoneInfo('Asia/Kolkata')).date()-timedelta(days=7)
+          else:
+              start=date.fromisoformat(os.environ['USER_DATE'] or '2026-10-20')
+          if start.year<2025 or start.year>2030:
+              raise ValueError('Review outside verified kernel pilot horizon')
+          with open(os.environ['GITHUB_OUTPUT'],'a') as out:
+              out.write('start='+start.isoformat()+'\n')
+          print('RESEARCH ONLY: seven India-local days from',start.isoformat())
+          PY
       - name: Download immutable NASA JPL DE440s ephemeris
         run: |
           curl --fail --location --retry 3 --max-time 240 --silent --show-error \
@@ -53,7 +75,7 @@ jobs:
         run: |
           PYTHONPATH=engine python -m panchavani.seven_day_science_pilot \
             --ephemeris /tmp/de440s.bsp \
-            --start "$PILOT_START" \
+            --start "${{ steps.week.outputs.start }}" \
             --out engine/artifacts/pilot-21citydays-JPL-UNAPPROVED.json
       - name: Independently compare actual 21 local dawns and 16 phase boundaries with Swiss
         run: |
