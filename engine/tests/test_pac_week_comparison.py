@@ -32,6 +32,9 @@ class PACWeekTests(unittest.TestCase):
   self.assertEqual(report["PACDateMatchedCount"],3)
   self.assertEqual(report["PACDateMissingCount"],4)
   self.assertEqual(report["officialPublishedPhenomenaReferenced"],15)
+  self.assertEqual(report["publishedClockResolutionSeconds"],60)
+  self.assertEqual(report["sourceAndMethodDiscrepancyCount"],15)
+  self.assertTrue(report["sourceAndMethodDiscrepanciesStillRequireIndependentReview"])
   self.assertEqual(report["approvedCitySunriseClaims"],0)
   self.assertFalse(report["scienceApproval"])
   self.assertFalse(report["publicationAuthorized"])
@@ -58,4 +61,15 @@ class PACWeekTests(unittest.TestCase):
   row=base_report("2026-10-20")
   row["publicationAuthorized"]=True
   with self.assertRaises(ValueError):build_report(research(),src,[row])
+ def test_specific_vanij_outlier_requires_source_method_review(self):
+  src=week_pac_sources(research(),[FIXTURES/"pac-2026-10-21-central-limbs-UNREVIEWED.json"])
+  report=base_report("2026-10-21")
+  report["comparisons"][0]["deltaSeconds"]=567.048
+  for row in report["comparisons"][1:]: row["deltaSeconds"]=22.786
+  result=build_report(research(),src,[report])
+  self.assertEqual(result["sourceAndMethodDiscrepancyCount"],1)
+  entry=next(x for x in result["dates"] if x["gregorianDate"]=="2026-10-21")
+  self.assertTrue(entry["deltas"][0]["outsidePublishedMinuteResolution"])
+  self.assertTrue(entry["deltas"][0]["requiresSourceAndMethodInvestigation"])
+  self.assertFalse(result["scienceApproval"])
 if __name__=="__main__":unittest.main()
