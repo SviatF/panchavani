@@ -86,7 +86,7 @@ function check(raw:unknown):ResearchPilotDay[]{
    if(cursor!==next||events[0].name!==d.panchang[k])
     throw Error('Inconsistent '+k+' sunrise component');
   }
-  rows.push(d as ResearchPilotDay);
+  rows.push(d as unknown as ResearchPilotDay);
  }
  if(raw.visibleThrough!==rows.at(-1)?.date)
   throw Error('Preview dates extend beyond the selected daily release date');
