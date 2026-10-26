@@ -5,6 +5,10 @@ from tests.test_science_factpack_handoff import inputs
 
 def pair():
  j,s=inputs()
+ for dawn in s["cityDawnComparisons"]:
+  dawn["differences"]={k:0.0 for k in (
+   "ayanamsaArcsec","moonTropicalArcsec","sunTropicalArcsec",
+   "moonSiderealArcsec","sunSiderealArcsec","yogaPhaseArcsec")}
  s["boundaryComparisons"]=[{
    "kind":kind,"endingNumber":i+1,"jplUtc":"2026-10-20T12:00:00Z",
    "swissMinusJplSeconds":float(i+1),"status":"independently-solved"
