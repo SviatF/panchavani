@@ -23,7 +23,9 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: panchavani-public-first-ten
+  # PR preview checks must not queue-cancel one another's main public deploy.
+  # All main and scheduled publishes still share the production mutex.
+  group: ${{ github.event_name == 'pull_request' && format('panchavani-pilot-pr-{0}', github.event.pull_request.number) || 'panchavani-public-first-ten' }}
   cancel-in-progress: false
 jobs:
   date-locked-daily-publishing:
