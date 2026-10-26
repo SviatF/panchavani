@@ -47,3 +47,14 @@ If any nonempty permit is malformed, a reviewer is missing, the content changes,
 **Important:** No automated script may populate actual reviewers, set approvals, forge a release checksum in secrets, auto-approve an educational page from a DeepSeek response or treat PAC citation alone as proof of correctness.
 
 When actual astronomical city-day facts have scientific signoff, the separate private Multi-Intent worker may create factual DeepSeek drafts within its existing 3/day limit. An educational SEO permit **never grants** permission to generate or publish date-specific Panchang, Vrat, Muhurat or Festival results.
+
+## Confirmed PAC/JPL research discrepancy (October 21)
+
+The 2026-10-26 JPL/Swiss/PAC production research artifact reported 15 official PAC geocentric limb ending comparisons across October 20–22. Fourteen were within 60 seconds of the published minute-clock and one was not:
+
+- **2026-10-21, Vanij Karana (number 21)**: official PAC `h. 26-27` (02:27 IST on October 22), JPL minus PAC **+567.048 seconds** (approximately +9 min 27 sec). The PAC official Asvina page explicitly prints `Gara h. 14-12 then Vanij h. 26-27`.
+- Most other residuals were under 30 seconds, including exact Tithi/Karana shared phase boundaries. Agreement on those samples is not proof of full method equivalence.
+
+The science report flags any discrepancy **greater than 60 seconds** separately from the existing 30-minute *exploratory alert*. Neither number is a certified ephemeris accuracy threshold. This specific discrepancy requires review of the original official printed source, the chosen number-21 Karana boundary, UTC/TT conventions and the JPL/Swiss method before any factpack receives authorization. The raw fixture is retained as `UNREVIEWED` and never corrected just to match JPL.
+
+The list of resolved-versus-unresolved discrepancies is included in the GitHub Actions summary for the official PAC comparison step and the associated science artifact. No DeepSeek content or published calendar pages depend on these unreviewed research values.
