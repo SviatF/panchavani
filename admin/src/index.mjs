@@ -16,6 +16,7 @@ import { pilotReadiness } from './pilot-readiness.mjs';
 import { skinAdminResponse, ADMIN_UI_VERSION } from './console-ui.mjs';
 import { renderCommandCenter, readDashboardMetrics } from './console-dashboard.mjs';
 import { handleScienceConsole } from './science-console.mjs';
+import {handleSciencePilotWeek} from './science-pilot-week.mjs';
 import { handleDailyScienceAudit } from './science-day.mjs';
 import { handleConflictForensics } from './conflict-forensics.mjs';
 import { handlePilotConflictAudit } from './pilot-conflict-audit.mjs';
