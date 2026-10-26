@@ -40,6 +40,6 @@ test('Access boundary, method and storage are fail-closed',async()=>{
  assert.equal((await handleSciencePilotWeek(new Request(u),{},'editor')).status,503);
 });
 test('date picker defaults to seven India-local dates ending today',()=>{
- assert.equal(defaultPilotStart(new Date('2026-10-26T02:00:00Z')),'2026-10-19');
- assert.equal(defaultPilotStart(new Date('2026-10-26T18:30:00Z')),'2026-10-20');
+ assert.equal(defaultPilotStart(new Date('2026-10-26T02:00:00Z')),'2026-10-20');
+ assert.equal(defaultPilotStart(new Date('2026-10-26T18:30:00Z')),'2026-10-21');
 });
