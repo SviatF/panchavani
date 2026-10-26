@@ -57,6 +57,13 @@ export default async function CityPanchang({params}:Props){
      </div>
     </div>}
   </section>
+  {city==='delhi'&&<section className="research-city-cta">
+   <div><p className="section-eyebrow">SEVEN-DAY RESEARCH DIARY · OCT 27 — NOV 2</p>
+    <h2>See our test Panchang calculations</h2>
+    <p>One transparent research preview per day. Not independently approved,
+     excluded from search indexing, and never intended for ritual decisions.</p></div>
+   <Link href="/research/panchang/">View research previews →</Link>
+  </section>}
   <section className="editorial-city-explainer" aria-labelledby="city-explainer-title">
    <p className="section-eyebrow">UNDERSTANDING THE LOCAL CALENDAR</p>
    <h2 id="city-explainer-title">What makes {guide.label} different?</h2>
