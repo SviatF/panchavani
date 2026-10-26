@@ -14,8 +14,9 @@
     "clean": "node scripts/clean-assets.mjs",
     "audit:preindex": "node scripts/audit-first-indexing-readiness.mjs",
     "test:preindex": "node --test scripts/test-approved-day-value-gate.mjs scripts/test-reviewed-page-generation.mjs scripts/test-seo-day-release.mjs scripts/test-topic-release.mjs",
-    "test:product": "node --test scripts/test-product-experience.mjs scripts/test-editorial-ux.mjs scripts/test-calendar-explorer.mjs scripts/test-learning-library.mjs scripts/test-learning-seo-release.mjs",
-    "audit:learning": "node scripts/generate-learning-review-queue.mjs"
+    "test:product": "node --test scripts/test-product-experience.mjs scripts/test-editorial-ux.mjs scripts/test-calendar-explorer.mjs scripts/test-learning-library.mjs scripts/test-learning-seo-release.mjs scripts/test-research-pilot.mjs",
+    "audit:learning": "node scripts/generate-learning-review-queue.mjs",
+    "audit:research-pilot": "node scripts/audit-research-html.mjs"
   },
   "dependencies": {
     "next": "15.5.6",

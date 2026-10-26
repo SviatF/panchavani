@@ -1,0 +1,75 @@
+name: Prepare fixed 7-day Delhi research evidence (NO APPROVAL)
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'engine/panchavani/public_research_pilot.py'
+      - 'engine/tests/test_public_research_pilot.py'
+      - '.github/workflows/prepare-delhi-research-pilot.yml'
+permissions:
+  contents: write
+jobs:
+  science-preview-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate source converter boundaries and no-signature rules
+        run: PYTHONPATH=engine python -m unittest discover -s engine/tests -p 'test_public_research_pilot.py' -v
+      - name: Install isolated astronomy calculation dependencies
+        run: python -m pip install -r engine/requirements.txt
+      - name: Fetch pinned immutable JPL DE440s from NASA
+        run: |
+          curl --fail --location --retry 3 --max-time 240 --silent --show-error \
+            https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp \
+            --output /tmp/de440s.bsp
+          echo 'c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2  /tmp/de440s.bsp' | sha256sum --check
+      - name: Recompute full future Delhi Mumbai Chennai cohort and verify 72 transition joins
+        run: |
+          PYTHONPATH=engine python -m panchavani.seven_day_science_pilot \
+            --ephemeris /tmp/de440s.bsp \
+            --start 2026-10-27 \
+            --out /tmp/panchavani-27oct-02nov-science-UNAPPROVED.json
+      - name: Extract exactly seven Delhi research articles without any science/SEO authority
+        run: |
+          PYTHONPATH=engine python -m panchavani.public_research_pilot \
+            --source /tmp/panchavani-27oct-02nov-science-UNAPPROVED.json \
+            --through 2026-11-02 \
+            --out /tmp/panchavani-delhi-seven-articles-UNAPPROVED.json
+          python - <<'PY'
+          import json
+          p='/tmp/panchavani-delhi-seven-articles-UNAPPROVED.json'
+          a=json.load(open(p))
+          assert len(a['days'])==7
+          assert [x['date'] for x in a['days']]==[
+            '2026-10-27','2026-10-28','2026-10-29','2026-10-30',
+            '2026-10-31','2026-11-01','2026-11-02']
+          assert not a['sourceApproval'] and not a['searchIndexingAuthorized']
+          assert not a['deepSeekInvocationAuthorized']
+          assert all(x['indexingAuthorized'] is False for x in a['days'])
+          print('PASS: seven date-specific, explicit research-only daily records')
+          PY
+      - name: Attach exact source-locked JPL research bundle to INTERNAL PR branch
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          cp /tmp/panchavani-delhi-seven-articles-UNAPPROVED.json data/research-panchang-pilot.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/research-panchang-pilot.json
+          if ! git diff --cached --quiet; then
+            git commit -m "science: pin seven unapproved Delhi JPL research days for staged noindex testing"
+            git fetch origin "${{ github.head_ref }}"
+            git rebase "origin/${{ github.head_ref }}"
+            git push origin "HEAD:${{ github.head_ref }}"
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: panchavani-delhi-2026-10-27-to-11-02-NOINDEX-research-source
+          path: /tmp/panchavani-delhi-seven-articles-UNAPPROVED.json
+          if-no-files-found: error
+          retention-days: 21

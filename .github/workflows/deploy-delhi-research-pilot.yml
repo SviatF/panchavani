@@ -1,0 +1,127 @@
+name: PANCHAVANI seven-day Delhi research post and SEO QA (NOINDEX)
+on:
+  schedule:
+    - cron: '30 02 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'data/research-panchang-pilot.json'
+      - 'lib/research-pilot.ts'
+      - 'app/research/panchang/**'
+      - 'scripts/audit-research-html.mjs'
+      - 'scripts/test-research-pilot.mjs'
+      - '.github/workflows/deploy-delhi-research-pilot.yml'
+  pull_request:
+    paths:
+      - 'data/research-panchang-pilot.json'
+      - 'lib/research-pilot.ts'
+      - 'app/research/panchang/**'
+      - 'scripts/audit-research-html.mjs'
+      - 'scripts/test-research-pilot.mjs'
+      - '.github/workflows/deploy-delhi-research-pilot.yml'
+permissions:
+  contents: read
+concurrency:
+  # PR preview checks must not queue-cancel one another's main public deploy.
+  # All main and scheduled publishes still share the production mutex.
+  group: ${{ github.event_name == 'pull_request' && format('panchavani-pilot-pr-{0}', github.event.pull_request.number) || 'panchavani-public-first-ten' }}
+  cancel-in-progress: false
+jobs:
+  date-locked-daily-publishing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PANCHAVANI_PILOT_TEST_BUILD_DATE: '2026-10-27'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Determine current India date and strict seven-day research release window
+        id: phase
+        run: |
+          python - <<'PY'
+          from datetime import datetime,date
+          from zoneinfo import ZoneInfo
+          import os
+          today=datetime.now(ZoneInfo('Asia/Kolkata')).date()
+          scope=date(2026,10,27)<=today<=date(2026,11,2)
+          source=os.path.exists('data/research-panchang-pilot.json')
+          print('Current IST publication date:',today)
+          print('Seven-day pilot phase:',scope)
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+              f.write('today='+today.isoformat()+'\n')
+              f.write('release='+('true' if scope else 'false')+'\n')
+          PY
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Enforce product, research science and SEO source safety rules
+        run: |
+          npm run test:product
+          npm run test:preindex
+          npm run audit:content
+      - name: Verify exact SHA-bound research source includes all seven planned days
+        run: |
+          node --input-type=module <<'JS'
+          import {readFileSync} from 'node:fs';
+          import assert from 'node:assert/strict';
+          const p=JSON.parse(readFileSync('data/research-panchang-pilot.json'));
+          if(process.env.GITHUB_EVENT_NAME==='pull_request' && !p.days.length){
+            console.log('PR source preparation still processing: empty research draft is safe');
+          }else{
+            assert.equal(p.days.length,7,'Never deploy partially calculated research source');
+            assert.equal(p.sourceApproval,false);
+            assert.equal(p.searchIndexingAuthorized,false);
+            assert.equal(p.deepSeekInvocationAuthorized,false);
+          }
+          JS
+      - name: Build complete static website with ONLY released India dates
+        run: npm run build
+      - name: Audit actual exported HTML, noindex, canonical, sitemap and future-date boundaries
+        run: |
+          node scripts/audit-research-html.mjs
+          python scripts/assert_first_ten_public_release.py
+      - name: Fail if authenticated Cloudflare publish is not configured
+        if: github.ref == 'refs/heads/main' && steps.phase.outputs.release == 'true'
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+      - name: Deploy safe noindex daily research post plus existing verified site to Cloudflare
+        if: github.ref == 'refs/heads/main' && steps.phase.outputs.release == 'true'
+        run: npx wrangler deploy --config wrangler.jsonc
+      - name: Verify deployed public Delhi daily article responds 200 and remains noindex
+        if: github.ref == 'refs/heads/main' && steps.phase.outputs.release == 'true'
+        env:
+          PILOT_DATE: ${{ steps.phase.outputs.today }}
+        run: |
+          curl --fail --location --retry 5 --retry-delay 5 --max-time 30 \
+            --silent --show-error \
+            "https://panchavani.com/research/panchang/delhi/$PILOT_DATE/" \
+            --output /tmp/panchavani-live-daily-page.html
+          node --input-type=module <<'JS'
+          import {readFileSync} from 'node:fs';
+          import assert from 'node:assert/strict';
+          const raw=readFileSync('/tmp/panchavani-live-daily-page.html','utf8');
+          const date=process.env.PILOT_DATE;
+          assert(raw.includes(date),'Live website returned wrong Delhi date');
+          assert(/<meta[^>]*name="robots"[^>]*content="[^"]*noindex/.test(raw),
+             'Live Delhi draft lost page-level noindex');
+          assert(raw.includes('Unverified astronomy'),'Live research warning missing');
+          assert(raw.includes('research/panchang/delhi/'+date+'/'),'Live canonical missing');
+          console.log('PASS: real public live HTML, date',date,'noindex and source disclosure');
+          JS
+      - name: Record research run and two-day SEO/quality audit progress
+        if: always()
+        run: |
+          {
+            echo '## Delhi 7-day research-only publication'
+            echo "India publication date: ${{ steps.phase.outputs.today }}"
+            echo "Current seven-day publishing window: ${{ steps.phase.outputs.release }}"
+            echo 'The public route MUST remain noindex, never enter sitemap and never claim scientific approval.'
+            echo 'Source checksum:'
+            sha256sum data/research-panchang-pilot.json || true
+            echo 'Day 2 (28 October): inspect first two static HTML outputs, original article angles, scientific source hashes, mobile layout and actual site HTTP.'
+            echo 'Search Console impressions/clicks cannot validate unindexed research pages.'
+          } >> "$GITHUB_STEP_SUMMARY"
