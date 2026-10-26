@@ -62,18 +62,21 @@ function check(raw:unknown):ResearchPilotDay[]{
      !object(d.sun)||!object(d.panchang)||!object(d.transitions))
      throw Error('Research preview day fails scientific and editorial safety rules');
   titles.add(d.titleAngle);
-  if(!components.every(k=>typeof d.panchang[k]==='string'&&(d.panchang[k] as string).length>2))
+  const panchang=d.panchang as Record<string,unknown>;
+  const sun=d.sun as Record<string,unknown>;
+  const transitions=d.transitions as Record<string,unknown>;
+  if(!components.every(k=>typeof panchang[k]==='string'&&(panchang[k] as string).length>2))
    throw Error('Missing Panchang research limbs');
-  if(![d.sun.sunriseUtc,d.sun.sunsetUtc,d.sun.nextSunriseUtc].every(x=>typeof x==='string'&&UTC.test(x)))
+  if(![sun.sunriseUtc,sun.sunsetUtc,sun.nextSunriseUtc].every(x=>typeof x==='string'&&UTC.test(x)))
    throw Error('Malformed research sunrise');
-  const sunrise=Date.parse(d.sun.sunriseUtc as string);
-  const sunset=Date.parse(d.sun.sunsetUtc as string);
-  const next=Date.parse(d.sun.nextSunriseUtc as string);
+  const sunrise=Date.parse(sun.sunriseUtc as string);
+  const sunset=Date.parse(sun.sunsetUtc as string);
+  const next=Date.parse(sun.nextSunriseUtc as string);
   if(!(sunrise<sunset&&sunset<next))throw Error('Bad research solar day');
   if(i&&Date.parse(rows[i-1].sun.nextSunriseUtc)!==sunrise)
    throw Error('Research preview sunrises are not continuous');
   for(const k of components){
-   const events=d.transitions[k];
+   const events=transitions[k];
    if(!Array.isArray(events)||!events.length)throw Error('Incomplete '+k+' timeline');
    let cursor=sunrise;
    for(const event of events){
@@ -83,7 +86,7 @@ function check(raw:unknown):ResearchPilotDay[]{
      Date.parse(event.endUtc as string)>next)throw Error('Invalid '+k+' research interval');
     cursor=Date.parse(event.endUtc as string);
    }
-   if(cursor!==next||events[0].name!==d.panchang[k])
+   if(cursor!==next||events[0].name!==panchang[k])
     throw Error('Inconsistent '+k+' sunrise component');
   }
   rows.push(d as unknown as ResearchPilotDay);
