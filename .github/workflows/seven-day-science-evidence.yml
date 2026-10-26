@@ -121,6 +121,19 @@ jobs:
           assert r['approvedCitySunriseClaims']==0
           assert r['PACDateMatchedCount']+r['PACDateMissingCount']==7
           assert all(not x['publicApproved'] for x in r['dates'])
+          if r['cohort']['localDates'][0]=='2026-10-20':
+              assert r['PACDateMatchedCount']==3
+              assert r['officialPublishedPhenomenaReferenced']==15
+          import os
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:
+              out.write('### Official PAC / JPL same-date central-station research (NOT APPROVED)\n\n')
+              out.write('Matched PAC dates: **'+str(r['PACDateMatchedCount'])+' / 7**, unresolved source dates: **'+str(r['PACDateMissingCount'])+'**.\n\n')
+              out.write('| Date | PAC phase | JPL minus printed PAC (seconds) |\n|---|---|---:|\n')
+              for row in r['dates']:
+                  for delta in row.get('deltas',[]):
+                      out.write('| '+row['gregorianDate']+' | '+delta['kind']+
+                                ' #'+str(delta['number'])+' | '+str(delta['computedMinusPacSeconds'])+' |\n')
+              out.write('\nCentral-station sunrise is **not** evidence of Delhi/Mumbai/Chennai sunrise. PAC transcription not independently verified. No scientific or SEO approval.\n')
           PY
       - name: Build fail-closed science truth matrix for all 21 city-days
         run: |
