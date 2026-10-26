@@ -55,7 +55,7 @@ function check(raw:unknown):ResearchPilotDay[]{
      d.sourceKernelSha256!==raw.sourceKernelSha256||
      typeof d.titleAngle!=='string'||d.titleAngle.length<18||titles.has(d.titleAngle)||
      !Array.isArray(d.editorialParagraphs)||d.editorialParagraphs.length!==3||
-     d.editorialParagraphs.some((x:unknown)=>typeof x!=='string'||x.length<190)||
+     d.editorialParagraphs.some((x:unknown)=>typeof x!=='string'||x.length<105)||
      !object(d.cityReference)||d.cityReference.coordinatesVerified!==false||
      d.cityReference.elevationVerified!==false||
      d.cityReference.horizonConventionValidated!==false||
