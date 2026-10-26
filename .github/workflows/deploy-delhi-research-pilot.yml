@@ -89,6 +89,27 @@ jobs:
       - name: Deploy safe noindex daily research post plus existing verified site to Cloudflare
         if: github.ref == 'refs/heads/main' && steps.phase.outputs.release == 'true'
         run: npx wrangler deploy --config wrangler.jsonc
+      - name: Verify deployed public Delhi daily article responds 200 and remains noindex
+        if: github.ref == 'refs/heads/main' && steps.phase.outputs.release == 'true'
+        env:
+          PILOT_DATE: ${{ steps.phase.outputs.today }}
+        run: |
+          curl --fail --location --retry 5 --retry-delay 5 --max-time 30 \
+            --silent --show-error \
+            "https://panchavani.com/research/panchang/delhi/$PILOT_DATE/" \
+            --output /tmp/panchavani-live-daily-page.html
+          node --input-type=module <<'JS'
+          import {readFileSync} from 'node:fs';
+          import assert from 'node:assert/strict';
+          const raw=readFileSync('/tmp/panchavani-live-daily-page.html','utf8');
+          const date=process.env.PILOT_DATE;
+          assert(raw.includes(date),'Live website returned wrong Delhi date');
+          assert(/<meta[^>]*name="robots"[^>]*content="[^"]*noindex/.test(raw),
+             'Live Delhi draft lost page-level noindex');
+          assert(raw.includes('Unverified astronomy'),'Live research warning missing');
+          assert(raw.includes('research/panchang/delhi/'+date+'/'),'Live canonical missing');
+          console.log('PASS: real public live HTML, date',date,'noindex and source disclosure');
+          JS
       - name: Record research run and two-day SEO/quality audit progress
         if: always()
         run: |
