@@ -10,11 +10,14 @@ import seoDays from '@/data/approved-seo-days.json';
 import {approvedCityDays} from '@/lib/public-panchang';
 import {validateSeoDayRelease} from '@/lib/seo-day-release-policy.mjs';
 import {approvedTopicSeoRoutes} from '@/lib/public-topics';
+import {learningGuides} from '@/lib/learning-guides';
+import learningSeo from '@/data/approved-learning-seo.json';
+import {validateLearningSeoRelease} from '@/lib/learning-seo-release-policy.mjs';
 
 export type ApprovedSeoRoute={
  path:string;
  lastModified:string;
- kind:'educational-evergreen-city-guide'|'approved-daily-panchang'|'approved-city-topic';
+ kind:'educational-evergreen-city-guide'|'approved-daily-panchang'|'approved-city-topic'|'approved-learning-guide';
  sourceIds:string[];
 };
 export const FIRST_TEN_CITY_GUIDE_IDS=[
@@ -52,12 +55,18 @@ const approved=FIRST_TEN_CITY_GUIDE_IDS.map(city=>{
 export function approvedDailySeoRoutes():ReadonlyArray<ApprovedSeoRoute>{
  return validateSeoDayRelease(seoDays,approvedCityDays(),process.env.PANCHAVANI_APPROVED_SEO_RELEASE_SHA256);
 }
+export function approvedLearningSeoRoutes():ReadonlyArray<ApprovedSeoRoute>{
+ return validateLearningSeoRelease(learningSeo,learningGuides,process.env.PANCHAVANI_APPROVED_LEARNING_SEO_SHA256);
+}
+export function isIndexableLearningGuide(slug:string):boolean{
+ return approvedLearningSeoRoutes().some(x=>x.path==='/learn/'+slug+'/');
+}
 export function approvedSeoRoutes():ReadonlyArray<ApprovedSeoRoute>{
  const topics:ApprovedSeoRoute[]=approvedTopicSeoRoutes().map(x=>({
   path:x.path,lastModified:x.lastModified,kind:'approved-city-topic' as const,
   sourceIds:x.sourceIds
  }));
- return [...approved,...approvedDailySeoRoutes(),...topics];
+ return [...approved,...approvedDailySeoRoutes(),...topics,...approvedLearningSeoRoutes()];
 }
 export function isIndexableApprovedCityDay(city:string,date:string):boolean{
  return approvedDailySeoRoutes().some(x=>x.path==='/panchang/'+city+'/'+date+'/');
