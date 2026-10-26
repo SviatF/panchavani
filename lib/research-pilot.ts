@@ -92,8 +92,30 @@ function check(raw:unknown):ResearchPilotDay[]{
   throw Error('Preview dates extend beyond the selected daily release date');
  return rows;
 }
+// Only days whose India-local publication day has arrived may be visible
+// in a static export. The full seven-day research source is versioned in git,
+// but individual HTML URLs appear only after a scheduled daily rebuild.
+function indiaCivilDate(){
+ const parts=new Intl.DateTimeFormat('en-GB',{
+  timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'
+ }).formatToParts(new Date());
+ const obj=Object.fromEntries(parts.map(x=>[x.type,x.value]));
+ return obj.year+'-'+obj.month+'-'+obj.day;
+}
+function publicCutoff(){
+ const today=indiaCivilDate();
+ const test=process.env.PANCHAVANI_PILOT_TEST_BUILD_DATE;
+ // A PR may validate tomorrow's HTML without releasing it in production.
+ // A main/scheduled production deploy ignores this override entirely.
+ if(process.env.GITHUB_EVENT_NAME==='pull_request'&&
+    typeof test==='string'&&/^20\\d\\d-\\d\\d-\\d\\d$/.test(test))
+  return test;
+ return today;
+}
 let cached:ResearchPilotDay[]|undefined;
-export function publicResearchPilotDays(){return cached??(cached=check(payload));}
+export function publicResearchPilotDays(){
+ return cached??(cached=check(payload).filter(d=>d.date<=publicCutoff()));
+}
 export function researchPilotDay(city:string,date:string){
  return publicResearchPilotDays().find(d=>d.cityId===city&&d.date===date);
 }
