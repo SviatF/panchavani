@@ -634,3 +634,65 @@
  .topic-verified-dek{font-size:15px}
  .topic-verified-aside{display:block}.topic-verified-side-panel{margin-bottom:15px}
  .topic-verified-outcome{padding:18px}}
+
+
+/* Long-form PANCHAVANI learning library: editorial black/gold, readable line lengths. */
+.learning-article{background:linear-gradient(180deg,#0a0d10,#090b0f 26%,#090b0e);padding:58px 0 120px}
+.learning-article-head{padding-bottom:55px;border-bottom:1px solid rgba(204,168,112,.26)}
+.learning-article-head .back-link{display:inline-flex;align-items:center;gap:9px;color:#dcb780;margin-bottom:42px;font-size:13px}
+.learning-article-head .section-eyebrow{color:#c9a475;font-size:11px;letter-spacing:2px;margin-bottom:20px}
+.learning-article-head h1{font:normal clamp(42px,6vw,78px)/1.05 var(--font-serif);color:#f4dfb9;
+ max-width:1100px;letter-spacing:-1px;margin:0 0 26px}
+.learning-dek{max-width:810px;font-size:clamp(16px,1.5vw,19px);line-height:1.8;color:#c4c9c8;margin:0}
+.learning-disclosure{display:flex;align-items:flex-start;gap:13px;max-width:860px;background:#191914;
+ border-left:2px solid #b38e59;padding:15px 18px;margin-top:31px}
+.learning-disclosure svg{flex:0 0 auto;color:#dabb82;margin-top:3px}
+.learning-disclosure p{margin:0;color:#c6c2b7;font-size:12px;line-height:1.65}
+.learning-layout{display:grid;grid-template-columns:minmax(0,790px) minmax(230px,300px);
+ justify-content:space-between;gap:clamp(32px,5vw,80px);padding-top:48px;align-items:start}
+.learning-copy{min-width:0}.learning-copy h2{font:normal clamp(29px,3vw,40px)/1.2 var(--font-serif);
+ letter-spacing:-.4px;color:#f1d2a0;margin:12px 0 21px}
+.learning-copy p{font-size:15px;line-height:1.92;color:#c4caca;margin:0 0 18px}
+.learning-copy .section-eyebrow{font-size:10px;letter-spacing:1.9px;color:#d6ab70}
+.learning-summary{background:linear-gradient(125deg,#1b1d1a,#111820);border:1px solid #795b373f;
+ border-radius:13px;padding:28px 34px;margin-bottom:51px}
+.learning-summary h2{font-size:clamp(27px,2.7vw,37px);color:#f3ddae}
+.learning-summary p:last-child{margin-bottom:0;color:#e0cba6}
+.learning-chapter{margin-bottom:49px}
+.learning-copy ul{list-style:none;padding:0;margin:23px 0;display:grid;gap:13px}
+.learning-copy ul li{display:flex;align-items:flex-start;gap:13px;line-height:1.65;font-size:14px;color:#d4d1c7}
+.learning-copy ul svg{color:#dfb97d;flex:0 0 auto;margin-top:4px}
+.learning-example{background:linear-gradient(145deg,#191813,#0d171c);border:1px solid #8c744a75;
+ border-radius:12px;padding:30px 35px;margin:42px 0 52px}
+.learning-example h2{color:#f5ddad}
+.learning-example ol{padding-left:22px;margin:15px 0 23px;display:grid;gap:13px}
+.learning-example li{font-size:14px;line-height:1.7;color:#d1c9ba;padding-left:5px}
+.learning-example strong{display:block;color:#e9c995;line-height:1.75;font-size:14px;font-weight:500}
+.learning-faq>div{padding:18px 0;border-top:1px solid #7c664743}
+.learning-faq h3{font:normal 24px/1.3 var(--font-serif);color:#f0dfc3;margin:0 0 10px}
+.learning-sources{border-top:1px solid #846f4f5c;padding-top:26px}
+.learning-sources a{display:flex;align-items:flex-start;gap:16px;justify-content:space-between;
+ padding:18px 0;border-bottom:1px solid #846f4f42;color:#e7c08a}
+.learning-sources a span{display:grid;gap:8px}
+.learning-sources a strong{font-size:14px;font-weight:550}
+.learning-sources a small{font-size:12px;line-height:1.65;color:#abb5bb}
+.learning-sources a svg{flex:0 0 auto;margin-top:3px}
+.learning-aside{position:sticky;top:96px;display:grid;gap:19px}
+.learning-sidebox{padding:25px;border:1px solid #89714954;border-radius:12px;background:#11171a}
+.learning-sidebox>svg{color:#ddb87e}.learning-sidebox h2{font:normal 29px/1.2 var(--font-serif);
+ color:#f2d39e;margin:13px 0}
+.learning-sidebox p{font-size:12px;line-height:1.78;color:#b8c0c2}
+.learning-sidebox a{display:flex;gap:11px;align-items:center;justify-content:space-between;
+ font-size:12px;line-height:1.5;color:#e7c590;padding:14px 0;border-top:1px solid #5f503d4f}
+.learning-sidebox a svg{flex:none}
+.learning-sidebox .learning-city-link{margin-top:14px}
+@media(max-width:900px){.learning-layout{grid-template-columns:1fr}.learning-aside{position:static;
+ grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.learning-article{padding:27px 0 70px}
+ .learning-article-head{padding-bottom:30px}.learning-article-head .back-link{margin-bottom:28px}
+ .learning-article-head h1{font-size:clamp(37px,10vw,52px)}
+ .learning-layout{padding-top:27px;gap:30px}
+ .learning-summary,.learning-example{padding:22px}
+ .learning-aside{grid-template-columns:1fr}.learning-copy p{font-size:14px}
+ .learning-copy h2{font-size:clamp(29px,8vw,36px)}
+}

@@ -16,6 +16,8 @@ on:
       - 'engine/research_external/seven_day_swiss_comparison.py'
       - 'engine/tests/test_seven_day_science_pilot.py'
       - 'engine/panchavani/science_factpack_handoff.py'
+      - 'engine/panchavani/science_truth_matrix.py'
+      - 'engine/tests/test_science_truth_matrix.py'
       - 'engine/tests/test_science_factpack_handoff.py'
       - '.github/workflows/seven-day-science-evidence.yml'
   pull_request:
@@ -24,6 +26,8 @@ on:
       - 'engine/research_external/seven_day_swiss_comparison.py'
       - 'engine/tests/test_seven_day_science_pilot.py'
       - 'engine/panchavani/science_factpack_handoff.py'
+      - 'engine/panchavani/science_truth_matrix.py'
+      - 'engine/tests/test_science_truth_matrix.py'
       - 'engine/tests/test_science_factpack_handoff.py'
       - '.github/workflows/seven-day-science-evidence.yml'
 permissions:
@@ -42,6 +46,7 @@ jobs:
           PYTHONPATH=engine python -m unittest discover -s engine/tests -p 'test_seven_day_science_pilot.py' -v
           PYTHONPATH=engine python -m unittest discover -s engine/tests -p 'test_first_six_limb_pilot.py' -v
           PYTHONPATH=engine python -m unittest discover -s engine/tests -p 'test_science_factpack_handoff.py' -v
+          PYTHONPATH=engine python -m unittest discover -s engine/tests -p 'test_science_truth_matrix.py' -v
       - name: Install pinned runtime Skyfield and isolated test-only Swiss comparator
         run: |
           python -m pip install -r engine/requirements.txt
@@ -88,6 +93,24 @@ jobs:
             --ephemeris /tmp/de440s.bsp \
             --science engine/artifacts/pilot-21citydays-JPL-UNAPPROVED.json \
             --out engine/artifacts/pilot-21citydays-SWISS-UNAPPROVED.json
+      - name: Build fail-closed science truth matrix for all 21 city-days
+        run: |
+          PYTHONPATH=engine python -m panchavani.science_truth_matrix \
+            --jpl engine/artifacts/pilot-21citydays-JPL-UNAPPROVED.json \
+            --swiss engine/artifacts/pilot-21citydays-SWISS-UNAPPROVED.json \
+            --out engine/artifacts/pilot-21citydays-TRUTH-MATRIX-UNAPPROVED.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          obj=json.loads(Path('engine/artifacts/pilot-21citydays-TRUTH-MATRIX-UNAPPROVED.json').read_text())
+          assert len(obj['cityDayRows'])==21
+          assert len(obj['boundaryRows'])==16
+          assert obj['scientificApproval'] is False
+          assert obj['modelInvocationAuthorized'] is False
+          assert obj['indexingAuthorized'] is False
+          assert obj['pacDailyReferenceComparedAgainstExactMatchingDate'] is False
+          assert all(not x['historicalCandidateReconciled'] for x in obj['cityDayRows'])
+          PY
       - name: Generate 21 unsigned, SHA-linked science factpack review packets (never self-sign)
         run: |
           PYTHONPATH=engine python -m panchavani.science_factpack_handoff \
@@ -166,6 +189,7 @@ jobs:
           path: |
             engine/artifacts/pilot-21citydays-JPL-UNAPPROVED.json
             engine/artifacts/pilot-21citydays-SWISS-UNAPPROVED.json
+            engine/artifacts/pilot-21citydays-TRUTH-MATRIX-UNAPPROVED.json
             engine/artifacts/pilot-21citydays-review-packets-UNAPPROVED/
           if-no-files-found: error
           retention-days: 30
