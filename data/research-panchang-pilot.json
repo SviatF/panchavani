@@ -5,13 +5,786 @@
   "cityId": "delhi",
   "scopeStart": "2026-10-27",
   "scopeEnd": "2026-11-02",
-  "visibleThrough": null,
+  "visibleThrough": "2026-11-02",
   "sourceType": "RECOMPUTED_JPL_RESEARCH_NOT_ORIGINAL_D1_R2",
-  "sourceKernelSha256": null,
+  "sourceKernelSha256": "c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2",
   "sourceApproval": false,
   "humanEditorialApproved": false,
   "deepSeekInvocationAuthorized": false,
   "publicationAsVerifiedPanchangAuthorized": false,
   "searchIndexingAuthorized": false,
-  "days": []
+  "days": [
+    {
+      "cityId": "delhi",
+      "cityName": "Delhi",
+      "date": "2026-10-27",
+      "status": "UNAPPROVED_PUBLIC_RESEARCH_PILOT",
+      "titleAngle": "Understanding the sunrise baseline",
+      "editorialParagraphs": [
+        "Today's research begins with the local sunrise rather than with midnight. That distinction is central to a city-specific Panchang: the Sun crosses the observer's horizon at a time governed by longitude, latitude and the adopted atmosphere model. The lunar component active at that instant is a snapshot, not an assertion that the component lasts all day.",
+        "Watch the next event in each phase timeline rather than assuming every heading changes at the same time. The geocentric Sun and Moon calculations describe one sequence of transition instants, whereas the Delhi sunrise determines which interval is sampled in the daily entry. This page intentionally keeps those two concepts separate.",
+        "How to read this research: compare the sunrise and the next phase ending, then check the model and its limitations. Do not infer fasting dates or auspicious moments from an unreviewed component."
+      ],
+      "researchSourceRecordSha256": "7d9669e7bba4d8e1b249c2178ee205a29322aa3ab22538a23ebc72c0f5fbbd16",
+      "sourceKernelSha256": "c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2",
+      "solarModel": "Skyfield Sun upper limb, geocentric horizon -50 arcmin",
+      "siderealModel": "IAE-1985-Lahiri-anchor-fixed-ICRF-v0-RESEARCH-UNVALIDATED",
+      "cityReference": {
+        "latitude": 28.6139,
+        "longitude": 77.209,
+        "estimatedElevationMeters": 216,
+        "coordinatesVerified": false,
+        "elevationVerified": false,
+        "horizonConventionValidated": false
+      },
+      "sun": {
+        "sunriseUtc": "2026-10-27T00:59:28.332868Z",
+        "sunsetUtc": "2026-10-27T12:10:16.465512Z",
+        "nextSunriseUtc": "2026-10-28T01:00:09.287908Z"
+      },
+      "panchang": {
+        "tithi": "Krishna Pratipada",
+        "karana": "Kaulava",
+        "nakshatra": "Bharani",
+        "yoga": "Siddhi",
+        "vara": "Tuesday",
+        "paksha": "Krishna"
+      },
+      "transitions": {
+        "tithi": [
+          {
+            "number": 16,
+            "name": "Krishna Pratipada",
+            "startUtc": "2026-10-27T00:59:28.332868Z",
+            "endUtc": "2026-10-27T01:32:08.403668Z"
+          },
+          {
+            "number": 17,
+            "name": "Krishna Dvitiya",
+            "startUtc": "2026-10-27T01:32:08.403668Z",
+            "endUtc": "2026-10-27T22:37:23.491559Z"
+          },
+          {
+            "number": 18,
+            "name": "Krishna Tritiya",
+            "startUtc": "2026-10-27T22:37:23.491559Z",
+            "endUtc": "2026-10-28T01:00:09.287908Z"
+          }
+        ],
+        "karana": [
+          {
+            "number": 32,
+            "name": "Kaulava",
+            "startUtc": "2026-10-27T00:59:28.332868Z",
+            "endUtc": "2026-10-27T01:32:08.403668Z"
+          },
+          {
+            "number": 33,
+            "name": "Taitila",
+            "startUtc": "2026-10-27T01:32:08.403668Z",
+            "endUtc": "2026-10-27T12:06:02.192731Z"
+          },
+          {
+            "number": 34,
+            "name": "Gara",
+            "startUtc": "2026-10-27T12:06:02.192731Z",
+            "endUtc": "2026-10-27T22:37:23.491559Z"
+          },
+          {
+            "number": 35,
+            "name": "Vanija",
+            "startUtc": "2026-10-27T22:37:23.491559Z",
+            "endUtc": "2026-10-28T01:00:09.287908Z"
+          }
+        ],
+        "nakshatra": [
+          {
+            "number": 2,
+            "name": "Bharani",
+            "startUtc": "2026-10-27T00:59:28.332868Z",
+            "endUtc": "2026-10-27T10:09:25.879255Z"
+          },
+          {
+            "number": 3,
+            "name": "Krittika",
+            "startUtc": "2026-10-27T10:09:25.879255Z",
+            "endUtc": "2026-10-28T01:00:09.287908Z"
+          }
+        ],
+        "yoga": [
+          {
+            "number": 16,
+            "name": "Siddhi",
+            "startUtc": "2026-10-27T00:59:28.332868Z",
+            "endUtc": "2026-10-27T05:23:18.423200Z"
+          },
+          {
+            "number": 17,
+            "name": "Vyatipata",
+            "startUtc": "2026-10-27T05:23:18.423200Z",
+            "endUtc": "2026-10-28T01:00:09.287908Z"
+          }
+        ]
+      },
+      "verifiedByIndependentScientist": false,
+      "recommendedForRitualDecisions": false,
+      "modelNarrativeGenerated": false,
+      "humanEditorialApproved": false,
+      "indexingAuthorized": false
+    },
+    {
+      "cityId": "delhi",
+      "cityName": "Delhi",
+      "date": "2026-10-28",
+      "status": "UNAPPROVED_PUBLIC_RESEARCH_PILOT",
+      "titleAngle": "Reading Tithi alongside Karana",
+      "editorialParagraphs": [
+        "Tithi follows successive twelve-degree intervals in the geocentric angular separation between the Moon and the Sun. Karana tracks six-degree halves of that same cycle. They are related quantities, not two unrelated astrological labels. Their boundaries should agree when the same angular threshold is reached.",
+        "A change of Tithi may occur after the city's sunrise, in the afternoon, at night or near the next sunrise. The local date printed at the top is only a way of locating the interval in a civil calendar. Our research chronology preserves the UTC event boundaries, then formats them in Indian Standard Time for reading.",
+        "When comparing two calendars, check that they refer to the same ending number and the same UTC instant before comparing their printed wall-clock values. A comparison made on mismatched boundaries can produce a false discrepancy."
+      ],
+      "researchSourceRecordSha256": "023c71864c9a8b4550af1dfdf7011d54adf9d5aea56ab59a0c15192fecb30092",
+      "sourceKernelSha256": "c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2",
+      "solarModel": "Skyfield Sun upper limb, geocentric horizon -50 arcmin",
+      "siderealModel": "IAE-1985-Lahiri-anchor-fixed-ICRF-v0-RESEARCH-UNVALIDATED",
+      "cityReference": {
+        "latitude": 28.6139,
+        "longitude": 77.209,
+        "estimatedElevationMeters": 216,
+        "coordinatesVerified": false,
+        "elevationVerified": false,
+        "horizonConventionValidated": false
+      },
+      "sun": {
+        "sunriseUtc": "2026-10-28T01:00:09.287908Z",
+        "sunsetUtc": "2026-10-28T12:09:25.187399Z",
+        "nextSunriseUtc": "2026-10-29T01:00:50.675121Z"
+      },
+      "panchang": {
+        "tithi": "Krishna Tritiya",
+        "karana": "Vanija",
+        "nakshatra": "Krittika",
+        "yoga": "Vyatipata",
+        "vara": "Wednesday",
+        "paksha": "Krishna"
+      },
+      "transitions": {
+        "tithi": [
+          {
+            "number": 18,
+            "name": "Krishna Tritiya",
+            "startUtc": "2026-10-28T01:00:09.287908Z",
+            "endUtc": "2026-10-28T19:37:14.129217Z"
+          },
+          {
+            "number": 19,
+            "name": "Krishna Chaturthi",
+            "startUtc": "2026-10-28T19:37:14.129217Z",
+            "endUtc": "2026-10-29T01:00:50.675121Z"
+          }
+        ],
+        "karana": [
+          {
+            "number": 35,
+            "name": "Vanija",
+            "startUtc": "2026-10-28T01:00:09.287908Z",
+            "endUtc": "2026-10-28T09:07:24.236638Z"
+          },
+          {
+            "number": 36,
+            "name": "Vishti",
+            "startUtc": "2026-10-28T09:07:24.236638Z",
+            "endUtc": "2026-10-28T19:37:14.129217Z"
+          },
+          {
+            "number": 37,
+            "name": "Bava",
+            "startUtc": "2026-10-28T19:37:14.129217Z",
+            "endUtc": "2026-10-29T01:00:50.675121Z"
+          }
+        ],
+        "nakshatra": [
+          {
+            "number": 3,
+            "name": "Krittika",
+            "startUtc": "2026-10-28T01:00:09.287908Z",
+            "endUtc": "2026-10-28T07:56:16.267888Z"
+          },
+          {
+            "number": 4,
+            "name": "Rohini",
+            "startUtc": "2026-10-28T07:56:16.267888Z",
+            "endUtc": "2026-10-29T01:00:50.675121Z"
+          }
+        ],
+        "yoga": [
+          {
+            "number": 17,
+            "name": "Vyatipata",
+            "startUtc": "2026-10-28T01:00:09.287908Z",
+            "endUtc": "2026-10-28T01:48:38.577458Z"
+          },
+          {
+            "number": 18,
+            "name": "Variyana",
+            "startUtc": "2026-10-28T01:48:38.577458Z",
+            "endUtc": "2026-10-28T22:10:37.815740Z"
+          },
+          {
+            "number": 19,
+            "name": "Parigha",
+            "startUtc": "2026-10-28T22:10:37.815740Z",
+            "endUtc": "2026-10-29T01:00:50.675121Z"
+          }
+        ]
+      },
+      "verifiedByIndependentScientist": false,
+      "recommendedForRitualDecisions": false,
+      "modelNarrativeGenerated": false,
+      "humanEditorialApproved": false,
+      "indexingAuthorized": false
+    },
+    {
+      "cityId": "delhi",
+      "cityName": "Delhi",
+      "date": "2026-10-29",
+      "status": "UNAPPROVED_PUBLIC_RESEARCH_PILOT",
+      "titleAngle": "Why lunar mansions are sidereal",
+      "editorialParagraphs": [
+        "A Nakshatra is a segment of the sidereal lunar path. The astronomical calculation uses the Moon's sidereal longitude, which requires a stated ayanamsa convention. Merely selecting a popular label for Lahiri does not prove that two implementations agree near a boundary.",
+        "This preview uses a provisional sidereal calculation tied to a pinned JPL kernel. It is suitable for testing event sequencing and page presentation, but it does not establish the adopted sidereal convention as independently certified. Around sector edges, a small angular difference can shift the displayed transition time.",
+        "For responsible interpretation, separate the number shown at sunrise from the event that ends that segment later. These are different questions, and the correct answer depends on the precise instant being examined."
+      ],
+      "researchSourceRecordSha256": "10cef0abe59ea1f099255aec1fcccdc92e114f80cc9d58de1e70c1da900e092d",
+      "sourceKernelSha256": "c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2",
+      "solarModel": "Skyfield Sun upper limb, geocentric horizon -50 arcmin",
+      "siderealModel": "IAE-1985-Lahiri-anchor-fixed-ICRF-v0-RESEARCH-UNVALIDATED",
+      "cityReference": {
+        "latitude": 28.6139,
+        "longitude": 77.209,
+        "estimatedElevationMeters": 216,
+        "coordinatesVerified": false,
+        "elevationVerified": false,
+        "horizonConventionValidated": false
+      },
+      "sun": {
+        "sunriseUtc": "2026-10-29T01:00:50.675121Z",
+        "sunsetUtc": "2026-10-29T12:08:35.012030Z",
+        "nextSunriseUtc": "2026-10-30T01:01:32.495849Z"
+      },
+      "panchang": {
+        "tithi": "Krishna Chaturthi",
+        "karana": "Bava",
+        "nakshatra": "Rohini",
+        "yoga": "Parigha",
+        "vara": "Thursday",
+        "paksha": "Krishna"
+      },
+      "transitions": {
+        "tithi": [
+          {
+            "number": 19,
+            "name": "Krishna Chaturthi",
+            "startUtc": "2026-10-29T01:00:50.675121Z",
+            "endUtc": "2026-10-29T16:40:38.773265Z"
+          },
+          {
+            "number": 20,
+            "name": "Krishna Panchami",
+            "startUtc": "2026-10-29T16:40:38.773265Z",
+            "endUtc": "2026-10-30T01:01:32.495849Z"
+          }
+        ],
+        "karana": [
+          {
+            "number": 37,
+            "name": "Bava",
+            "startUtc": "2026-10-29T01:00:50.675121Z",
+            "endUtc": "2026-10-29T06:07:58.372874Z"
+          },
+          {
+            "number": 38,
+            "name": "Balava",
+            "startUtc": "2026-10-29T06:07:58.372874Z",
+            "endUtc": "2026-10-29T16:40:38.773265Z"
+          },
+          {
+            "number": 39,
+            "name": "Kaulava",
+            "startUtc": "2026-10-29T16:40:38.773265Z",
+            "endUtc": "2026-10-30T01:01:32.495849Z"
+          }
+        ],
+        "nakshatra": [
+          {
+            "number": 4,
+            "name": "Rohini",
+            "startUtc": "2026-10-29T01:00:50.675121Z",
+            "endUtc": "2026-10-29T05:41:44.910961Z"
+          },
+          {
+            "number": 5,
+            "name": "Mrigashirsha",
+            "startUtc": "2026-10-29T05:41:44.910961Z",
+            "endUtc": "2026-10-30T01:01:32.495849Z"
+          }
+        ],
+        "yoga": [
+          {
+            "number": 19,
+            "name": "Parigha",
+            "startUtc": "2026-10-29T01:00:50.675121Z",
+            "endUtc": "2026-10-29T18:36:18.617015Z"
+          },
+          {
+            "number": 20,
+            "name": "Shiva",
+            "startUtc": "2026-10-29T18:36:18.617015Z",
+            "endUtc": "2026-10-30T01:01:32.495849Z"
+          }
+        ]
+      },
+      "verifiedByIndependentScientist": false,
+      "recommendedForRitualDecisions": false,
+      "modelNarrativeGenerated": false,
+      "humanEditorialApproved": false,
+      "indexingAuthorized": false
+    },
+    {
+      "cityId": "delhi",
+      "cityName": "Delhi",
+      "date": "2026-10-30",
+      "status": "UNAPPROVED_PUBLIC_RESEARCH_PILOT",
+      "titleAngle": "Following the yoga transition",
+      "editorialParagraphs": [
+        "Yoga in a Panchang is derived from an angular combination of the Sun and Moon under a sidereal convention. It is distinct from exercise or physical postures, and its changing label does not by itself justify advice about an event, business decision or ceremony.",
+        "Today the component timeline is presented as a continuous sequence between one local sunrise and the next. A rigorous timeline must account for every interval and may not invent a change where none occurred. Continuity across neighbouring days is an important numerical invariant in our research quality checks.",
+        "If you want to compare the result with another publisher, begin by confirming the ayanamsa, reference frame and event-clock definition. The same name appearing in two tables is weaker evidence than agreement of their calculated boundary instants."
+      ],
+      "researchSourceRecordSha256": "a6be8d9bb6b9a399acd7080869d6e4e0965fe9ab8f6835f307c515dfb1b5a022",
+      "sourceKernelSha256": "c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2",
+      "solarModel": "Skyfield Sun upper limb, geocentric horizon -50 arcmin",
+      "siderealModel": "IAE-1985-Lahiri-anchor-fixed-ICRF-v0-RESEARCH-UNVALIDATED",
+      "cityReference": {
+        "latitude": 28.6139,
+        "longitude": 77.209,
+        "estimatedElevationMeters": 216,
+        "coordinatesVerified": false,
+        "elevationVerified": false,
+        "horizonConventionValidated": false
+      },
+      "sun": {
+        "sunriseUtc": "2026-10-30T01:01:32.495849Z",
+        "sunsetUtc": "2026-10-30T12:07:45.969943Z",
+        "nextSunriseUtc": "2026-10-31T01:02:14.749162Z"
+      },
+      "panchang": {
+        "tithi": "Krishna Panchami",
+        "karana": "Kaulava",
+        "nakshatra": "Mrigashirsha",
+        "yoga": "Shiva",
+        "vara": "Friday",
+        "paksha": "Krishna"
+      },
+      "transitions": {
+        "tithi": [
+          {
+            "number": 20,
+            "name": "Krishna Panchami",
+            "startUtc": "2026-10-30T01:01:32.495849Z",
+            "endUtc": "2026-10-30T13:55:25.882079Z"
+          },
+          {
+            "number": 21,
+            "name": "Krishna Shashthi",
+            "startUtc": "2026-10-30T13:55:25.882079Z",
+            "endUtc": "2026-10-31T01:02:14.749162Z"
+          }
+        ],
+        "karana": [
+          {
+            "number": 39,
+            "name": "Kaulava",
+            "startUtc": "2026-10-30T01:01:32.495849Z",
+            "endUtc": "2026-10-30T03:16:11.292236Z"
+          },
+          {
+            "number": 40,
+            "name": "Taitila",
+            "startUtc": "2026-10-30T03:16:11.292236Z",
+            "endUtc": "2026-10-30T13:55:25.882079Z"
+          },
+          {
+            "number": 41,
+            "name": "Gara",
+            "startUtc": "2026-10-30T13:55:25.882079Z",
+            "endUtc": "2026-10-31T00:39:06.341064Z"
+          },
+          {
+            "number": 42,
+            "name": "Vanija",
+            "startUtc": "2026-10-31T00:39:06.341064Z",
+            "endUtc": "2026-10-31T01:02:14.749162Z"
+          }
+        ],
+        "nakshatra": [
+          {
+            "number": 5,
+            "name": "Mrigashirsha",
+            "startUtc": "2026-10-30T01:01:32.495849Z",
+            "endUtc": "2026-10-30T03:34:38.714111Z"
+          },
+          {
+            "number": 6,
+            "name": "Ardra",
+            "startUtc": "2026-10-30T03:34:38.714111Z",
+            "endUtc": "2026-10-31T01:02:14.749162Z"
+          }
+        ],
+        "yoga": [
+          {
+            "number": 20,
+            "name": "Shiva",
+            "startUtc": "2026-10-30T01:01:32.495849Z",
+            "endUtc": "2026-10-30T15:11:44.763915Z"
+          },
+          {
+            "number": 21,
+            "name": "Siddha",
+            "startUtc": "2026-10-30T15:11:44.763915Z",
+            "endUtc": "2026-10-31T01:02:14.749162Z"
+          }
+        ]
+      },
+      "verifiedByIndependentScientist": false,
+      "recommendedForRitualDecisions": false,
+      "modelNarrativeGenerated": false,
+      "humanEditorialApproved": false,
+      "indexingAuthorized": false
+    },
+    {
+      "cityId": "delhi",
+      "cityName": "Delhi",
+      "date": "2026-10-31",
+      "status": "UNAPPROVED_PUBLIC_RESEARCH_PILOT",
+      "titleAngle": "What city coordinates change",
+      "editorialParagraphs": [
+        "Latitude and longitude matter for the observed rise and setting of the Sun. The elevation of the reference point, the horizon assumption and atmospheric refraction can also influence the printed clock. A city label alone does not specify every variable needed for reproducibility.",
+        "By contrast, a geocentric lunar longitude transition represents the same physical event regardless of the Indian city chosen for display. The local sunrise samples that global sequence at a different instant. This is how two correct city calendars might disagree about the lunar label at sunrise while agreeing about its UTC end time.",
+        "The coordinates in this release remain estimated research reference values. No one should treat the displayed clock as a certified observation at their home or a particular temple location."
+      ],
+      "researchSourceRecordSha256": "ce18e4317f29a9ae27335dc010a92f88896b60d394310b5cfc5161a5c222cd67",
+      "sourceKernelSha256": "c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2",
+      "solarModel": "Skyfield Sun upper limb, geocentric horizon -50 arcmin",
+      "siderealModel": "IAE-1985-Lahiri-anchor-fixed-ICRF-v0-RESEARCH-UNVALIDATED",
+      "cityReference": {
+        "latitude": 28.6139,
+        "longitude": 77.209,
+        "estimatedElevationMeters": 216,
+        "coordinatesVerified": false,
+        "elevationVerified": false,
+        "horizonConventionValidated": false
+      },
+      "sun": {
+        "sunriseUtc": "2026-10-31T01:02:14.749162Z",
+        "sunsetUtc": "2026-10-31T12:06:58.091164Z",
+        "nextSunriseUtc": "2026-11-01T01:02:57.431773Z"
+      },
+      "panchang": {
+        "tithi": "Krishna Shashthi",
+        "karana": "Vanija",
+        "nakshatra": "Ardra",
+        "yoga": "Siddha",
+        "vara": "Saturday",
+        "paksha": "Krishna"
+      },
+      "transitions": {
+        "tithi": [
+          {
+            "number": 21,
+            "name": "Krishna Shashthi",
+            "startUtc": "2026-10-31T01:02:14.749162Z",
+            "endUtc": "2026-10-31T11:27:48.770158Z"
+          },
+          {
+            "number": 22,
+            "name": "Krishna Saptami",
+            "startUtc": "2026-10-31T11:27:48.770158Z",
+            "endUtc": "2026-11-01T01:02:57.431773Z"
+          }
+        ],
+        "karana": [
+          {
+            "number": 42,
+            "name": "Vanija",
+            "startUtc": "2026-10-31T01:02:14.749162Z",
+            "endUtc": "2026-10-31T11:27:48.770158Z"
+          },
+          {
+            "number": 43,
+            "name": "Vishti",
+            "startUtc": "2026-10-31T11:27:48.770158Z",
+            "endUtc": "2026-10-31T22:22:02.920549Z"
+          },
+          {
+            "number": 44,
+            "name": "Bava",
+            "startUtc": "2026-10-31T22:22:02.920549Z",
+            "endUtc": "2026-11-01T01:02:57.431773Z"
+          }
+        ],
+        "nakshatra": [
+          {
+            "number": 6,
+            "name": "Ardra",
+            "startUtc": "2026-10-31T01:02:14.749162Z",
+            "endUtc": "2026-10-31T01:42:13.833634Z"
+          },
+          {
+            "number": 7,
+            "name": "Punarvasu",
+            "startUtc": "2026-10-31T01:42:13.833634Z",
+            "endUtc": "2026-11-01T00:09:52.549455Z"
+          },
+          {
+            "number": 8,
+            "name": "Pushya",
+            "startUtc": "2026-11-01T00:09:52.549455Z",
+            "endUtc": "2026-11-01T01:02:57.431773Z"
+          }
+        ],
+        "yoga": [
+          {
+            "number": 21,
+            "name": "Siddha",
+            "startUtc": "2026-10-31T01:02:14.749162Z",
+            "endUtc": "2026-10-31T12:01:41.900040Z"
+          },
+          {
+            "number": 22,
+            "name": "Sadhya",
+            "startUtc": "2026-10-31T12:01:41.900040Z",
+            "endUtc": "2026-11-01T01:02:57.431773Z"
+          }
+        ]
+      },
+      "verifiedByIndependentScientist": false,
+      "recommendedForRitualDecisions": false,
+      "modelNarrativeGenerated": false,
+      "humanEditorialApproved": false,
+      "indexingAuthorized": false
+    },
+    {
+      "cityId": "delhi",
+      "cityName": "Delhi",
+      "date": "2026-11-01",
+      "status": "UNAPPROVED_PUBLIC_RESEARCH_PILOT",
+      "titleAngle": "How to evaluate a Panchang discrepancy",
+      "editorialParagraphs": [
+        "An apparent disagreement may be caused by rounding, a different observing location, a date conversion or a genuinely different astronomical method. It is important not to collapse these possibilities into a single accusation of error. Reference publishers sometimes print sunrise-reckoned clock hours beyond twenty-four, which refer to an instant on the next civil date.",
+        "Our quality process keeps source timestamps and event numbers rather than relying on matching labels alone. Independent Swiss comparisons are performed in a separate research workflow; those analytical results are not equivalent to a signed professional review of every future date.",
+        "When reading any daily page, look for its calculation method and source limitations. The absence of a qualified review is a real status, and should be disclosed rather than hidden behind apparent numerical precision."
+      ],
+      "researchSourceRecordSha256": "8404c489288936a4d55f4d7f2dc3c02ca2fab0d44b4b608508cf9aac1150a915",
+      "sourceKernelSha256": "c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2",
+      "solarModel": "Skyfield Sun upper limb, geocentric horizon -50 arcmin",
+      "siderealModel": "IAE-1985-Lahiri-anchor-fixed-ICRF-v0-RESEARCH-UNVALIDATED",
+      "cityReference": {
+        "latitude": 28.6139,
+        "longitude": 77.209,
+        "estimatedElevationMeters": 216,
+        "coordinatesVerified": false,
+        "elevationVerified": false,
+        "horizonConventionValidated": false
+      },
+      "sun": {
+        "sunriseUtc": "2026-11-01T01:02:57.431773Z",
+        "sunsetUtc": "2026-11-01T12:06:11.404801Z",
+        "nextSunriseUtc": "2026-11-02T01:03:40.537845Z"
+      },
+      "panchang": {
+        "tithi": "Krishna Saptami",
+        "karana": "Bava",
+        "nakshatra": "Pushya",
+        "yoga": "Sadhya",
+        "vara": "Sunday",
+        "paksha": "Krishna"
+      },
+      "transitions": {
+        "tithi": [
+          {
+            "number": 22,
+            "name": "Krishna Saptami",
+            "startUtc": "2026-11-01T01:02:57.431773Z",
+            "endUtc": "2026-11-01T09:22:10.886363Z"
+          },
+          {
+            "number": 23,
+            "name": "Krishna Ashtami",
+            "startUtc": "2026-11-01T09:22:10.886363Z",
+            "endUtc": "2026-11-02T01:03:40.537845Z"
+          }
+        ],
+        "karana": [
+          {
+            "number": 44,
+            "name": "Bava",
+            "startUtc": "2026-11-01T01:02:57.431773Z",
+            "endUtc": "2026-11-01T09:22:10.886363Z"
+          },
+          {
+            "number": 45,
+            "name": "Balava",
+            "startUtc": "2026-11-01T09:22:10.886363Z",
+            "endUtc": "2026-11-01T20:28:27.058238Z"
+          },
+          {
+            "number": 46,
+            "name": "Kaulava",
+            "startUtc": "2026-11-01T20:28:27.058238Z",
+            "endUtc": "2026-11-02T01:03:40.537845Z"
+          }
+        ],
+        "nakshatra": [
+          {
+            "number": 8,
+            "name": "Pushya",
+            "startUtc": "2026-11-01T01:02:57.431773Z",
+            "endUtc": "2026-11-01T23:00:52.736948Z"
+          },
+          {
+            "number": 9,
+            "name": "Ashlesha",
+            "startUtc": "2026-11-01T23:00:52.736948Z",
+            "endUtc": "2026-11-02T01:03:40.537845Z"
+          }
+        ],
+        "yoga": [
+          {
+            "number": 22,
+            "name": "Sadhya",
+            "startUtc": "2026-11-01T01:02:57.431773Z",
+            "endUtc": "2026-11-01T09:09:26.677378Z"
+          },
+          {
+            "number": 23,
+            "name": "Shubha",
+            "startUtc": "2026-11-01T09:09:26.677378Z",
+            "endUtc": "2026-11-02T01:03:40.537845Z"
+          }
+        ]
+      },
+      "verifiedByIndependentScientist": false,
+      "recommendedForRitualDecisions": false,
+      "modelNarrativeGenerated": false,
+      "humanEditorialApproved": false,
+      "indexingAuthorized": false
+    },
+    {
+      "cityId": "delhi",
+      "cityName": "Delhi",
+      "date": "2026-11-02",
+      "status": "UNAPPROVED_PUBLIC_RESEARCH_PILOT",
+      "titleAngle": "Completing the seven-day research cycle",
+      "editorialParagraphs": [
+        "The final preview in this trial connects the daily entry to a longer sequence. A calendar consists of contiguous intervals. The ending of a lunar component on one day must join correctly to the beginning of the next, and each sunrise must lead forward to the following local sunrise without gaps.",
+        "A seven-day pilot can test reproducibility, chronology, content structure and whether dates contain distinct calculated changes. It cannot, by itself, validate festival traditions, local observances or every future boundary. Those questions need their own evidence and appropriate review before a more authoritative publication.",
+        "The useful outcome of this trial is a transparent public research interface, plus an evidence report telling us what agreed, what differed and what remains uncertain. It is not a licence to publish thousands of unreviewed calendar recommendations."
+      ],
+      "researchSourceRecordSha256": "8bc87c97c55378f5e2855744452407f46540997a438a19611edcaa7fca4c2061",
+      "sourceKernelSha256": "c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2",
+      "solarModel": "Skyfield Sun upper limb, geocentric horizon -50 arcmin",
+      "siderealModel": "IAE-1985-Lahiri-anchor-fixed-ICRF-v0-RESEARCH-UNVALIDATED",
+      "cityReference": {
+        "latitude": 28.6139,
+        "longitude": 77.209,
+        "estimatedElevationMeters": 216,
+        "coordinatesVerified": false,
+        "elevationVerified": false,
+        "horizonConventionValidated": false
+      },
+      "sun": {
+        "sunriseUtc": "2026-11-02T01:03:40.537845Z",
+        "sunsetUtc": "2026-11-02T12:05:25.938680Z",
+        "nextSunriseUtc": "2026-11-03T01:04:24.059137Z"
+      },
+      "panchang": {
+        "tithi": "Krishna Ashtami",
+        "karana": "Kaulava",
+        "nakshatra": "Ashlesha",
+        "yoga": "Shubha",
+        "vara": "Monday",
+        "paksha": "Krishna"
+      },
+      "transitions": {
+        "tithi": [
+          {
+            "number": 23,
+            "name": "Krishna Ashtami",
+            "startUtc": "2026-11-02T01:03:40.537845Z",
+            "endUtc": "2026-11-02T07:41:00.100833Z"
+          },
+          {
+            "number": 24,
+            "name": "Krishna Navami",
+            "startUtc": "2026-11-02T07:41:00.100833Z",
+            "endUtc": "2026-11-03T01:04:24.059137Z"
+          }
+        ],
+        "karana": [
+          {
+            "number": 46,
+            "name": "Kaulava",
+            "startUtc": "2026-11-02T01:03:40.537845Z",
+            "endUtc": "2026-11-02T07:41:00.100833Z"
+          },
+          {
+            "number": 47,
+            "name": "Taitila",
+            "startUtc": "2026-11-02T07:41:00.100833Z",
+            "endUtc": "2026-11-02T18:59:52.791263Z"
+          },
+          {
+            "number": 48,
+            "name": "Gara",
+            "startUtc": "2026-11-02T18:59:52.791263Z",
+            "endUtc": "2026-11-03T01:04:24.059137Z"
+          }
+        ],
+        "nakshatra": [
+          {
+            "number": 9,
+            "name": "Ashlesha",
+            "startUtc": "2026-11-02T01:03:40.537845Z",
+            "endUtc": "2026-11-02T22:16:34.524661Z"
+          },
+          {
+            "number": 10,
+            "name": "Magha",
+            "startUtc": "2026-11-02T22:16:34.524661Z",
+            "endUtc": "2026-11-03T01:04:24.059137Z"
+          }
+        ],
+        "yoga": [
+          {
+            "number": 23,
+            "name": "Shubha",
+            "startUtc": "2026-11-02T01:03:40.537845Z",
+            "endUtc": "2026-11-02T06:36:45.877200Z"
+          },
+          {
+            "number": 24,
+            "name": "Shukla",
+            "startUtc": "2026-11-02T06:36:45.877200Z",
+            "endUtc": "2026-11-03T01:04:24.059137Z"
+          }
+        ]
+      },
+      "verifiedByIndependentScientist": false,
+      "recommendedForRitualDecisions": false,
+      "modelNarrativeGenerated": false,
+      "humanEditorialApproved": false,
+      "indexingAuthorized": false
+    }
+  ]
 }
