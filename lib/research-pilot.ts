@@ -108,7 +108,7 @@ function publicCutoff(){
  // A PR may validate tomorrow's HTML without releasing it in production.
  // A main/scheduled production deploy ignores this override entirely.
  if(process.env.GITHUB_EVENT_NAME==='pull_request'&&
-    typeof test==='string'&&/^20\\d\\d-\\d\\d-\\d\\d$/.test(test))
+    typeof test==='string'&&/^20\d\d-\d\d-\d\d$/.test(test))
   return test;
  return today;
 }
