@@ -8,6 +8,8 @@ const page=read('app/learn/[topic]/page.tsx');
 const links=read('lib/section-experience.ts');
 const nav=read('components/site-header.tsx');
 const sitemap=read('lib/seo-release-manifest.ts');
+const manifest=JSON.parse(read('data/approved-learning-seo.json'));
+
 const policy=['what-is-tithi','what-is-nakshatra','sunrise-and-city-panchang'];
 test('Three original, content-rich guides have distinct search intents',()=>{
  const titles=[
