@@ -16,6 +16,8 @@ on:
       - 'engine/research_external/seven_day_swiss_comparison.py'
       - 'engine/tests/test_seven_day_science_pilot.py'
       - 'engine/panchavani/science_factpack_handoff.py'
+      - 'engine/panchavani/science_certification_v1.py'
+      - 'engine/tests/test_science_certification_v1.py'
       - 'engine/panchavani/science_truth_matrix.py'
       - 'engine/panchavani/pac_week_comparison.py'
       - 'engine/tests/test_pac_week_comparison.py'
@@ -35,6 +37,8 @@ on:
       - 'engine/research_external/seven_day_swiss_comparison.py'
       - 'engine/tests/test_seven_day_science_pilot.py'
       - 'engine/panchavani/science_factpack_handoff.py'
+      - 'engine/panchavani/science_certification_v1.py'
+      - 'engine/tests/test_science_certification_v1.py'
       - 'engine/panchavani/science_truth_matrix.py'
       - 'engine/panchavani/pac_week_comparison.py'
       - 'engine/tests/test_pac_week_comparison.py'
@@ -66,6 +70,7 @@ jobs:
           PYTHONPATH=engine python -m unittest discover -s engine/tests -p 'test_science_factpack_handoff.py' -v
           PYTHONPATH=engine python -m unittest discover -s engine/tests -p 'test_science_truth_matrix.py' -v
           PYTHONPATH=engine python -m unittest discover -s engine/tests -p 'test_pac_week_comparison.py' -v
+          PYTHONPATH=engine python -m unittest discover -s engine/tests -p 'test_science_certification_v1.py' -v
       - name: Install pinned runtime Skyfield and isolated test-only Swiss comparator
         run: |
           python -m pip install -r engine/requirements.txt
@@ -200,6 +205,34 @@ jobs:
               assert r['indexingAuthorized'] is False
           print('PASS:',len(seen),'unsigned factpack review candidates, zero model/public authority')
           PY
+      - name: Assemble immutable 21-row Science Certification V1 external-review dossier
+        run: |
+          PYTHONPATH=engine python -m panchavani.science_certification_v1 \
+            --jpl engine/artifacts/pilot-21citydays-JPL-UNAPPROVED.json \
+            --swiss engine/artifacts/pilot-21citydays-SWISS-UNAPPROVED.json \
+            --pac engine/artifacts/pilot-21citydays-PAC-OFFICIAL-DATE-MATCHED-UNAPPROVED.json \
+            --review-dir engine/artifacts/pilot-21citydays-review-packets-UNAPPROVED \
+            --out engine/artifacts/pilot-21citydays-CERTIFICATION-V1-UNAPPROVED.json
+      - name: Production DeepSeek gate test against all 21 ACTUAL unapproved reviewer packets (NO API)
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import {readFileSync} from 'node:fs';
+          import {join} from 'node:path';
+          import {factpackIssues} from './admin/src/grounded-day-editorial.mjs';
+          const root='engine/artifacts/pilot-21citydays-review-packets-UNAPPROVED';
+          const manifest=JSON.parse(readFileSync(join(root,'manifest-UNAPPROVED.json')));
+          assert.equal(manifest.records.length,21);
+          for (const entry of manifest.records){
+            const item=JSON.parse(readFileSync(join(root,entry.filename)));
+            const unsigned=item.unapprovedFactpackTemplate;
+            const problems=factpackIssues(unsigned);
+            assert(problems.length>0,entry.filename+' must not reach DeepSeek');
+            assert(problems.some(x=>x==='invalid-science-factpack-identity'||x==='missing-independent-science-review'||x==='incorrect-release-or-authenticity-claims'));
+            assert.equal(item.modelInvocationAuthorized,false);
+          }
+          console.log('PASS: actual private science gate rejects all 21 unapproved factpacks; zero network or paid API calls');
+          JS
       - name: Assert provenance, full coverage, cross-software evidence and no scientific or SEO approval
         run: |
           python - <<'PY'
@@ -214,6 +247,8 @@ jobs:
           assert len({(x['cityId'],x['localDate']) for x in j['records']})==21
           assert s['compared21RealCityDawns']==21
           assert s['independentBoundarySampleCount']==16
+          assert s['uniqueOrdinaryPhaseBoundarySampling'] is True
+          assert len({(x['kind'],x['endingNumber'],x['jplUtc'][:16]) for x in s['boundaryComparisons']})==16
           assert {x['kind'] for x in s['boundaryComparisons']}=={'tithi','karana','nakshatra','yoga'}
           for data in (j,s):
               assert data['scientificApproval'] is False
@@ -243,6 +278,7 @@ jobs:
             engine/artifacts/pilot-21citydays-JPL-UNAPPROVED.json
             engine/artifacts/pilot-21citydays-SWISS-UNAPPROVED.json
             engine/artifacts/pilot-21citydays-TRUTH-MATRIX-UNAPPROVED.json
+            engine/artifacts/pilot-21citydays-CERTIFICATION-V1-UNAPPROVED.json
             engine/artifacts/pilot-21citydays-PAC-OFFICIAL-DATE-MATCHED-UNAPPROVED.json
             engine/artifacts/pilot-21citydays-review-packets-UNAPPROVED/
           if-no-files-found: error
