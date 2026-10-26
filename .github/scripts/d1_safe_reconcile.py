@@ -32,12 +32,18 @@ def checked_journal_columns(rows):
             bool(rows[2].get("dflt_value")))
 
 def counts():
-    statement=" UNION ALL ".join(
-        "SELECT '"+t+"' AS table_name, COUNT(*) AS n FROM "+t for t in TABLES)
-    rows=audit.remote_rows(statement)
-    if set(r.get("table_name") for r in rows)!=set(TABLES):
-        raise RuntimeError("Unexpected or unavailable legacy tables")
-    return {r["table_name"]:int(r["n"]) for r in rows}
+    # Separate single-table SELECTs are compatible with Wrangler's remote D1
+    # query executor and disclose only aggregate counts, never private rows.
+    totals={}
+    for table in TABLES:
+        try:
+            rows=audit.remote_rows("SELECT COUNT(*) AS n FROM "+table)
+        except Exception:
+            raise RuntimeError("Private row-count read failed for allowlisted table "+table) from None
+        if len(rows)!=1 or not isinstance(rows[0].get("n"),int):
+            raise RuntimeError("Unexpected D1 count response for "+table)
+        totals[table]=rows[0]["n"]
+    return totals
 
 def bookmark():
     account=os.getenv("CLOUDFLARE_ACCOUNT_ID","")
