@@ -22,6 +22,10 @@ on:
       - 'engine/fixtures/pac-2026-10-20-central-limbs-UNREVIEWED.json'
       - 'engine/fixtures/pac-2026-10-21-central-limbs-UNREVIEWED.json'
       - 'engine/fixtures/pac-2026-10-22-central-limbs-UNREVIEWED.json'
+      - 'engine/fixtures/pac-2026-10-23-central-limbs-UNREVIEWED.json'
+      - 'engine/fixtures/pac-2026-10-24-central-limbs-UNREVIEWED.json'
+      - 'engine/fixtures/pac-2026-10-25-central-limbs-UNREVIEWED.json'
+      - 'engine/fixtures/pac-2026-10-26-central-limbs-UNREVIEWED.json'
       - 'engine/tests/test_science_truth_matrix.py'
       - 'engine/tests/test_science_factpack_handoff.py'
       - '.github/workflows/seven-day-science-evidence.yml'
@@ -37,6 +41,10 @@ on:
       - 'engine/fixtures/pac-2026-10-20-central-limbs-UNREVIEWED.json'
       - 'engine/fixtures/pac-2026-10-21-central-limbs-UNREVIEWED.json'
       - 'engine/fixtures/pac-2026-10-22-central-limbs-UNREVIEWED.json'
+      - 'engine/fixtures/pac-2026-10-23-central-limbs-UNREVIEWED.json'
+      - 'engine/fixtures/pac-2026-10-24-central-limbs-UNREVIEWED.json'
+      - 'engine/fixtures/pac-2026-10-25-central-limbs-UNREVIEWED.json'
+      - 'engine/fixtures/pac-2026-10-26-central-limbs-UNREVIEWED.json'
       - 'engine/tests/test_science_truth_matrix.py'
       - 'engine/tests/test_science_factpack_handoff.py'
       - '.github/workflows/seven-day-science-evidence.yml'
@@ -123,8 +131,9 @@ jobs:
           assert r['PACDateMatchedCount']+r['PACDateMissingCount']==7
           assert all(not x['publicApproved'] for x in r['dates'])
           if r['cohort']['localDates'][0]=='2026-10-20':
-              assert r['PACDateMatchedCount']==3
-              assert r['officialPublishedPhenomenaReferenced']==15
+              assert r['PACDateMatchedCount']==7
+              assert r['PACDateMissingCount']==0
+              assert r['officialPublishedPhenomenaReferenced']==35
               assert r['sourceAndMethodDiscrepancyCount']>=1
           import os
           with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:

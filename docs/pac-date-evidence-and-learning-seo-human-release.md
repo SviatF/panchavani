@@ -8,7 +8,7 @@ The dated October 2026 official Rashtriya Panchang was found at:
 - [PAC explanation](https://packolkata.imd.gov.in/panchang/en/explanation)
 - [IMD overview of Rashtriya Panchang](https://mausam.imd.gov.in/responsive/rashtriyPanchang.php)
 
-Three manually transcribed **UNREVIEWED** fixtures are in `engine/fixtures/`: 2026-10-20, 2026-10-21, 2026-10-22.
+Seven manually transcribed **UNREVIEWED** fixtures are in `engine/fixtures/`: 2026-10-20 through 2026-10-26. The first three come from official PAC Asvina; the remaining four from [PAC Kartika](https://packolkata.imd.gov.in/panchang/bn/kartika).
 
 For each date, exactly five dated observations have been captured: Tithi, Nakshatra, Yoga and both Karana endings. PAC uses sunrise-reckoned Indian Standard Time, including 24–30 hour notation, and an adopted **central station** for sun events. Per official explanation, geocentric limb endings can be compared at the same global instant; **the central-station sunrise is not a measured sunrise for Delhi, Mumbai or Chennai**.
 
@@ -20,7 +20,7 @@ The seven-day JPL / Swiss workflow now:
 4. Emits `pilot-21citydays-PAC-OFFICIAL-DATE-MATCHED-UNAPPROVED.json` into the private 30-day GitHub research artifact.
 5. Reports uncovered dates as `NO_DATE_MATCHED_OFFICIAL_TRANSCRIPTION`, never numerical agreement. Weekly future dates without a matching PAC fixture are reported as missing rather than fabricated.
 
-Remaining blocker: three unreviewed source transcriptions are not independently archived or verified, the PAC variable ayanamsa is not independently calibrated to our provisional JPL method, and future/other dates need original dated PAC evidence. Therefore `scienceApproval=false` and paid DeepSeek/public SEO stay disabled. An expert must resolve residuals, original source identity, historical D1/R2 SHA, city observation point and necessary ritual rules before signing.
+Remaining blocker: seven unreviewed source transcriptions are not independently archived or verified, the PAC variable ayanamsa is not independently calibrated to our provisional JPL method, and future/other dates need original dated PAC evidence. Therefore `scienceApproval=false` and paid DeepSeek/public SEO stay disabled. An expert must resolve residuals, original source identity, historical D1/R2 SHA, city observation point and necessary ritual rules before signing.
 
 ## Three educational guides: independent two-person editorial release
 
@@ -58,3 +58,7 @@ The 2026-10-26 JPL/Swiss/PAC production research artifact reported 15 official P
 The science report flags any discrepancy **greater than 60 seconds** separately from the existing 30-minute *exploratory alert*. Neither number is a certified ephemeris accuracy threshold. This specific discrepancy requires review of the original official printed source, the chosen number-21 Karana boundary, UTC/TT conventions and the JPL/Swiss method before any factpack receives authorization. The raw fixture is retained as `UNREVIEWED` and never corrected just to match JPL.
 
 The list of resolved-versus-unresolved discrepancies is included in the GitHub Actions summary for the official PAC comparison step and the associated science artifact. No DeepSeek content or published calendar pages depend on these unreviewed research values.
+
+## Full 2026-10-20 to 2026-10-26 government reference coverage
+
+All seven daily PAC records are now provided for the three-city research pilot as geocentric/central-station reference fixtures, containing 35 individual event endings. The reference coverage is complete for the fixed October pilot; **this does not mean the 21 city-specific scientific records are independently approved**. The local solar sunrise benchmark remains a separate calculation/observer review and the PAC 21 October Vanij +567s discrepancy remains unresolved. The same CI workflow will continue reporting explicit gaps for future weeks without dated PAC source fixtures.

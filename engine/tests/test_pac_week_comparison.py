@@ -22,18 +22,18 @@ def base_report(day):
     for kind in ("tithi","nakshatra","yoga","karana","karana")]
  }
 class PACWeekTests(unittest.TestCase):
- def test_exact_day_coverage_is_three_and_never_city_sunrise(self):
+ def test_full_week_seven_official_dates_never_grant_city_sunrise(self):
   src=week_pac_sources(research(),[
    FIXTURES/("pac-"+x+"-central-limbs-UNREVIEWED.json") for x in
-     ("2026-10-20","2026-10-21","2026-10-22")])
-  self.assertEqual(len(src),3)
+     ("2026-10-20","2026-10-21","2026-10-22","2026-10-23","2026-10-24","2026-10-25","2026-10-26")])
+  self.assertEqual(len(src),7)
   reports=[base_report(x) for x in src]
   report=build_report(research(),src,reports)
-  self.assertEqual(report["PACDateMatchedCount"],3)
-  self.assertEqual(report["PACDateMissingCount"],4)
-  self.assertEqual(report["officialPublishedPhenomenaReferenced"],15)
+  self.assertEqual(report["PACDateMatchedCount"],7)
+  self.assertEqual(report["PACDateMissingCount"],0)
+  self.assertEqual(report["officialPublishedPhenomenaReferenced"],35)
   self.assertEqual(report["publishedClockResolutionSeconds"],60)
-  self.assertEqual(report["sourceAndMethodDiscrepancyCount"],15)
+  self.assertEqual(report["sourceAndMethodDiscrepancyCount"],35)
   self.assertTrue(report["sourceAndMethodDiscrepanciesStillRequireIndependentReview"])
   self.assertEqual(report["approvedCitySunriseClaims"],0)
   self.assertFalse(report["scienceApproval"])
