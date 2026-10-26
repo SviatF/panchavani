@@ -28,7 +28,7 @@ jobs:
       - name: Read counters for ingestion, source review and DeepSeek production without user data
         run: |
           python3 - <<'PY'
-          import sys, json
+          import sys, json, os
           sys.path.insert(0,'.github/scripts')
           from d1_schema_audit import remote_rows
           targets={
@@ -52,7 +52,7 @@ jobs:
           results['publicationAuthorization']='not-established-by-private-D1'
           results['indexingAuthorization']='not-established-by-private-D1'
           print(json.dumps(results,indent=2,sort_keys=True))
-          with open(sys.argv[0] if False else __import__('os').environ['GITHUB_STEP_SUMMARY'],'a') as out:
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:
               out.write('## Private PANCHAVANI production counters (READ ONLY)\\n\\n')
               out.write('| Metric | Records |\\n|---|---:|\\n')
               for k,v in results.items():
