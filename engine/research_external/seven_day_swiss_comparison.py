@@ -69,7 +69,8 @@ def evaluate_research(data,adapter,model,limit=16):
     anomaly_date="2026-10-21"
     anomaly_key=[(kind,num,moment) for (kind,num,_),moment in candidates.items()
                  if kind=="karana" and num==21 and moment.astimezone(timezone.utc).date().isoformat()==anomaly_date]
-    if len(anomaly_key)!=1:
+    fixed_cohort="2026-10-21" in data["localDates"]
+    if fixed_cohort and len(anomaly_key)!=1:
         raise ValueError("Cannot uniquely bind PAC Vanij anomaly to Karana #21")
     solved=[]
     for kind,number,origin in samples:
@@ -83,26 +84,28 @@ def evaluate_research(data,adapter,model,limit=16):
             solved.append({"kind":kind,"endingNumber":number,"jplUtc":text,
                 "swissMinusJplSeconds":None,
                 "status":"independent-crossing-not-bracketed-NEEDS_EXPERT_REVIEW"})
-    kind,number,jpl=anomaly_key[0]
-    try:
-        other=find_swiss_boundary(kind,jpl,number)
-    except ValueError:
-        other=None
-    # Official h. 26-27 on Oct 21 is Oct 22 02:27 India clock.
-    official_utc=datetime(2026,10,21,20,57,0,tzinfo=timezone.utc)
-    anomaly={
-        "cityScope":"GEOCENTRIC_NOT_CITY_SUNRISE",
-        "dateLabel":"2026-10-21",
-        "kind":"karana","endingNumber":21,
-        "officialPACPrintedClock":"26-27",
-        "officialPACInstantUtc":official_utc.isoformat().replace("+00:00","Z"),
-        "jplInstantUtc":jpl.isoformat().replace("+00:00","Z"),
-        "swissMoshierInstantUtc":other.isoformat().replace("+00:00","Z") if other else None,
-        "swissMinusJplSeconds":round((other-jpl).total_seconds(),6) if other else None,
-        "swissMinusPACSeconds":round((other-official_utc).total_seconds(),6) if other else None,
-        "sourceSnapshotReviewed":False,"methodEquivalenceEstablished":False,
-        "scientificApproval":False,"publicationAuthorized":False
-    }
+    anomaly=None
+    if fixed_cohort:
+        kind,number,jpl=anomaly_key[0]
+        try:
+            other=find_swiss_boundary(kind,jpl,number)
+        except ValueError:
+            other=None
+        # Official h. 26-27 on Oct 21 is Oct 22 02:27 India clock.
+        official_utc=datetime(2026,10,21,20,57,0,tzinfo=timezone.utc)
+        anomaly={
+            "cityScope":"GEOCENTRIC_NOT_CITY_SUNRISE",
+            "dateLabel":"2026-10-21",
+            "kind":"karana","endingNumber":21,
+            "officialPACPrintedClock":"26-27",
+            "officialPACInstantUtc":official_utc.isoformat().replace("+00:00","Z"),
+            "jplInstantUtc":jpl.isoformat().replace("+00:00","Z"),
+            "swissMoshierInstantUtc":other.isoformat().replace("+00:00","Z") if other else None,
+            "swissMinusJplSeconds":round((other-jpl).total_seconds(),6) if other else None,
+            "swissMinusPACSeconds":round((other-official_utc).total_seconds(),6) if other else None,
+            "sourceSnapshotReviewed":False,"methodEquivalenceEstablished":False,
+            "scientificApproval":False,"publicationAuthorized":False
+        }
     return {
         "targetedPACVanijDiscrepancy":anomaly,
         "uniqueOrdinaryPhaseBoundarySampling":True,
