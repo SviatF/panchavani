@@ -110,6 +110,9 @@ export const sectionExperience={
   ],
   checklist:['Read the value active at local sunrise','Look for each element’s next transition time','Use IST consistently when comparing timestamps','Check regional rules before assigning an observance'],
   links:[
+   {title:'What is Tithi?',description:'A complete explanation of lunar days, Paksha and sunrise.',href:'/learn/what-is-tithi/'},
+   {title:'What is Nakshatra?',description:'Learn sidereal divisions and why methods disagree near boundaries.',href:'/learn/what-is-nakshatra/'},
+   {title:'Why sunrise differs by city',description:'Understand local horizons and geocentric lunar intervals.',href:'/learn/sunrise-and-city-panchang/'},
    {title:'Delhi Panchang guide',description:'A practical example of the city and sunrise question.',href:'/panchang/delhi/'},
    {title:'Browse all ten cities',description:'Compare local explanatory guides.',href:'/panchang/'},
    {title:'Hindu calendar explained',description:'Connect lunar intervals to calendar months.',href:'/calendar/'}
