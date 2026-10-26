@@ -61,7 +61,9 @@ def build_report(science,matched,computed):
            "deltas":[{"kind":r["type"],"number":r["number"],
              "pacEndIst":r["officialIST"],"computedEndIst":r["computedIST"],
              "computedMinusPacSeconds":r["deltaSeconds"],
-             "outsideExploratory30MinuteAlert":not r["withinResearchAlertThreshold"]}
+             "outsideExploratory30MinuteAlert":not r["withinResearchAlertThreshold"],
+             "outsidePublishedMinuteResolution":abs(r["deltaSeconds"])>60,
+             "requiresSourceAndMethodInvestigation":abs(r["deltaSeconds"])>60}
              for r in record["comparisons"]],
            "sourceArchivedAndIndependentlyVerified":False,
            "sourceTranscriptionIndependentlyReviewed":False,
@@ -76,6 +78,11 @@ def build_report(science,matched,computed):
       "PACDateMatchedCount":len(matched),
       "PACDateMissingCount":7-len(matched),
       "officialPublishedPhenomenaReferenced":5*len(matched),
+      "publishedClockResolutionSeconds":60,
+      "sourceAndMethodDiscrepancyCount":sum(
+         abs(item["deltaSeconds"])>60
+         for x in computed for item in x["comparisons"]),
+      "sourceAndMethodDiscrepanciesStillRequireIndependentReview":True,
       "geocentricComparisonNotCitySpecific":True,
       "officialSourceReference":PAC_CANONICAL,
       "sourceTranscriptionsIndependentlyReviewed":False,
