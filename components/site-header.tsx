@@ -6,6 +6,9 @@ import { Search, MapPin, Menu, X, Settings2, ChevronDown, ArrowUpRight } from 'l
 import { primaryNav, muhuratCards } from '@/lib/site';
 import {CITY_OPTIONS,isGuideCity,useResearchCity} from '@/components/city-selection';
 const targets = [
+  {label:'What is Tithi?',href:'/learn/what-is-tithi/',detail:'Lunar day and Paksha explained'},
+  {label:'What is Nakshatra?',href:'/learn/what-is-nakshatra/',detail:'Lunar mansion and ayanamsa'},
+  {label:'Sunrise and city Panchang',href:'/learn/sunrise-and-city-panchang/',detail:'Why local solar time differs'},
   ...primaryNav.map(n=>({label:n.title,href:n.href,detail:'Explore section'})),
   ...muhuratCards.map(n=>({label:n.title,href:`/muhurat/${n.slug}/`,detail:'Muhurat planning'})),
   {label:'Dussehra',href:'/festivals/dussehra/',detail:'Festival story'},
