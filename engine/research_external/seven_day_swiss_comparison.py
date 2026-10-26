@@ -5,7 +5,7 @@ Method/ephemeris mismatch is a *finding*, never science approval.
 """
 from __future__ import annotations
 import argparse,json
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from pathlib import Path
 
 import swisseph as swe
@@ -41,20 +41,39 @@ def evaluate_research(data,adapter,model,limit=16):
     candidates={}
     for rec in records:
         for kind,events in rec["geocentricBoundariesUtc"].items():
-            for x in events:
-                key=(kind,x["endingNumber"],x["endUtc"])
-                candidates[key]=x["endUtc"]
+            for event in events:
+                moment=datetime.fromisoformat(event["endUtc"].replace("Z","+00:00"))
+                # The same geocentric transition appears in multiple city
+                # packets, sometimes with a few microseconds of solver drift.
+                # Minute bucket is ONLY for sample de-duplication, not for
+                # astronomical timing or accepting an error threshold.
+                key=(kind,event["endingNumber"],int(moment.timestamp()//60))
+                prior=candidates.get(key)
+                if prior is None or moment<prior:
+                    candidates[key]=moment
     kinds=("tithi","karana","nakshatra","yoga")
     per_kind=max(1,limit//len(kinds))
     samples=[]
     for kind in kinds:
-        samples.extend([x for x in sorted(candidates) if x[0]==kind][:per_kind])
-    samples=samples[:limit]
-    if len({x[0] for x in samples})!=len(kinds):
-        raise ValueError("Missing independent boundary samples for one or more lunar components")
+        unique=sorted((number,moment) for (name,number,_),moment in candidates.items()
+                      if name==kind)
+        # Spread across the week rather than choosing four nearly identical
+        # copies of one transition in adjacent cities.
+        if len(unique)<per_kind:
+            raise ValueError("Insufficient unique cross-program event boundaries: "+kind)
+        samples.extend((kind,num,moment) for num,moment in unique[:per_kind])
+    if len(samples)!=limit or len({(k,n,int(t.timestamp()//60)) for k,n,t in samples})!=limit:
+        raise ValueError("Repeated physical Swiss boundary sample")
+    # A PAC anomaly gets an EXTRA targeted independent solution. It must
+    # not displace the 16 stratified ordinary samples or become approval.
+    anomaly_date="2026-10-21"
+    anomaly_key=[(kind,num,moment) for (kind,num,_),moment in candidates.items()
+                 if kind=="karana" and num==21 and moment.astimezone(timezone.utc).date().isoformat()==anomaly_date]
+    if len(anomaly_key)!=1:
+        raise ValueError("Cannot uniquely bind PAC Vanij anomaly to Karana #21")
     solved=[]
-    for kind,number,text in samples:
-        origin=datetime.fromisoformat(text.replace("Z","+00:00"))
+    for kind,number,origin in samples:
+        text=origin.astimezone(timezone.utc).isoformat().replace("+00:00","Z")
         try:
             different=find_swiss_boundary(kind,origin,number)
             delta=round((different-origin).total_seconds(),6)
@@ -64,7 +83,29 @@ def evaluate_research(data,adapter,model,limit=16):
             solved.append({"kind":kind,"endingNumber":number,"jplUtc":text,
                 "swissMinusJplSeconds":None,
                 "status":"independent-crossing-not-bracketed-NEEDS_EXPERT_REVIEW"})
+    kind,number,jpl=anomaly_key[0]
+    try:
+        other=find_swiss_boundary(kind,jpl,number)
+    except ValueError:
+        other=None
+    # Official h. 26-27 on Oct 21 is Oct 22 02:27 India clock.
+    official_utc=datetime(2026,10,21,20,57,0,tzinfo=timezone.utc)
+    anomaly={
+        "cityScope":"GEOCENTRIC_NOT_CITY_SUNRISE",
+        "dateLabel":"2026-10-21",
+        "kind":"karana","endingNumber":21,
+        "officialPACPrintedClock":"26-27",
+        "officialPACInstantUtc":official_utc.isoformat().replace("+00:00","Z"),
+        "jplInstantUtc":jpl.isoformat().replace("+00:00","Z"),
+        "swissMoshierInstantUtc":other.isoformat().replace("+00:00","Z") if other else None,
+        "swissMinusJplSeconds":round((other-jpl).total_seconds(),6) if other else None,
+        "swissMinusPACSeconds":round((other-official_utc).total_seconds(),6) if other else None,
+        "sourceSnapshotReviewed":False,"methodEquivalenceEstablished":False,
+        "scientificApproval":False,"publicationAuthorized":False
+    }
     return {
+        "targetedPACVanijDiscrepancy":anomaly,
+        "uniqueOrdinaryPhaseBoundarySampling":True,
         "artifactType":"PANCHAVANI_21_CITY_DAY_SWISS_ANALYTIC_DIAGNOSTIC",
         "schemaVersion":1,
         "status":"INDEPENDENT_DIAGNOSTIC_NOT_METHOD_EQUIVALENCE",
