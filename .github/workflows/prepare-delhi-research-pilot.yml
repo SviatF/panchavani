@@ -7,13 +7,15 @@ on:
       - 'engine/tests/test_public_research_pilot.py'
       - '.github/workflows/prepare-delhi-research-pilot.yml'
 permissions:
-  contents: read
+  contents: write
 jobs:
   science-preview-source:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -52,6 +54,17 @@ jobs:
           assert all(x['indexingAuthorized'] is False for x in a['days'])
           print('PASS: seven date-specific, explicit research-only daily records')
           PY
+      - name: Attach exact source-locked JPL research bundle to INTERNAL PR branch
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          cp /tmp/panchavani-delhi-seven-articles-UNAPPROVED.json data/research-panchang-pilot.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/research-panchang-pilot.json
+          if ! git diff --cached --quiet; then
+            git commit -m "science: pin seven unapproved Delhi JPL research days for staged noindex testing"
+            git push origin "HEAD:${{ github.head_ref }}"
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: panchavani-delhi-2026-10-27-to-11-02-NOINDEX-research-source
