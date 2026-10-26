@@ -1,0 +1,107 @@
+name: PANCHAVANI 21-city-day JPL and independent Swiss evidence (NO APPROVAL)
+on:
+  workflow_dispatch:
+    inputs:
+      start:
+        description: First local Indian date of seven-day review YYYY-MM-DD
+        required: true
+        default: '2026-10-20'
+        type: string
+  push:
+    branches: [main]
+    paths:
+      - 'engine/panchavani/seven_day_science_pilot.py'
+      - 'engine/research_external/seven_day_swiss_comparison.py'
+      - 'engine/tests/test_seven_day_science_pilot.py'
+      - '.github/workflows/seven-day-science-evidence.yml'
+  pull_request:
+    paths:
+      - 'engine/panchavani/seven_day_science_pilot.py'
+      - 'engine/research_external/seven_day_swiss_comparison.py'
+      - 'engine/tests/test_seven_day_science_pilot.py'
+      - '.github/workflows/seven-day-science-evidence.yml'
+permissions:
+  contents: read
+jobs:
+  pilot-science-comparison:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PILOT_START: ${{ inputs.start || '2026-10-20' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Prove fail-closed 21-day structural and publication-denial tests
+        run: |
+          PYTHONPATH=engine python -m unittest discover -s engine/tests -p 'test_seven_day_science_pilot.py' -v
+          PYTHONPATH=engine python -m unittest discover -s engine/tests -p 'test_first_six_limb_pilot.py' -v
+      - name: Install pinned runtime Skyfield and isolated test-only Swiss comparator
+        run: |
+          python -m pip install -r engine/requirements.txt
+          echo 'pyswisseph==2.10.3.2 --hash=sha256:e00d7e08aeafe00938603bc118874b6ca7871c5aaa55aafca8fa2c6d76aff812' > /tmp/swiss-qa-only.txt
+          python -m pip install --require-hashes --only-binary=:all: --no-deps -r /tmp/swiss-qa-only.txt
+          python -c "import swisseph as swe; assert swe.version=='2.10.03'"
+      - name: Download immutable NASA JPL DE440s ephemeris
+        run: |
+          curl --fail --location --retry 3 --max-time 240 --silent --show-error \
+            https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp \
+            --output /tmp/de440s.bsp
+          echo 'c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2  /tmp/de440s.bsp' | sha256sum --check
+      - name: Compute seven consecutive local solar days for Delhi Mumbai Chennai
+        run: |
+          PYTHONPATH=engine python -m panchavani.seven_day_science_pilot \
+            --ephemeris /tmp/de440s.bsp \
+            --start "$PILOT_START" \
+            --out engine/artifacts/pilot-21citydays-JPL-UNAPPROVED.json
+      - name: Independently compare actual 21 local dawns and 16 phase boundaries with Swiss
+        run: |
+          PYTHONPATH=engine python engine/research_external/seven_day_swiss_comparison.py \
+            --ephemeris /tmp/de440s.bsp \
+            --science engine/artifacts/pilot-21citydays-JPL-UNAPPROVED.json \
+            --out engine/artifacts/pilot-21citydays-SWISS-UNAPPROVED.json
+      - name: Assert provenance, full coverage, cross-software evidence and no scientific or SEO approval
+        run: |
+          python - <<'PY'
+          import json,hashlib,os
+          from pathlib import Path
+          a=Path('engine/artifacts/pilot-21citydays-JPL-UNAPPROVED.json')
+          b=Path('engine/artifacts/pilot-21citydays-SWISS-UNAPPROVED.json')
+          j=json.loads(a.read_text());s=json.loads(b.read_text())
+          assert len(j['records'])==21
+          assert j['qualityReport']['adjacentFourLimbChecks']==72
+          assert len(j['localDates'])==7
+          assert len({(x['cityId'],x['localDate']) for x in j['records']})==21
+          assert s['compared21RealCityDawns']==21
+          assert s['independentBoundarySampleCount']==16
+          assert {x['kind'] for x in s['boundaryComparisons']}=={'tithi','karana','nakshatra','yoga'}
+          for data in (j,s):
+              assert data['scientificApproval'] is False
+              assert data['publicationAuthorized'] is False
+              assert data['indexingAuthorized'] is False
+              assert data['modelInvocationAuthorized'] is False
+              assert data['approvedClaimsForDeepSeek']==[]
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+              f.write('## PANCHAVANI 21 city-day research pilot\\n\\n')
+              f.write('**Independent method certification: NO · Scientific approval: NO · Google indexing: NO.**\\n\\n')
+              f.write('| Evidence | Result |\\n|---|---:|\\n')
+              f.write(f"| JPL city-day source records | {len(j['records'])} |\\n")
+              f.write(f"| Four-limb cross-day checks | {j['qualityReport']['adjacentFourLimbChecks']} |\\n")
+              f.write(f"| Swiss independently compared local dawns | {s['compared21RealCityDawns']} |\\n")
+              f.write(f"| Swiss independently attempted limb boundaries | {s['independentBoundarySampleCount']} |\\n")
+              f.write(f"| Unresolved boundary solves | {s['unresolvedIndependentBoundaries']} |\\n")
+              f.write(f"| Nakshatra dawn label differences | {s['nakshatraSunriseDisagreements']} |\\n")
+              f.write(f"| Yoga dawn label differences | {s['yogaSunriseDisagreements']} |\\n")
+              f.write('\\n**Source SHA-256** JPL report: '+hashlib.sha256(a.read_bytes()).hexdigest()+'\\n')
+              f.write('\\n**Source SHA-256** Swiss report: '+hashlib.sha256(b.read_bytes()).hexdigest()+'\\n')
+              f.write('\\nThese files are **research** and are not the original byte-identical D1/R2 historical records. A human science reviewer must reconcile ephemeris method, Lahiri convention, reference city coordinates and stored-source conflicts before any signed facts or DeepSeek.\\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: panchavani-21-citydays-jpl-swiss-review-UNAPPROVED
+          path: |
+            engine/artifacts/pilot-21citydays-JPL-UNAPPROVED.json
+            engine/artifacts/pilot-21citydays-SWISS-UNAPPROVED.json
+          if-no-files-found: error
+          retention-days: 30
