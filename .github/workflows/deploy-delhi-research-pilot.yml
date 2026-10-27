@@ -1,7 +1,9 @@
 name: PANCHAVANI seven-day Delhi research post and SEO QA (NOINDEX)
 on:
   schedule:
-    - cron: '30 02 * * *'
+    # Seven study dates only (calendar-year guard is enforced in job below).
+    - cron: '30 02 27-31 10 *'
+    - cron: '30 02 1-2 11 *'
   workflow_dispatch:
   push:
     branches: [main]
